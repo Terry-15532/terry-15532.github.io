@@ -21,8 +21,8 @@
 title: Terry's Personal Website
 email: kafuuchino_15532@foxmail.com
 description: This is Terry's personal website. You can view my self introductions and portfolios here :)
-baseurl: "/portfolio"
-url: "https://terry-15532.github.io"
+baseurl: "" # the subpath of your site, e.g. /blog
+url: "terry-15532.github.io" # the base hostname & protocol for your site, e.g. http://example.com
 twitter_username: jekyllrb
 github_username:  jekyll
 
