@@ -68,14 +68,38 @@ body {
     font-weight: bold;
     color: white;
     font-size: 80px;
-    text-shadow:0px, 0px, 5px, #FFFFFF;
+    -webkit-text-shadow: 0px, 0px, 5px, #FFFFFF;
+    text-shadow: 0px, 0px, 5px, #FFFFFF;
     display: block;
 }
 
 .selfIntro {
-    font-size: 30;
+    font-size: 30px;
     margin-left: calc(10% + 50px);
     margin-top: 10px;
     font-weight: 500;
     color: rgb(230, 230, 230);
+    line-height: 150%;
+    width: 700px;
+}
+
+body::-webkit-scrollbar {
+    display: none;
+    /* Chrome Safari */
+}
+
+body{
+    scrollbar-width: none;
+    /* firefox */
+    -ms-overflow-style: none;
+    /* IE 10+ */
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+@media screen and (max-width: 1000px) {
+    .selfIntro {
+        width: 90%;
+    }
+
 }
