@@ -1,6 +1,8 @@
 .head{
     position: sticky;
     background-color: rgb(20,20,20);
+    color:whitesmoke;
+    font-family: sans-serif;
 }
 
 .headButton:link{
