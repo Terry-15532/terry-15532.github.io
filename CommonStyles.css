@@ -4,12 +4,12 @@
     background-color: rgb(10, 10, 10);
     color: whitesmoke;
     font-family: sans-serif;
-    font-size: 50px;
+    font-size: 40px;
 
     border-radius: 15px;
 
     height: 60px;
-    width: 100%;
+    width: calc(100% - 25px);
 
     text-align: left;
     padding: 5px;
@@ -24,8 +24,9 @@ body {
 .head p {
     font-weight: bold;
     text-align: left;
+    height: 60px;
     padding-left: 20px;
-    display: table-cell; 
+    display: table-cell;
     vertical-align: middle;
 }
 
@@ -50,4 +51,31 @@ body {
 
 .headbutton:active {
     background-color: rgb(50, 50, 50);
+}
+
+.primaryBackground {
+    background-image: linear-gradient(to top, rgb(10, 10, 10), rgb(50, 50, 50));
+    position: fixed;
+    top: 0px;
+    height: 100%;
+    width: 100%;
+    z-index: -10;
+}
+
+.myName {
+    font-family: sans-serif;
+    margin-left: 10%;
+    font-weight: bold;
+    color: white;
+    font-size: 80px;
+    text-shadow:0px, 0px, 5px, #FFFFFF;
+    display: block;
+}
+
+.selfIntro {
+    font-size: 30;
+    margin-left: calc(10% + 50px);
+    margin-top: 10px;
+    font-weight: 500;
+    color: rgb(230, 230, 230);
 }
