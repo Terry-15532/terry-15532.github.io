@@ -150,12 +150,14 @@ div::-webkit-scrollbar {
     display: none;
 }
 
-html::-webkit-scrollbar {
-    display: none;
+::-webkit-scrollbar {
+    width: 6px;
+    background-image: linear-gradient(to top, rgb(10, 10, 10), rgb(50, 50, 50));
 }
 
-body::-webkit-scrollbar {
-    display: none;
+::-webkit-scrollbar-thumb {
+    border-radius: 5px;
+    background-color: rgb(70, 70, 70);
 }
 
 html,
@@ -164,7 +166,7 @@ body {
 }
 
 div {
-    overflow-y: hidden;
+    overflow-y: visible;
 }
 
 .noSelect {
@@ -182,7 +184,7 @@ vr {
 }
 
 .wrapper {
-    min-height: 100%;
+    min-height: calc(100% / var(--zoom-level));
     /* display: grid;
     grid-template-rows: auto 1fr auto; */
     /* flex-direction: column; */
@@ -254,7 +256,7 @@ vr {
     }
 } */
 
-/* @media (max-width: 400px) {
+@media (max-width: 400px) {
     body {
         zoom: 0.3;
     }
@@ -282,4 +284,4 @@ vr {
     body {
         zoom: 1;
     }
-} */
+}
