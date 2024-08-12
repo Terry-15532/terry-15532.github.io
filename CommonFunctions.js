@@ -66,31 +66,34 @@ function SwitchPage(filename, header, index) {
 }
 
 function moveAndReplaceBody_Right(content) {
-    const body = document.getElementById('body');
+    const body = document.getElementById("body");
 
-    const oldBody = document.createElement('div');
-    oldBody.id = 'oldBody';
-    oldBody.style.position = 'absolute';
-    oldBody.style.width = '100%';
-    oldBody.style.transition = 'transform 500ms';
+    const oldBody = document.createElement("div");
+    oldBody.id = "oldBody";
+    oldBody.style.position = "absolute";
+    oldBody.style.width = "100%";
+    oldBody.style.transition = "transform 500ms";
     oldBody.style.top = "90px";
 
     oldBody.innerHTML = body.innerHTML;
-    body.innerHTML = '';
+    body.innerHTML = "";
     document.body.appendChild(oldBody);
 
     setTimeout(() => {
-        oldBody.style.transform = 'translateX(-200%)';
+        oldBody.style.transform = "translateX(-200%)";
     }, 10);
 
-    const newContent = document.createElement('div');
+    const newContent = document.createElement("div");
     newContent.innerHTML = content;
-    newContent.style.transform = 'translateX(200%)';
-    newContent.style.transition = 'transform 500ms';
+    newContent.style.position = "relative";
+    newContent.style.width = "100%";
+    newContent.style.transform = "translateX(200%)";
+    newContent.style.transition = "transform 500ms";
+    newContent.style.top = "90px";
     body.appendChild(newContent);
 
     setTimeout(() => {
-        newContent.style.transform = 'translateX(0)';
+        newContent.style.transform = "translateX(0%)";
     }, 10);
 
     setTimeout(() => {
@@ -99,31 +102,34 @@ function moveAndReplaceBody_Right(content) {
 }
 
 function moveAndReplaceBody_Left(content) {
-    const body = document.getElementById('body');
+    const body = document.getElementById("body");
 
-    const oldBody = document.createElement('div');
-    oldBody.id = 'oldBody';
-    oldBody.style.position = 'absolute';
-    oldBody.style.width = '100%';
-    oldBody.style.transition = 'transform 500ms';
+    const oldBody = document.createElement("div");
+    oldBody.id = "oldBody";
+    oldBody.style.position = "absolute";
+    oldBody.style.width = "100%";
+    oldBody.style.transition = "transform 500ms";
     oldBody.style.top = "90px";
 
     oldBody.innerHTML = body.innerHTML;
-    body.innerHTML = '';
+    body.innerHTML = "";
     document.body.appendChild(oldBody);
 
     setTimeout(() => {
-        oldBody.style.transform = 'translateX(200%)';
+        oldBody.style.transform = "translateX(200%)";
     }, 10);
 
-    const newContent = document.createElement('div');
+    const newContent = document.createElement("div");
     newContent.innerHTML = content;
-    newContent.style.transform = 'translateX(-200%)';
-    newContent.style.transition = 'transform 500ms';
+    newContent.style.position = "relative";
+    newContent.style.width = "100%";
+    newContent.style.transform = "translateX(-200%)";
+    newContent.style.transition = "transform 500ms";
+    newContent.style.top = "90px";
     body.appendChild(newContent);
 
     setTimeout(() => {
-        newContent.style.transform = 'translateX(0)';
+        newContent.style.transform = "translateX(0%)";
     }, 10);
 
     setTimeout(() => {
