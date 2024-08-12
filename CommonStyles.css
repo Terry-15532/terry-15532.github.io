@@ -146,7 +146,7 @@ vr {
 }
 
 .wrapper {
-    min-height: calc(120vh / var(--zoom-level));
+    min-height: calc(100vh / var(--zoom-level));
 }
 
 .footer {
