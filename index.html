@@ -10,6 +10,7 @@
 
     <script>
         AddHeader();
+        AddFileAt("footer", "footer.html", true)
         function updateZoomLevel() {
             let zoomLevel = window.outerWidth / window.innerWidth;
             document.documentElement.style.setProperty('--zoom-level', zoomLevel);
@@ -25,6 +26,6 @@
 
 <div id="body"></div>
 
-<div id="footer" class="footer"></div>
+<div id="footer"></div>
 
 </html>
