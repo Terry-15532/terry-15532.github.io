@@ -105,7 +105,7 @@ function MoveAndReplaceBody_Right(content) {
 async function alertEmail() {
     await navigator.clipboard.writeText("kafuuchino_15532@foxmail.com");
     setTimeout(async () => {
-        alert("My Email Address: kafuuchino_15532@foxmail.com\n\nThe email address is copied to your clipboard. If the default email software didn't pop out, please enter this address manually in your email software.");
+        alert("My Email Address: kafuuchino_15532@foxmail.com\n\nThe email address is copied to your clipboard. If the default email software doesn't pop out, please enter this address manually in your email software.");
     }, 1);
 }
 
