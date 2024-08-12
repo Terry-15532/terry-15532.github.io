@@ -2,15 +2,15 @@ function $(id) {
     return document.getElementById(id);
 }
 
-function switchToPortfolio() {
+function SwitchToPortfolio() {
     SwitchPage("portfolio.html", "My Portfolio", 2);
 }
 
-function switchToAbout() {
+function SwitchToAbout() {
     SwitchPage("about.html", "About Me", 1);
 }
 
-function setElm(id, name) {
+function SetElm(id, name) {
     $(id).innerHTML = name;
 }
 
@@ -18,7 +18,7 @@ function AddHeader() {
     fetch("header.html")
         .then(response => response.text())
         .then(data => {
-            setElm("header", data);
+            SetElm("header", data);
             SwitchPage("about.html", "About Me", 1);
         }
         );
@@ -28,7 +28,7 @@ function AddFooter() {
     fetch("footer.html")
         .then(response => response.text())
         .then(data => {
-            setElm("footer", data);
+            SetElm("footer", data);
         }
         );
 }
@@ -37,13 +37,13 @@ var currHeader = "";
 
 function ChangeHeader(header) {
     var h = $(header);
-    setElm("headerTitle", header);
-    dispLine(header + "_Line");
+    SetElm("headerTitle", header);
+    DispLine(header + "_Line");
     h.style.pointerEvents = "none";
     h.style.textShadow = "0px 0px 20px rgb(0, 233, 255)";
     let tmp = currHeader;
     currHeader = header;
-    hideLine(tmp + "_Line");
+    HideLine(tmp + "_Line");
     $(tmp).style = "transition: text-shadow 300ms;";
 }
 
@@ -54,18 +54,19 @@ function SwitchPage(filename, header, index) {
         .then(response => response.text())
         .then(data => {
             document.documentElement.scrollTop = 0;
-            if (index > currIndex) {
-                moveAndReplaceBody_Right(data);
+            if (index >= currIndex) {
+                MoveAndReplaceBody_Right(data);
             }
             else {
-                moveAndReplaceBody_Left(data);
+                MoveAndReplaceBody_Left(data);
             }
             currIndex = index;
+            ExecuteScript(data);
         })
     ChangeHeader(header);
 }
 
-function moveAndReplaceBody_Right(content) {
+function MoveAndReplaceBody_Right(content) {
     const body = document.getElementById("body");
 
     const oldBody = document.createElement("div");
@@ -73,7 +74,7 @@ function moveAndReplaceBody_Right(content) {
     oldBody.style.position = "absolute";
     oldBody.style.width = "100%";
     oldBody.style.transition = "transform 500ms";
-    oldBody.style.top = "90px";
+    oldBody.style.top = "110px";
 
     oldBody.innerHTML = body.innerHTML;
     body.innerHTML = "";
@@ -89,7 +90,7 @@ function moveAndReplaceBody_Right(content) {
     newContent.style.width = "100%";
     newContent.style.transform = "translateX(200%)";
     newContent.style.transition = "transform 500ms";
-    newContent.style.top = "90px";
+    newContent.style.top = "110px";
     body.appendChild(newContent);
 
     setTimeout(() => {
@@ -101,7 +102,7 @@ function moveAndReplaceBody_Right(content) {
     }, 600);
 }
 
-function moveAndReplaceBody_Left(content) {
+function MoveAndReplaceBody_Left(content) {
     const body = document.getElementById("body");
 
     const oldBody = document.createElement("div");
@@ -109,7 +110,7 @@ function moveAndReplaceBody_Left(content) {
     oldBody.style.position = "absolute";
     oldBody.style.width = "100%";
     oldBody.style.transition = "transform 500ms";
-    oldBody.style.top = "90px";
+    oldBody.style.top = "110px";
 
     oldBody.innerHTML = body.innerHTML;
     body.innerHTML = "";
@@ -125,7 +126,7 @@ function moveAndReplaceBody_Left(content) {
     newContent.style.width = "100%";
     newContent.style.transform = "translateX(-200%)";
     newContent.style.transition = "transform 500ms";
-    newContent.style.top = "90px";
+    newContent.style.top = "110px";
     body.appendChild(newContent);
 
     setTimeout(() => {
@@ -137,19 +138,36 @@ function moveAndReplaceBody_Left(content) {
     }, 600);
 }
 
-// 调用函数
-moveAndReplaceBodyContent();
+function AddFileAt(id, filename, executeScript) {
+    fetch(filename)
+        .then(response => response.text())
+        .then(data => {
+            $(id).innerHTML = data;
+            if (executeScript) {
+                ExecuteScript(data);
+            }
+        })
+}
 
+function ExecuteScript(content) {
+    let parser = new DOMParser();
+    let doc = parser.parseFromString(content, 'text/html');
+    let scripts = doc.getElementsByClassName("script");
+    let scriptContent;
+    Array.from(scripts).forEach(element => {
+        scriptContent += element.innerHTML;
+    });
+    eval(scriptContent);
+}
 
-
-function dispLine(id) {
+function DispLine(id) {
     let e = $(id);
     e.style.height = "35px";
     e.style.marginTop = "10px";
 
 }
 
-function hideLine(id) {
+function HideLine(id) {
     if (currHeader + "_Line" != id) {
         let e = $(id);
         e.style.height = "0px";

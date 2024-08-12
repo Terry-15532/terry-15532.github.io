@@ -5,7 +5,7 @@
 .head {
     position: fixed;
     top: 5px;
-    background-color: rgb(10, 10, 10);
+    background-color: rgb(10, 10, 10, 0.7);
     color: whitesmoke;
     font-family: sans-serif;
     font-size: 40px;
@@ -13,16 +13,18 @@
     border-radius: 15px;
 
     height: 60px;
-    width: calc(100% - 25px);
+    width: calc(100% - 45px);
 
     text-align: left;
     padding: 5px;
-    margin: 5px;
+    margin: 15px;
     user-select: none;
 
     z-index: 10;
 
     overflow: hidden;
+
+    backdrop-filter: blur(15px);
 }
 
 body {
@@ -55,18 +57,24 @@ body {
     margin-top: 11px;
     font-size: 30px;
     user-select: none;
-    transition: text-shadow 300ms;
+    transition: transform 200ms, text-shadow 200ms !important;
     float: right;
 }
 
 .headButton:link {
     background: none;
+    transform: scale(1);
 }
 
 .headButton:hover {
+    transition: transform 50ms, text-shadow 200ms !important;
+    transform: scale(1.01);
     text-shadow: 0px 0px 20px rgb(200, 200, 200);
-    transition: text-shadow 200ms;
     margin-bottom: 5px;
+}
+
+.headButton:active {
+    transform: scale(0.95);
 }
 
 .primaryBackground {
@@ -80,7 +88,7 @@ body {
 
 .myName {
     font-family: sans-serif;
-    margin-left: 10%;
+    margin-left: 7%;
     font-weight: bold;
     color: white;
     font-size: 80px;
@@ -90,12 +98,12 @@ body {
 
 .selfIntro {
     font-size: 30px;
-    margin-left: calc(10% + 50px);
+    margin-left: calc(7% + 50px);
     margin-top: 10px;
     font-weight: 500;
     color: rgb(230, 230, 230);
     line-height: 150%;
-    width: 50%;
+    width: 45%;
 }
 
 .glow-white {
@@ -138,22 +146,72 @@ vr {
 }
 
 .wrapper {
-    min-height: calc(150vh / var(--zoom-level));
+    min-height: calc(120vh / var(--zoom-level));
 }
 
 .footer {
-    width: 100%;
+    width: calc(100%-40px);
     height: 200px;
     background-color: black;
     text-align: center;
+    padding: 10px;
+    margin: 20px;
+    border-radius: 10px;
+}
+
+#about_self {
+    background-image: url('Resources/About_Self.png');
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px rgb(50, 50, 50);
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    position: absolute;
+    border-color: white;
+    border-style: solid;
+    border-width: 5px;
+    top: calc(90px + 30vh);
+    right: 8%;
+    width: 30vw;
+    height: 40vw;
+    transform: translateY(-50%);
+
+    /* float: right; */
+}
+
+.account {
+    width: 50px;
+    height: 50px;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+    position: static;
+    top: 500px;
+    left: 7%;
+    z-index: 10;
+    transition: transform 200ms;
+}
+
+.account:link {
+    transform: scale(1);
+}
+
+.account:hover {
+    transform: scale(1.05);
+}
+
+.account:active {
+    transform: scale(0.95);
 }
 
 
-@media screen and (max-width: 800px) {
+
+
+/* @media screen and (max-width: 800px) {
     .selfIntro {
         width: 80%;
     }
-}
+} */
 
 
 @media (max-width: 600px) {
@@ -170,6 +228,6 @@ vr {
 
 @media (min-width: 1000px) {
     body {
-        zoom: 1.1;
+        zoom: 1;
     }
 }

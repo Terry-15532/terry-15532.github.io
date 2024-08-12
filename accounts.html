@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+
+<style>
+    .accounts {
+        display: grid;
+        grid-template-columns: 50px 50px 50px 50px 50px;
+        column-count: 5;
+        column-width: 100px;
+        height: 100px;
+        column-gap: calc(10px + 5%);
+        /* margin-top: %; */
+        margin-left: calc(10% + 20px);
+        overflow: visible !important;
+    }
+</style>
+
+<script class="script">
+    function InitIcons() {
+        let icons = document.getElementsByClassName("account");
+        Array.from(icons).forEach(element => {
+            element.style.backgroundImage = "url('Resources/Icons/" + element.getAttribute("fileName") + ".png')";
+        });
+    }
+    InitIcons();
+</script>
+
+<p class="selfIntro" style="margin-top: calc(10px + 5%); margin-left: 9%; text-shadow: 0px 0px 5px rgb(100,100,100); font-size: 30px;"> Contact Me </p>
+<div class="accounts">
+    <a class="account" fileName="Github" href="https://github.com/terry-15532" target="_blank"></a>
+    <a class="account" fileName="Pixiv" href="https://www.pixiv.net/users/87998395" target="_blank"></a>
+    <a class="account" fileName="Itch" href="https://flandrescarlet-15532.itch.io/" target="_blank"></a>
+    <a class="account" fileName="Youtube" href="https://www.youtube.com/@Terry-w-" target="_blank"></a>
+    <a class="account" fileName="Email" href="mailto:kafuuchino_15532@foxmail.com" target="_blank"></a>
+</div>
+
+</html>
