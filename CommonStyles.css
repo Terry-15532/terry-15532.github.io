@@ -1,5 +1,7 @@
 :root {
     --zoom-level: 1;
+    --vh: calc(100vh / var(--zoom-level));
+    --vw: calc(100vw / var(--zoom-level));
 }
 
 .head {
@@ -54,7 +56,8 @@ body {
     font-size: 30px;
     font-family: sans-serif;
     border-style: solid;
-    background-color: transparent;
+    background-color: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(15px);
     border-color: white;
     border-width: 3px;
     border-radius: 50px;
@@ -156,8 +159,8 @@ div::-webkit-scrollbar {
 }
 
 ::-webkit-scrollbar-thumb {
-    border-radius: 5px;
-    background-color: rgb(70, 70, 70);
+    border-radius: 1px;
+    background-color: rgb(130, 130, 130);
 }
 
 html,
@@ -184,10 +187,10 @@ vr {
 }
 
 .wrapper {
-    min-height: calc(100% / var(--zoom-level));
-    /* display: grid;
-    grid-template-rows: auto 1fr auto; */
-    /* flex-direction: column; */
+    min-height: calc(var(--vh) - 350px) !important;
+    /* display: flex !important;
+    flex-direction: column !important; */
+    /* grid-template-rows: auto 1fr auto;  */
 
 }
 
@@ -197,6 +200,7 @@ vr {
     background-color: black;
     text-align: center;
     padding: 10px;
+    padding-bottom: 100px;
     margin: 20px;
     border-radius: 10px;
     margin-top: auto;
@@ -215,8 +219,8 @@ vr {
     border-width: 5px;
     top: 350px;
     right: 9%;
-    width: 330px;
-    height: 420px;
+    width: calc(0.3 * var(--vw));
+    height: calc(0.4 * var(--vw));
     transform: translateY(-50%);
 
     /* float: right; */
@@ -247,41 +251,49 @@ vr {
     transform: scale(0.95);
 }
 
-
-
-
-/* @media screen and (max-width: 800px) {
-    .selfIntro {
-        width: 80%;
-    }
-} */
-
-@media (max-width: 400px) {
-    body {
-        zoom: 0.3;
-    }
+.portfolioItem {
+    /* background-image: url('Resources/About_Self.png'); */
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px black;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    border-color: white;
+    border-style: solid;
+    border-width: 2px;
+    width: 40%;
+    /* float: right; */
+    margin-left: 45%;
+    margin-top: 2.5%;
+    margin-bottom: 5%;
+    height: 80%;
 }
 
-@media (min-width: 400px) and (max-width: 600px) {
-    body {
-        zoom: 0.4;
-    }
+hr {
+    width: 85%;
+    margin-left: 0%;
+    height: 1px;
+    position: static;
+    border: none;
+    background-color: rgb(150, 150, 150);
 }
 
-@media (min-width: 600px) and (max-width: 800px) {
-    body {
-        zoom: 0.6;
-    }
+.portfolioTitle {
+    /* background-image: url('Resources/About_Self.png'); */
+    border-radius: 5px;
+    text-shadow: 0px 0px 10px rgb(100, 100, 100);
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    color: white;
+    font-family: sans-serif;
+    font-weight: bolder;
+    font-size: 55px;
+    width: 50%;
+    margin-top: 5%;
+    float: left;
 }
 
-@media (min-width: 800px) and (max-width: 1200px) {
-    body {
-        zoom: 0.8;
-    }
-}
-
-@media (min-width: 1200px) {
-    body {
-        zoom: 1;
-    }
+body {
+    zoom: var(--zoom-level);
 }

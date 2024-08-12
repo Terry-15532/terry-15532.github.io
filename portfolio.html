@@ -2,15 +2,53 @@
 <html>
 
 <script class="script">
+    MoveElement("backButton", "body");
 </script>
 
+
+<div class="normalButton" onclick="SwitchToAbout()" id="backButton" style="width: 200px;
+    font-size: 35px; 
+    padding-top: 15px; 
+    height: 55px;
+    padding-right: 50px;
+    position: fixed !important; 
+    left: 30px;
+    bottom: 50px;
+    z-index: 1000;
+    filter: none !important;">
+    <div style="font-weight: normal; float:left; margin-left: 50px; margin-top: -6px;">〈 </div>
+    Back
+</div>
+
 <div style="font-family: sans-serif;" class="wrapper">
-    <div style="display: grid;">
 
+    <div style="height: 100px"></div>
 
+    <div style="display: grid; grid-template-columns: calc(1 * var(--vw));
+         row-gap: 5%; column-gap: 5%; grid-auto-rows: calc(0.3 * var(--vw)); margin: calc(0.1 * var(--vw) - 50px);">
+
+        <div>
+            <div class="portfolioTitle">Life At Work</div>
+            <div class="portfolioItem"></div>
+            <hr>
+        </div>
+
+        <div>
+            <div class="portfolioTitle">Plan Oneirous</div>
+            <div class="portfolioItem"></div>
+            <hr>
+        </div>
+
+        <div>
+            <div class="portfolioTitle">Island City</div>
+            <div class="portfolioItem"></div>
+            <hr>
+        </div>
+
+        <!-- <iframe src="Projects/LifeAtWork/LifeAtWork.pdf" width="90%" height="600px" style="margin-left: 5%"></iframe> -->
     </div>
-    <p style="margin-bottom: 100%;"></p>
-    <div id="accounts_portfolio"></div>
+
+    <p style="height: 200px"></p>
 </div>
 
 

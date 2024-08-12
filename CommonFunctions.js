@@ -86,7 +86,7 @@ function MoveAndReplaceBody_Right(content) {
 
     const newContent = document.createElement("div");
     newContent.innerHTML = content;
-    newContent.style.position = "relative";
+    newContent.style.position = "static";
     newContent.style.width = "100%";
     newContent.style.transform = "translateX(200%)";
     newContent.style.transition = "transform 500ms";
@@ -100,13 +100,6 @@ function MoveAndReplaceBody_Right(content) {
     setTimeout(() => {
         oldBody.remove();
     }, 600);
-}
-
-async function alertEmail() {
-    await navigator.clipboard.writeText("kafuuchino_15532@foxmail.com");
-    setTimeout(async () => {
-        alert("My Email Address: kafuuchino_15532@foxmail.com\n\nThe email address is copied to your clipboard. If the default email software doesn't pop out, please enter this address manually in your email software.");
-    }, 1);
 }
 
 function MoveAndReplaceBody_Left(content) {
@@ -129,7 +122,7 @@ function MoveAndReplaceBody_Left(content) {
 
     const newContent = document.createElement("div");
     newContent.innerHTML = content;
-    newContent.style.position = "relative";
+    newContent.style.position = "static";
     newContent.style.width = "100%";
     newContent.style.transform = "translateX(-200%)";
     newContent.style.transition = "transform 500ms";
@@ -143,6 +136,20 @@ function MoveAndReplaceBody_Left(content) {
     setTimeout(() => {
         oldBody.remove();
     }, 600);
+}
+
+async function alertEmail() {
+    await navigator.clipboard.writeText("kafuuchino_15532@foxmail.com");
+    setTimeout(async () => {
+        alert("My Email Address: kafuuchino_15532@foxmail.com\n\nThe email address is copied to your clipboard. If the default email software doesn't pop out, please enter this address manually in your email software.");
+    }, 1);
+}
+
+function MoveElement(fromID, toID) {
+    let element = $(fromID);
+    if (element) {
+        $(toID).appendChild(element);
+    }
 }
 
 function AddFileAt(id, filename, executeScript) {
@@ -180,4 +187,14 @@ function HideLine(id) {
         e.style.height = "0px";
         e.style.marginTop = "22.5px";
     }
+}
+
+function Clamp(input, min, max) {
+    if (input > max) {
+        return max;
+    }
+    else if (input < min) {
+        return min;
+    }
+    return input;
 }

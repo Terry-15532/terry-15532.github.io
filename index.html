@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html style="scroll-behavior: smooth;">
+<html style="scroll-behavior: auto;">
 <meta charset="utf-8" />
 
 <head>
@@ -12,7 +12,8 @@
         AddHeader();
         AddFileAt("footer", "footer.html", true)
         function updateZoomLevel() {
-            let zoomLevel = window.outerWidth / window.innerWidth;
+            let zoomLevel = window.innerWidth / 1000;
+            zoomLevel = Clamp(zoomLevel, 0.3, 1);
             document.documentElement.style.setProperty('--zoom-level', zoomLevel);
         }
         window.addEventListener('resize', updateZoomLevel);
@@ -27,7 +28,7 @@
 
 <div id="body"></div>
 
-<div id="footer"></div>
+<div class="footer" id="footer"></div>
 
 
 </html>
