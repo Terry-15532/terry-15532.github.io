@@ -38,32 +38,92 @@ var currHeader = "";
 function ChangeHeader(header) {
     var h = $(header);
     SetElm("headerTitle", header);
-    DispLine(header + "_Line");
     h.style.pointerEvents = "none";
     h.style.textShadow = "0px 0px 20px rgb(0, 233, 255)";
-    let tmp = currHeader;
-    currHeader = header;
-    HideLine(tmp + "_Line");
-    $(tmp).style = "transition: text-shadow 300ms;";
+    if (currHeader != header) {
+        let tmp = currHeader;
+        currHeader = header;
+        DispLine(header + "_Line");
+        $(tmp).style = "transition: text-shadow 300ms;";
+        HideLine(tmp + "_Line");
+    }
 }
 
 currIndex = -1;
 
-function SwitchPage(filename, header, index) {
-    fetch(filename)
-        .then(response => response.text())
-        .then(data => {
-            document.documentElement.scrollTop = 0;
-            if (index >= currIndex) {
-                MoveAndReplaceBody_Right(data);
-            }
-            else {
-                MoveAndReplaceBody_Left(data);
-            }
-            currIndex = index;
-            ExecuteScript(data);
-        })
-    ChangeHeader(header);
+var histories = [];
+// var currPage = { filename: "about.html", header: "About Me", index: 1 };
+var currPage = null;
+var loading = false;
+var posInHist = -1;
+
+function SwitchPage(filename, header, index, blockHist) {
+    // if (header == currHeader) {
+    //     e.preventDefault();
+    //     return;
+    // }
+
+    if (!loading) {
+        loading = true;
+        fetch(filename)
+            .then(response => response.text())
+            .then(data => {
+                loading = false;
+                document.documentElement.scrollTop = 0;
+                if (index >= currIndex) {
+                    MoveAndReplaceBody_Right(data);
+                }
+                else {
+                    MoveAndReplaceBody_Left(data);
+                }
+                currIndex = index;
+                ExecuteScript(data);
+                ChangeHeader(header);
+            })
+        if (!blockHist) {
+
+            histories = histories.slice(0, posInHist + 1);
+            window.histories.slice(0, posInHist + 1);
+
+            currPage = { filename: filename, header: header, index: index };
+
+            histories.push(currPage);
+            window.history.pushState({ time: getDate() }, "");
+
+            posInHist++;
+        }
+    }
+}
+
+function getDate() {
+    const now = new Date();
+    var time = "";
+    time += ('0' + (now.getMonth() + 1)).slice(-2);
+    time += ('0' + now.getDate()).slice(-2);
+    time += ('0' + now.getHours()).slice(-2);
+    time += ('0' + now.getMinutes()).slice(-2);
+    time += ('0' + now.getSeconds()).slice(-2);
+    time += ('000' + now.getMilliseconds()).slice(-3);
+    return parseInt(time);
+}
+
+currTime = 0;
+
+function Back() {
+    if (posInHist > 0) {
+        posInHist--;
+        let hist = histories[posInHist];
+        SwitchPage(hist.filename, hist.header, hist.index, true);
+    }
+
+}
+
+function Forward() {
+    if (posInHist < histories.length - 1) {
+        posInHist++;
+        let hist = histories[posInHist];
+        SwitchPage(hist.filename, hist.header, hist.index, true);
+    }
 }
 
 function MoveAndReplaceBody_Right(content) {

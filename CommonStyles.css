@@ -27,6 +27,7 @@
     overflow: hidden;
 
     backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
 }
 
 body {
@@ -56,8 +57,9 @@ body {
     font-size: 30px;
     font-family: sans-serif;
     border-style: solid;
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(50, 50, 50, 0.5);
     backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
     border-color: white;
     border-width: 3px;
     border-radius: 50px;
@@ -84,7 +86,68 @@ body {
 .normalButton:active {
     transform: scale(0.98) translateY(-7%);
     color: black;
-    background-color: rgb(255, 255, 255, 0.8);
+}
+
+.pdfInNewTab {
+    width: 500px;
+    font-size: 35px;
+    padding-top: 22.5px;
+    height: 60px;
+    padding-left: 50px;
+    z-index: 1000;
+    margin-top: 0%;
+    /* float: right; */
+    margin-left: 60%;
+    margin-bottom: 100px;
+    /* position: ; */
+    /* bottom: 10%; */
+    /* right: 5%; */
+}
+
+.pdfInNewTab .arrow {
+    font-weight: normal;
+    float: right;
+    margin-right: 50px;
+    margin-top: -6px;
+}
+
+.viewPortfolio {
+    width: 180px;
+    font-size: 20px;
+    padding-top: 15px;
+    padding-left: 50px;
+    height: 35px;
+    margin-right: 60%;
+    margin-top: -130px;
+    float: right;
+    right: calc(9% + 10px);
+}
+
+
+.viewPortfolio .arrow {
+    font-weight: normal;
+    float: right;
+    margin-right: 40px;
+    margin-top: -4px;
+}
+
+.backButton {
+    width: 200px;
+    font-size: 35px;
+    padding-top: 22.5px;
+    height: 60px;
+    padding-right: 50px;
+    position: fixed !important;
+    left: 50px;
+    bottom: 50px;
+    z-index: 1000;
+}
+
+.backButton .arrow {
+    font-weight: normal;
+    float: left;
+    margin-left: 50px;
+    margin-top: -6px;
 }
 
 .headButton {
@@ -255,7 +318,8 @@ vr {
     /* background-image: url('Resources/About_Self.png'); */
     border-radius: 5px;
     box-shadow: 0px 0px 10px black;
-    background-size: cover;
+    background-size: contain;
+    background-color: rgb(20, 20, 20);
     background-repeat: no-repeat;
     background-position: center;
     border-color: white;
@@ -263,11 +327,24 @@ vr {
     border-width: 2px;
     width: 40%;
     /* float: right; */
-    margin-left: 45%;
-    margin-top: 2.5%;
+    margin-right: 15%;
+    margin-top: -5%;
     margin-bottom: 5%;
-    height: 80%;
+    height: 75%;
+    float: right;
 }
+
+
+.portfolioGrid {
+    display: grid;
+    grid-template-columns: calc(1 * var(--vw));
+    row-gap: 5%;
+    column-gap: 5%;
+    grid-auto-rows: calc(0.3 * var(--vw));
+    margin: calc(0.1 * var(--vw) - 50px);
+    overflow: hidden;
+}
+
 
 hr {
     width: 85%;
@@ -279,9 +356,8 @@ hr {
 }
 
 .portfolioTitle {
-    /* background-image: url('Resources/About_Self.png'); */
     border-radius: 5px;
-    text-shadow: 0px 0px 10px rgb(100, 100, 100);
+    text-shadow: 0px 0px 10px rgb(60, 60, 60);
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
@@ -289,9 +365,30 @@ hr {
     font-family: sans-serif;
     font-weight: bolder;
     font-size: 55px;
+    margin-top: 100px;
     width: 50%;
-    margin-top: 5%;
     float: left;
+}
+
+.portfolioIntro {
+    border-radius: 5px;
+    /* text-shadow: 0px 0px 10px rgb(60, 60, 60); */
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+    color: rgb(230, 230, 230);
+    font-family: sans-serif;
+    font-weight: lighter;
+    font-size: 25px;
+    width: 40%;
+    line-height: 40px;
+    padding-left: 20px;
+    margin-top: 200px;
+}
+
+.portfolioIntro>b {
+    color: white;
+    text-shadow: 0px 0px 10px rgb(80, 80, 80);
 }
 
 body {

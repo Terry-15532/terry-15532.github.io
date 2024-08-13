@@ -1,0 +1,22 @@
+<script class="script">
+    // MoveElement("newTab", "body");
+    MoveElement("backButton", "body");
+</script>
+
+<div class="wrapper">
+
+    <div class="normalButton backButton" onclick="SwitchToPortfolio()" id="backButton">
+        <div class="arrow">〈 </div>
+        Back
+    </div>
+
+    <iframe src="Projects/LifeAtWork/LifeAtWork.pdf"
+        style="margin-left: 5%; margin-top: 50px; margin-bottom: 50px; width:calc(0.9 * var(--vw)); height: calc(0.6 * var(--vh));"></iframe>
+    <div style="display: grid;">
+        <a class="normalButton pdfInNewTab" href="Projects/LifeAtWork/LifeAtWork.pdf" target="_blank" id="newTab">
+            Open PDF in New Tab
+            <div class="arrow"> 〉</div>
+        </a>
+    </div>
+
+</div>

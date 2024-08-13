@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html style="scroll-behavior: auto;">
+<html style="scroll-behavior: smooth;">
 <meta charset="utf-8" />
 
 <head>
@@ -12,12 +12,27 @@
         AddHeader();
         AddFileAt("footer", "footer.html", true)
         function updateZoomLevel() {
-            let zoomLevel = window.innerWidth / 1000;
-            zoomLevel = Clamp(zoomLevel, 0.3, 1);
+            let zoomLevel = window.innerWidth / 1600;
+            zoomLevel = Clamp(zoomLevel, 0.3, 10);
             document.documentElement.style.setProperty('--zoom-level', zoomLevel);
         }
         window.addEventListener('resize', updateZoomLevel);
         window.addEventListener('load', updateZoomLevel);
+        window.addEventListener('popstate', function (event) {
+            // event.preventDefault();
+            if (!loading) {
+                if (event.state.time > currTime && currTime != 0) {
+                    currTime = event.state.time;
+                    Forward();
+                }
+                else {
+                    currTime = event.state.time;
+                    Back();
+                }
+            }
+        });
+
+
     </script>
 </head>
 
