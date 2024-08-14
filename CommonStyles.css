@@ -353,7 +353,8 @@ vr {
     margin: calc(0.1 * var(--vw) - 50px);
     overflow: hidden;
 }
-iframe{
+
+embed{
     color: white;
     font: 50px;
     font-weight: bold;
