@@ -349,15 +349,16 @@ vr {
     display: grid;
     grid-template-columns: calc(1 * var(--vw));
     row-gap: 2%;
-    grid-template-rows: calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw))  150px;
+    grid-template-rows: calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) 150px;
     margin: calc(0.1 * var(--vw) - 50px);
     overflow: hidden;
 }
 
-embed{
+iframe {
     color: white;
     font: 50px;
     font-weight: bold;
+    text-align: center;
 }
 
 .playInBrowser {
