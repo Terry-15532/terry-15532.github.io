@@ -318,7 +318,7 @@ vr {
     /* background-image: url('Resources/About_Self.png'); */
     border-radius: 5px;
     box-shadow: 0px 0px 10px black;
-    background-size: contain;
+    background-size: cover;
     background-color: rgb(20, 20, 20);
     background-repeat: no-repeat;
     background-position: center;
@@ -332,14 +332,23 @@ vr {
     margin-bottom: 5%;
     height: 75%;
     float: right;
+    overflow: hidden !important;
 }
 
+.portfolioPDF {
+    margin-left: 5%;
+    margin-top: 50px;
+    margin-bottom: 50px;
+    width: calc(0.9 * var(--vw));
+    height: calc(0.6 * var(--vh));
+    border-radius: 15px;
+    border-style: none;
+}
 
 .portfolioGrid {
     display: grid;
     grid-template-columns: calc(1 * var(--vw));
-    row-gap: 5%;
-    column-gap: 5%;
+    row-gap: 2%;
     grid-auto-rows: calc(0.3 * var(--vw));
     margin: calc(0.1 * var(--vw) - 50px);
     overflow: hidden;
@@ -353,6 +362,25 @@ hr {
     position: static;
     border: none;
     background-color: rgb(150, 150, 150);
+}
+
+.portfolioLink {
+    display: block;
+    background-color: transparent;
+    background-image: url(Resources/PlayIcon.png);
+    background-repeat: no-repeat;
+    background-size: contain;
+    background-position: center;
+    width: 100% !important;
+    height: 100% !important;
+    margin-top: 0%;
+    transition: all 200ms;
+}
+
+.portfolioLink:hover {
+    background-color: rgba(60, 60, 60, 0.2);
+    backdrop-filter: blur(10px);
+    transform: scale(1.05);
 }
 
 .portfolioTitle {
@@ -383,7 +411,7 @@ hr {
     width: 40%;
     line-height: 40px;
     padding-left: 20px;
-    margin-top: 200px;
+    margin-top: 190px;
 }
 
 .portfolioIntro>b {

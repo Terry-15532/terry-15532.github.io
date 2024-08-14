@@ -1,0 +1,24 @@
+<script class="script">
+    MoveElement("backButton", "body");
+</script>
+
+<div class="wrapper">
+
+    <div class="normalButton backButton" onclick="SwitchToPortfolio()" id="backButton">
+        <div class="arrow">〈 </div>
+        Back
+    </div>
+
+    <iframe src="Projects/IslandCity/WebBuild/index.html"
+        style="width: calc(0.9 * var(--vw)); height: calc(0.5 * var(--vw)); margin-left: 5%;"></iframe>
+
+    <iframe src="Projects/IslandCity/IslandCity.pdf" class="portfolioPDF"></iframe>
+
+    <div style="display: grid;">
+        <a class="normalButton pdfInNewTab" href="Projects/IslandCity/IslandCity.pdf" target="_blank" id="newTab">
+            Open PDF in New Tab
+            <div class="arrow"> 〉</div>
+        </a>
+    </div>
+
+</div>

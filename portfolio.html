@@ -1,5 +1,38 @@
 <script class="script">
     MoveElement("backButton", "body");
+
+
+    const vids = document.querySelectorAll(".youtubeVid");
+
+    vids.forEach(vid => {
+        vid.setAttribute("complete", false);
+        vid.onload = () => {
+            vid.setAttribute("complete", true);
+        };
+    });
+
+    function checkVids() {
+
+        setTimeout(() => {
+            let allLoaded = true;
+            vids.forEach(vid => {
+                if (vid.getAttribute("complete") == "false") {
+                    allLoaded = false;
+                    vid.remove();
+                }
+                // else {
+                //     vid.style.display = "block";
+                // }
+            });
+            // if (!allLoaded) {
+            //     checkVids();
+            //     alert("Embeded YouTube videos failed to load! Please check your internet connection, or CLICK ON PROJECTS' COVERS to view videos.\n\n嵌入式Youtube视频加载失败！请检查你的网络链接，或点击项目封面跳转视频链接。");
+            // }
+        }, 3000);
+    }
+
+    checkVids();
+
 </script>
 
 
@@ -13,15 +46,71 @@
     <div class="portfolioGrid">
 
         <div>
-            <div class="portfolioTitle">Life At Work</div>
-            <div class="portfolioItem" style="background-image: url(Projects/LifeAtWork/Cover.png);"></div>
+            <div class="portfolioTitle">Volley Spikers</div>
+            <div class="portfolioItem" style="background-image: url(Projects/VolleySpikers/Cover.png);">
+
+                <iframe width="100%" height="100%" src="https://www.youtube.com/embed/rtAtbtPWmZI?si=LIVwCQGJ6odEAxPg"
+                    title="YouTube video player" frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    referrerpolicy=" strict-origin-when-cross-origin" allowfullscreen class="youtubeVid"></iframe>
+
+                <a href="https://youtu.be/rtAtbtPWmZI" target="_blank" class="portfolioLink"></a>
+
+            </div>
+            <div class=" portfolioIntro">
+                <b>
+                    Group Size: 3<br>
+                    Responsible: Programming | Technical Art <br>
+                </b>
+                <div style="height: 10px"></div>
+                Cute, somatosensory, multiplayer volleyball game that only needs cell phones to control.
+            </div>
+
+            <div class="normalButton viewPortfolio"
+                onclick="SwitchPage('Projects/VolleySpikers/VolleySpikers.html', 'My Portfolio', 3, false)">
+                View Detail <div class="arrow"> 〉
+                </div>
+            </div>
+
+            <hr>
+        </div>
+
+        <div>
+            <div class="portfolioTitle">Island City</div>
+            <div class="portfolioItem" style="background-image: url(Projects/IslandCity/Cover.png);">
+            </div>
             <div class="portfolioIntro">
-                <b>Life @ Work</b> is a turn-based card game
-                with roguelike elements. The target of the
-                game is to defeat the opponent by using
-                different <b>EVENT CARDS</b> that have different
-                <b>DURATIONS</b> to earn more <b>SCORES</b> than the
-                enemy.
+                <b>
+                    Made By Myself<br>
+                </b>
+                <div style="height: 10px"></div>
+
+                A city simulation game for the 2024 Bow Seat Competition.
+                This game primarily talks about global warming and encourages people to make changes.
+
+            </div>
+
+            <div class="normalButton viewPortfolio"
+                onclick="SwitchPage('Projects/IslandCity/IslandCity.html', 'My Portfolio', 3, false)">
+                View Detail <div class="arrow"> 〉
+                </div>
+            </div>
+
+            <hr>
+        </div>
+
+        <div>
+            <div class="portfolioTitle">Life At Work</div>
+            <div class="portfolioItem" style="background-image: url(Projects/LifeAtWork/Cover.png);">
+            </div>
+            <div class="portfolioIntro">
+                <b>
+                    Made By Myself<br>
+                </b>
+                <div style="height: 10px"></div>
+
+                A turn-based card game with roguelike elements.
+                In this game, you would be using different EVENT CARDS to get a higher SCORE than your opponent.
             </div>
 
             <div class="normalButton viewPortfolio"
@@ -30,19 +119,6 @@
                 </div>
             </div>
 
-            <hr>
-        </div>
-
-
-        <div>
-            <div class="portfolioTitle">Volley Spikers</div>
-            <div class="portfolioItem"></div>
-            <hr>
-        </div>
-
-        <div>
-            <div class="portfolioTitle">Life At Work</div>
-            <div class="portfolioItem"></div>
             <hr>
         </div>
 

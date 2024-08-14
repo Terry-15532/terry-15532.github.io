@@ -119,11 +119,10 @@ function Back() {
 }
 
 function Forward() {
-    if (posInHist < histories.length - 1) {
+
         posInHist++;
         let hist = histories[posInHist];
         SwitchPage(hist.filename, hist.header, hist.index, true);
-    }
 }
 
 function MoveAndReplaceBody_Right(content) {

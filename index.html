@@ -13,7 +13,7 @@
         AddFileAt("footer", "footer.html", true)
         function updateZoomLevel() {
             let zoomLevel = window.innerWidth / 1600;
-            zoomLevel = Clamp(zoomLevel, 0.3, 10);
+            zoomLevel = Clamp(zoomLevel, 0.2, 10);
             document.documentElement.style.setProperty('--zoom-level', zoomLevel);
         }
         window.addEventListener('resize', updateZoomLevel);
@@ -22,12 +22,16 @@
             // event.preventDefault();
             if (!loading) {
                 if (event.state.time > currTime && currTime != 0) {
-                    currTime = event.state.time;
-                    Forward();
+                    if (posInHist < histories.length - 1) {
+                        currTime = event.state.time;
+                        Forward();
+                    }
                 }
                 else {
-                    currTime = event.state.time;
-                    Back();
+                    if (posInHist > 0) {
+                        currTime = event.state.time;
+                        Back();
+                    }
                 }
             }
         });
