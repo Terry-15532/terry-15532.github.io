@@ -180,12 +180,25 @@ body {
 }
 
 .primaryBackground {
-    background-image: linear-gradient(to top, rgb(10, 10, 10), rgb(50, 50, 50));
+    background-color: rgb(130, 130, 130);
+    background-image: linear-gradient(to top, rgb(0, 0, 0, 0.93), rgb(0, 0, 0, 0.45) 90%),
+        linear-gradient(120deg, rgb(0, 240, 150), rgba(255, 0, 0, 0) 90%),
+        linear-gradient(-60deg, rgb(0, 150, 255), rgba(0, 255, 0, 0) 90%);
     position: fixed;
     top: 0px;
     height: 100%;
     width: 100%;
     z-index: -10;
+}
+
+.backgroundBlur {
+    backdrop-filter: blur(10px) grayscale(0) brightness(100%) contrast(1);
+    transition: all 700ms;
+    position: fixed;
+    top: 0px;
+    height: 100%;
+    width: 100%;
+    z-index: -5;
 }
 
 .myName {
@@ -343,14 +356,20 @@ vr {
     height: calc(0.6 * var(--vh));
     border-radius: 15px;
     border-style: none;
-    color: white;
-    font: 50px;
-    font-weight: bold;
-    text-align: center;
     background-image: url(Resources/NoPDFViewer.png);
     background-position: center;
     background-size: contain;
     background-repeat: no-repeat;
+}
+
+.webGLProject {
+    width: calc(0.9 * var(--vw));
+    height: calc(0.5 * var(--vw));
+    margin-top: 75px;
+    margin-bottom: 50px;
+    margin-left: 5%;
+    border-radius: 15px;
+    border-style: none;
 }
 
 .portfolioGrid {
@@ -379,6 +398,17 @@ vr {
     transform: scale(0.9);
 }
 
+/* 
+.playInBrowser:hover {
+    transform: scale(0.92);
+    box-shadow: 0 0 10px rgb(100, 255, 255, 0.5);
+}
+
+.playInBrowser:active {
+    transform: scale(0.89);
+    box-shadow: 0 0 10px rgb(100, 255, 255, 0.5);
+} */
+
 .releasedOnItch {
     border-radius: 15px;
     border-style: solid;
@@ -386,15 +416,25 @@ vr {
     margin-left: 10px;
     font-size: 20px;
     font-weight: lighter;
-    color: rgb(255, 125, 125);
-    border-color: rgb(255, 125, 125);
-    text-shadow: 0 0 10px rgb(255, 140, 140, 0.5);
+    color: rgb(255, 100, 100);
+    border-color: rgb(255, 100, 100);
+    text-shadow: 0 0 10px rgb(255, 80, 80, 0.5);
     transition: all 200ms;
     user-select: none;
     float: left;
     margin-top: 110px;
     transform: scale(0.9);
 }
+
+/* .releasedOnItch:hover {
+    transform: scale(0.92);
+    box-shadow: 0 0 10px rgb(255, 140, 140, 1);
+}
+
+.releasedOnItch:active {
+    transform: scale(0.89);
+    box-shadow: 0 0 10px rgb(255, 140, 140, 1);
+} */
 
 
 hr {

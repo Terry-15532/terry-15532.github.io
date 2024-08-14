@@ -99,6 +99,7 @@ function ChangeHeader(header) {
         $(tmp).style = "transition: text-shadow 300ms;";
         HideLine(tmp + "_Line");
     }
+
 }
 
 currIndex = -1;
@@ -110,17 +111,13 @@ var loading = false;
 var posInHist = -1;
 
 function SwitchPage(filename, header, index, blockHist) {
-    // if (header == currHeader) {
-    //     e.preventDefault();
-    //     return;
-    // }
-
     if (!loading) {
         loading = true;
         fetch(filename)
             .then(response => response.text())
             .then(data => {
                 window.removeEventListener('scroll', CheckScroll);
+                ShowFixedElements();
                 loading = false;
                 document.documentElement.scrollTop = 0;
                 if (index >= currIndex) {
@@ -132,6 +129,15 @@ function SwitchPage(filename, header, index, blockHist) {
                 currIndex = index;
                 ExecuteScript(data);
                 ChangeHeader(header);
+                if (index == 1) {
+                    $("blurBG").style.backdropFilter = "blur(10px)  grayscale(0) brightness(100%) contrast(1)"
+                }
+                else if (index == 2 || index == 3) {
+                    $("blurBG").style.backdropFilter = "blur(0px) grayscale(1) brightness(70%) contrast(1.1)"
+                }
+                // else if (index == 3) {
+                //     $("blurBG").style.backdropFilter = "blur(5px) grayscale(0.5) brightness(80%) contrast(1.1)"
+                // }
             })
         if (!blockHist) {
 
