@@ -14,6 +14,47 @@ function SetElm(id, name) {
     $(id).innerHTML = name;
 }
 
+function checkScroll() {
+    var scrollPosition = window.scrollY;
+
+    if (scrollPosition >= 20 && scrollPosition <= 300) {
+        HideFixedElements();
+    } else {
+        // alert(scrollPosition);
+        ShowFixedElements();
+    }
+}
+
+function HideFixedElements() {
+    var elements = document.querySelectorAll("*");
+    elements.forEach(function (element) {
+        var style = window.getComputedStyle(element);
+        if (style.position === "fixed" && style.zIndex >= 0) {
+
+            let dir = element.getAttribute("hideValue");
+            element.style.transform = dir;
+        }
+    });
+}
+
+// Function to show fixed elements by resetting the transform property
+function ShowFixedElements() {
+    var elements = document.querySelectorAll("body *");
+    elements.forEach(function (element) {
+        var style = window.getComputedStyle(element);
+        if (style.position === "fixed") {
+            element.style.transform = "translate(0, 0)";
+        }
+    });
+}
+
+function ShowUI() {
+    var element = document.getElementById(id);
+    if (element) {
+        element.style.transform = "translateY(0)";
+    }
+}
+
 function AddHeader() {
     fetch("header.html")
         .then(response => response.text())
@@ -34,6 +75,17 @@ function AddFooter() {
 }
 
 var currHeader = "";
+
+function CheckScroll() {
+    var scrollPosition = window.scrollY;
+
+    if (scrollPosition >= 20 && scrollPosition <= 300) {
+        HideFixedElements();
+    } else {
+        // alert(scrollPosition);
+        ShowFixedElements();
+    }
+}
 
 function ChangeHeader(header) {
     var h = $(header);
@@ -68,6 +120,7 @@ function SwitchPage(filename, header, index, blockHist) {
         fetch(filename)
             .then(response => response.text())
             .then(data => {
+                window.removeEventListener('scroll', CheckScroll);
                 loading = false;
                 document.documentElement.scrollTop = 0;
                 if (index >= currIndex) {
@@ -98,12 +151,12 @@ function SwitchPage(filename, header, index, blockHist) {
 function getDate() {
     const now = new Date();
     var time = "";
-    time += ('0' + (now.getMonth() + 1)).slice(-2);
-    time += ('0' + now.getDate()).slice(-2);
-    time += ('0' + now.getHours()).slice(-2);
-    time += ('0' + now.getMinutes()).slice(-2);
-    time += ('0' + now.getSeconds()).slice(-2);
-    time += ('000' + now.getMilliseconds()).slice(-3);
+    time += ("0" + (now.getMonth() + 1)).slice(-2);
+    time += ("0" + now.getDate()).slice(-2);
+    time += ("0" + now.getHours()).slice(-2);
+    time += ("0" + now.getMinutes()).slice(-2);
+    time += ("0" + now.getSeconds()).slice(-2);
+    time += ("000" + now.getMilliseconds()).slice(-3);
     return parseInt(time);
 }
 
@@ -120,9 +173,9 @@ function Back() {
 
 function Forward() {
 
-        posInHist++;
-        let hist = histories[posInHist];
-        SwitchPage(hist.filename, hist.header, hist.index, true);
+    posInHist++;
+    let hist = histories[posInHist];
+    SwitchPage(hist.filename, hist.header, hist.index, true);
 }
 
 function MoveAndReplaceBody_Right(content) {
@@ -224,7 +277,7 @@ function AddFileAt(id, filename, executeScript) {
 
 function ExecuteScript(content) {
     let parser = new DOMParser();
-    let doc = parser.parseFromString(content, 'text/html');
+    let doc = parser.parseFromString(content, "text/html");
     let scripts = doc.getElementsByClassName("script");
     let scriptContent;
     Array.from(scripts).forEach(element => {

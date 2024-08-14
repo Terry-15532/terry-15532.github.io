@@ -349,9 +349,48 @@ vr {
     display: grid;
     grid-template-columns: calc(1 * var(--vw));
     row-gap: 2%;
-    grid-auto-rows: calc(0.3 * var(--vw));
+    grid-template-rows: calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw))  150px;
     margin: calc(0.1 * var(--vw) - 50px);
     overflow: hidden;
+}
+iframe{
+    color: white;
+    font: 50px;
+    font-weight: bold;
+}
+
+.playInBrowser {
+    border-radius: 15px;
+    border-style: solid;
+    padding: 12px;
+    margin-left: 10px;
+    font-size: 20px;
+    font-weight: lighter;
+    color: rgb(100, 255, 255);
+    border-color: rgb(100, 255, 255);
+    text-shadow: 0 0 10px rgb(100, 255, 255, 0.5);
+    transition: all 200ms;
+    user-select: none;
+    float: left;
+    margin-top: 110px;
+    transform: scale(0.9);
+}
+
+.releasedOnItch {
+    border-radius: 15px;
+    border-style: solid;
+    padding: 12px;
+    margin-left: 10px;
+    font-size: 20px;
+    font-weight: lighter;
+    color: rgb(255, 125, 125);
+    border-color: rgb(255, 125, 125);
+    text-shadow: 0 0 10px rgb(255, 140, 140, 0.5);
+    transition: all 200ms;
+    user-select: none;
+    float: left;
+    margin-top: 110px;
+    transform: scale(0.9);
 }
 
 
@@ -404,7 +443,7 @@ hr {
     background-size: cover;
     background-repeat: no-repeat;
     background-position: center;
-    color: rgb(230, 230, 230);
+    color: rgb(200, 200, 200);
     font-family: sans-serif;
     font-weight: lighter;
     font-size: 25px;
