@@ -1,9 +1,9 @@
 const cacheName = "DefaultCompany-IslandCity-1";
 const contentToCache = [
     "Build/WebBuild.loader.js",
-    "Build/WebBuild.framework.js",
-    "Build/WebBuild.data",
-    "Build/WebBuild.wasm",
+    "Build/WebBuild.framework.js.gz",
+    "Build/WebBuild.data.gz",
+    "Build/WebBuild.wasm.gz",
     "TemplateData/style.css"
 
 ];
