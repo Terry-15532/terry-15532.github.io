@@ -349,7 +349,7 @@ vr {
     text-align: center;
     background-image: url(Resources/NoPDFViewer.png);
     background-position: center;
-    background-size: cover;
+    background-size: contain;
     background-repeat: no-repeat;
 }
 
