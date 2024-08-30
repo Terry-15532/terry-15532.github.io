@@ -229,6 +229,13 @@ div::-webkit-scrollbar {
     display: none;
 }
 
+.portfolioPDF::webkit-scrollbar {
+    display: none;
+}
+iframe::webkit-scrollbar {
+    display: none;
+}
+
 ::-webkit-scrollbar {
     overlay: auto;
     width: 7px;
@@ -377,7 +384,7 @@ vr {
     display: grid;
     grid-template-columns: calc(1 * var(--vw));
     row-gap: 2%;
-    grid-template-rows: calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) 250px;
+    grid-template-rows: calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) 300px;
     margin: calc(0.1 * var(--vw) - 50px);
     overflow: hidden;
 }

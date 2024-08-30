@@ -1,0 +1,60 @@
+<script class="script">
+
+    MoveElement("backButton", "body");
+
+    window.addEventListener('scroll', CheckScroll);
+
+</script>
+
+<div class="wrapper">
+
+    <div class="normalButton backButton" onclick="SwitchToPortfolio()" id="backButton" hideValue="translateX(-200%)">
+        <div class="arrow">〈 </div>
+        Back
+    </div>
+
+    <iframe src="Projects/ShadowEscape/WebBuild/index.html" class="webGLProject"
+        style="height: calc(0.444 * var(--vw));"></iframe>
+
+    <div style="display: grid; grid-template-columns: 65% 30%;">
+
+        <div
+            style="border-style: solid; border-width: 3px; border-color: white; border-radius: 15px;
+            background-color: rgb(30, 30, 30); margin-left: 10%; margin-bottom: 10%; padding: 30px;
+             padding-top: 20px; font-family: sans-serif; text-shadow: 0px 0px 10px rgb(100, 100, 100);">
+            <p><strong style="font-size: 30px; color: white; margin-bottom: 20px;">Controls
+                </strong>
+            </p>
+            <div style="color: white">
+                <p><strong style="font-size: 25px">A / D</strong> and <strong style="font-size: 25px">Spacebar</strong>
+                    to
+                    move and jump.
+                </p>
+                <p><strong style="font-size: 15px">Press <strong style="font-size: 25px">'R'</strong> to restart from
+                        last
+                        checkpoint (helpful if you are stuck)</strong>
+                </p>
+                <p><strong style="font-size: 20px">Click on highlighted lights</strong> to drag and drop lights, and use
+                    <strong style="font-size: 25px">mouse-wheel</strong> when dragging lights to push and pull them.
+                </p>
+                <p><strong style="font-size: 20px">Left-click</strong> on highlighted platforms to scale them up in
+                    size,
+                    <strong style="font-size: 20px">Right-click</strong> to scale them down.
+                </p>
+            </div>
+        </div>
+
+        <!-- <a class="normalButton pdfInNewTab" href="Projects/IslandCity/IslandCity.pdf" target="_blank" id="newTab">
+            Open PDF in New Tab
+            <div class="arrow"> 〉</div>
+        </a> -->
+
+        <a class="normalButton pdfInNewTab" href="https://gothamz.itch.io/shadow-escape" target="_blank" id="newTab"
+            style="margin-left: 10%; margin-top: 5%; width: 370px; padding-left: 30px;">
+            View On Itch.io
+            <div class="arrow" style="margin-right: 30px; "> 〉</div>
+        </a>
+    </div>
+    <!-- <iframe src="Projects/IslandCity/IslandCity.pdf" class="portfolioPDF" style="margin-top: -50px;"></iframe> -->
+
+</div>
