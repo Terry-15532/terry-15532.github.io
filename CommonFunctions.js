@@ -50,7 +50,7 @@ function ShowFixedElements() {
 
 function AddPortfolioPictures(name, number) {
     for (i = 1; i <= number; i++) {
-        $("portfolioPictures").innerHTML += "<img src= 'Projects/" + name + "/Pictures/" + i + ".JPEG' width = '90%' class='portfolioDetailPicture'>";
+        $("portfolioPictures").innerHTML += "<img src= 'Projects/" + name + "/Pictures/" + i + ".jpeg' width = '90%' class='portfolioDetailPicture'>";
     }
     $("portfolioPictures").innerHTML += "<div style='height: calc(0.1 * var(--vh));'></div>"
 }
