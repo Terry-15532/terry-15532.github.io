@@ -120,6 +120,7 @@ var histories = [];
 var currPage = null;
 var loading = false;
 var posInHist = -1;
+var lastPos = 0;
 
 function SwitchPage(filename, header, index, blockHist) {
     if (!loading) {
@@ -129,7 +130,17 @@ function SwitchPage(filename, header, index, blockHist) {
             .then(data => {
                 ShowFixedElements();
                 loading = false;
-                document.documentElement.scrollTop = 0;
+                if (currIndex == 2) {
+                    lastPos = document.documentElement.scrollTop;
+                    document.documentElement.scrollTop = 0;
+                    // alert(document.documentElement.scrollTop);
+                }
+                else if (index == 2) {
+                    document.documentElement.scrollTop = lastPos
+                }
+                else{
+                    document.documentElement.scrollTop = 0;
+                }
                 if (index >= currIndex) {
                     MoveAndReplaceBody_Right(data);
                 }
