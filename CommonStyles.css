@@ -396,8 +396,6 @@ vr {
 .portfolioDetailPicture {
     margin: 5%;
     margin-bottom: 0%;
-    height: calc(0.8 / 2.1873 * --vw);
-    width: calc(0.8 * --vw);
     border-radius: 10px;
     border-style: solid;
     border-color: white;
