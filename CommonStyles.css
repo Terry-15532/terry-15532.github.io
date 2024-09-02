@@ -99,6 +99,8 @@ body {
     /* float: right; */
     margin-left: 60%;
     margin-bottom: 100px;
+    position: fixed !important;
+    bottom: -50px;
     /* position: ; */
     /* bottom: 10%; */
     /* right: 5%; */
@@ -232,6 +234,7 @@ div::-webkit-scrollbar {
 .portfolioPDF::webkit-scrollbar {
     display: none;
 }
+
 iframe::webkit-scrollbar {
     display: none;
 }
@@ -386,7 +389,19 @@ vr {
     row-gap: 2%;
     grid-template-rows: calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) 300px;
     margin: calc(0.1 * var(--vw) - 50px);
+    margin-top: 50px;
     overflow: hidden;
+}
+
+.portfolioDetailPicture {
+    margin: 5%;
+    margin-bottom: 0%;
+    height: calc(0.8 / 2.1873 * --vw);
+    width: calc(0.8 * --vw);
+    border-radius: 10px;
+    border-style: solid;
+    border-color: white;
+    box-shadow: 0px 0px 10px rgb(20, 20, 20);
 }
 
 .playInBrowser {

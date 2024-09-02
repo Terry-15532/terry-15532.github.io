@@ -1,5 +1,5 @@
 <script class="script">
-    MoveElement("backButton", "body");
+    MoveElement("back", "body");
 
 
     const vids = document.querySelectorAll(".youtubeVid");
@@ -36,7 +36,7 @@
 </script>
 
 
-<div class="normalButton backButton" onclick="SwitchToAbout()" id="backButton">
+<div class="normalButton backButton" onclick="SwitchToAbout()" id="back" hideValue="translateX(-200%)">
     <div class="arrow">〈 </div>
     Back
 </div>
@@ -68,7 +68,7 @@
             </div>
 
             <div class="normalButton viewPortfolio"
-                onclick="SwitchPage('Projects/VolleySpikers/VolleySpikers.html', 'My Portfolio', 3, false)">
+                onclick="SwitchPage('Projects/VolleySpikers/VolleySpikers.html', 'My Portfolio', 3,  false)">
                 View Detail <div class="arrow"> 〉
                 </div>
             </div>

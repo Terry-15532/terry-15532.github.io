@@ -26,7 +26,7 @@ function checkScroll() {
 }
 
 function HideFixedElements() {
-    var elements = document.querySelectorAll("*");
+    var elements = document.querySelectorAll("body *");
     elements.forEach(function (element) {
         var style = window.getComputedStyle(element);
         if (style.position === "fixed" && style.zIndex >= 0) {
@@ -46,6 +46,13 @@ function ShowFixedElements() {
             element.style.transform = "translate(0, 0)";
         }
     });
+}
+
+function AddPortfolioPictures(name, number) {
+    for (i = 1; i <= number; i++) {
+        $("portfolioPictures").innerHTML += "<img src= 'Projects/" + name + "/Pictures/" + i + ".JPEG' width = '90%' class='portfolioDetailPicture'>";
+    }
+    $("portfolioPictures").innerHTML += "<div style='height: calc(0.1 * var(--vh));'></div>"
 }
 
 function ShowUI() {
@@ -76,15 +83,19 @@ function AddFooter() {
 
 var currHeader = "";
 
+lastScroll = 0;
+
 function CheckScroll() {
     var scrollPosition = window.scrollY;
 
-    if (scrollPosition >= 20 && scrollPosition <= 300) {
+    if (lastScroll < scrollPosition) {
         HideFixedElements();
     } else {
         // alert(scrollPosition);
         ShowFixedElements();
     }
+
+    lastScroll = scrollPosition;
 }
 
 function ChangeHeader(header) {
@@ -116,7 +127,6 @@ function SwitchPage(filename, header, index, blockHist) {
         fetch(filename)
             .then(response => response.text())
             .then(data => {
-                window.removeEventListener('scroll', CheckScroll);
                 ShowFixedElements();
                 loading = false;
                 document.documentElement.scrollTop = 0;

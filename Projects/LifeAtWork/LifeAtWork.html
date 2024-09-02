@@ -1,21 +1,25 @@
 <script class="script">
-    MoveElement("backButton", "body");
+    MoveElement("back", "body");
+    MoveElement("pdf", "body");
+    AddPortfolioPictures("LifeAtWork", 7);
 </script>
 
 <div class="wrapper">
 
-    <div class="normalButton backButton" onclick="SwitchToPortfolio()" id="backButton">
+    <div class="normalButton backButton" onclick="SwitchToPortfolio()" id="back" hideValue="translateX(-200%)">
         <div class="arrow">〈 </div>
         Back
     </div>
 
-    <iframe src="Projects/LifeAtWork/LifeAtWork.pdf" class="portfolioPDF" type="application/pdf"></iframe>
+    <!-- <iframe src="Projects/LifeAtWork/LifeAtWork.pdf" class="portfolioPDF" type="application/pdf"></iframe> -->
 
     <div style="display: grid;">
-        <a class="normalButton pdfInNewTab" href="Projects/LifeAtWork/LifeAtWork.pdf" target="_blank" id="newTab">
+        <a class="normalButton pdfInNewTab" href="Projects/LifeAtWork/LifeAtWork.pdf" style="right: 50px;" target="_blank" id="pdf" hideValue="translateX(200%)">
             Open PDF in New Tab
             <div class="arrow"> 〉</div>
         </a>
     </div>
+
+    <div id="portfolioPictures"></div>
 
 </div>

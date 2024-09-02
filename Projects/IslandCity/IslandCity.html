@@ -1,34 +1,37 @@
 <script class="script">
 
-    MoveElement("backButton", "body");
+    MoveElement("back", "body");
+    MoveElement("pdf", "body");
+    MoveElement("itch", "body");
 
-    window.addEventListener('scroll', CheckScroll);
 
+
+    AddPortfolioPictures("IslandCity", 9);
 </script>
 
 <div class="wrapper">
 
-    <div class="normalButton backButton" onclick="SwitchToPortfolio()" id="backButton" hideValue="translateX(-200%)">
+    <div class="normalButton backButton" onclick="SwitchToPortfolio()" hideValue="translateX(-200%)" id="back">
         <div class="arrow">〈 </div>
         Back
     </div>
 
     <iframe src="Projects/IslandCity/WebBuild/index.html" class="webGLProject"></iframe>
 
-    <div style="display: grid; grid-template-columns: 50% 50%;">
+    <a class="normalButton pdfInNewTab" href="Projects/IslandCity/IslandCity.pdf" target="_blank" id="pdf"
+        hideValue="translateX(500%)" style="right:500px">
+        Open PDF in New Tab
+        <div class="arrow"> 〉</div>
+    </a>
 
-        <a class="normalButton pdfInNewTab" href="Projects/IslandCity/IslandCity.pdf" target="_blank" id="newTab">
-            Open PDF in New Tab
-            <div class="arrow"> 〉</div>
-        </a>
+    <a class="normalButton pdfInNewTab" href="https://flandrescarlet-15532.itch.io/island-city" target="_blank"
+        style="margin-left: 35%; width: 370px; position: fixed; right: 30px;" hideValue="translateX(300%)" id="itch">
+        View On Itch.io
+        <div class="arrow" style="margin-right: 30px; right: 50px"> 〉</div>
+    </a>
 
-        <a class="normalButton pdfInNewTab" href="https://flandrescarlet-15532.itch.io/island-city" target="_blank"
-            id="newTab" style="margin-left: 35%; width: 370px; padding-left: 30px;">
-            View On Itch.io
-            <div class="arrow" style="margin-right: 30px; "> 〉</div>
-        </a>
-    </div>
+    <div id="portfolioPictures"></div>
 
-    <iframe src="Projects/IslandCity/IslandCity.pdf" class="portfolioPDF" style="margin-top: -50px;"></iframe>
+    <!-- <iframe src="Projects/IslandCity/IslandCity.pdf" class="portfolioPDF" style="margin-top: -50px;"></iframe> -->
 
 </div>
