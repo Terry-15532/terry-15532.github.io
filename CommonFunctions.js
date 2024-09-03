@@ -135,10 +135,10 @@ function SwitchPage(filename, header, index, blockHist) {
                     document.documentElement.scrollTop = 0;
                     // alert(document.documentElement.scrollTop);
                 }
-                else if (index == 2) {
+                else if (currIndex == 3 && index == 2) {
                     document.documentElement.scrollTop = lastPos
                 }
-                else{
+                else {
                     document.documentElement.scrollTop = 0;
                 }
                 if (index >= currIndex) {
