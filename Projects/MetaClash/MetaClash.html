@@ -1,0 +1,41 @@
+<script class="script">
+
+    MoveElement("back", "body");
+    // MoveElement("pdf", "body");
+    MoveElement("itch", "body");
+
+
+
+    // AddPortfolioPictures("IslandCity", 9);
+</script>
+
+<div class="wrapper">
+
+    <div class="normalButton backButton" onclick="SwitchToPortfolio()" hiddenValue="translateX(-200%)" id="back">
+        <div class="arrow">〈 </div>
+        Back
+    </div>
+
+    <div class="portfolioDetailPicture"
+        style="display: block; height: 770px; width: 90%; border-style: none; background-image: url(Projects/MetaClash/Instructions.png); background-size: cover; background-repeat: no-repeat;">
+    </div>
+
+    <iframe src="Projects/MetaClash/WebBuild/index.html" class="webGLProject"></iframe>
+
+    <!-- <a class="normalButton pdfInNewTab" href="Projects/MetaClash" target="_blank" id="pdf"
+        hiddenValue="translateX(500%)" style="right:500px">
+        Open PDF in New Tab
+        <div class="arrow"> 〉</div>
+    </a> -->
+
+    <a class="normalButton pdfInNewTab" href="https://flandrescarlet-15532.itch.io/meta-clash" target="_blank"
+        style="margin-left: 35%; width: 370px; position: fixed; right: 30px;" hiddenValue="translateX(300%)" id="itch">
+        View On Itch.io
+        <div class="arrow" style="margin-right: 30px; right: 50px;"> 〉</div>
+    </a>
+
+    <div id="portfolioPictures"></div>
+
+    <!-- <iframe src="Projects/IslandCity/IslandCity.pdf" class="portfolioPDF" style="margin-top: -50px;"></iframe> -->
+
+</div>

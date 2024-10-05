@@ -1,8 +1,10 @@
 <script class="script">
     AddFileAt("accounts", "accounts.html", true);
+    AddFileAt("showcaseDiv", "showcase.html", true);
+    MoveElement("viewPortfolio", "body");
 </script>
 
-<div style="font-family: sans-serif;" class="wrapper">
+<div style="font-family: sans-serif; overflow: hidden;" class="wrapper">
     <div style="height:120px;"></div>
     <div class="myName glow-white">Terry Li</div>
 
@@ -13,17 +15,17 @@
 
     <div class="selfIntro">A high school student. Interested in Game Design & Developing, Technical Art, Drawing,
         Sculpturing, etc. <br>
+        <!-- <div style="opacity: 0.5; font-size:30px; margin-top: 15px;">This website is entirely made by myself, without using any template.</div> -->
     </div>
 
     <div id="about_self"></div>
 
     <div id="accounts"></div>
 
+    <div class="normalButton viewPortfolioButton" id="viewPortfolio" onclick="SwitchToPortfolio()" hiddenValue="translateX(0px)" shownValue="translateX(200%)"> View All
+       Games <div style="font-weight: normal; float:right; margin-right: -30px; margin-top: -6px;">〉</div>
+   </div>
 
-    <div class="normalButton" onclick="SwitchToPortfolio()" style="width: 400px; font-size: 35px; padding-top: 25px; height: 60px;
-     padding-left: 50px; margin-left: 10px; margin-top: 100px; position:absolute; right: calc(9% + 10px);"> View
-        Portfolio <div style="font-weight: normal; float:right; margin-right: 50px; margin-top: -6px;">〉</div>
-    </div>
-
-    <p style="height: 300px;"></p>
+    <p style="height: 50px;"></p>
+    <div id="showcaseDiv"></div>
 </div>

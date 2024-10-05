@@ -3,10 +3,28 @@ function $(id) {
 }
 
 function SwitchToPortfolio() {
+    // if (fromAbout) {
+    //     lastPos = 800;
+    //     SwitchToAbout();
+    //     document.scrollTop = 800;
+    //     fromAbout = false;
+    // }
+    // else {
     SwitchPage("portfolio.html", "My Portfolio", 2);
+    // }
 }
 
+var aboutPos = 0;
+
 function SwitchToAbout() {
+    if (fromAbout) {
+        lastPos = aboutPos;
+        // alert(aboutPos);
+        //     SwitchToAbout();
+        // document.scrollTop = 800;
+        // alert(1);
+        fromAbout = false;
+    }
     SwitchPage("about.html", "About Me", 1);
 }
 
@@ -29,9 +47,8 @@ function HideFixedElements() {
     var elements = document.querySelectorAll("body *");
     elements.forEach(function (element) {
         var style = window.getComputedStyle(element);
-        if (style.position === "fixed" && style.zIndex >= 0) {
-
-            let dir = element.getAttribute("hideValue");
+        if (style.position === "fixed") {
+            let dir = element.getAttribute("hiddenValue");
             element.style.transform = dir;
         }
     });
@@ -43,7 +60,13 @@ function ShowFixedElements() {
     elements.forEach(function (element) {
         var style = window.getComputedStyle(element);
         if (style.position === "fixed") {
-            element.style.transform = "translate(0, 0)";
+            if (element.hasAttribute("shownValue")) {
+                element.style.transform = element.getAttribute("shownValue");
+
+            }
+            else {
+                element.style.transform = "";
+            }
         }
     });
 }
@@ -122,6 +145,8 @@ var loading = false;
 var posInHist = -1;
 var lastPos = 0;
 
+var fromAbout = false;
+
 function SwitchPage(filename, header, index, blockHist) {
     if (!loading) {
         loading = true;
@@ -130,22 +155,23 @@ function SwitchPage(filename, header, index, blockHist) {
             .then(data => {
                 ShowFixedElements();
                 loading = false;
-                if (currIndex == 2) {
-                    lastPos = document.documentElement.scrollTop;
-                    document.documentElement.scrollTop = 0;
-                    // alert(document.documentElement.scrollTop);
-                }
-                else if (currIndex == 3 && index == 2) {
-                    document.documentElement.scrollTop = lastPos
-                }
-                else {
-                    document.documentElement.scrollTop = 0;
-                }
                 if (index >= currIndex) {
                     MoveAndReplaceBody_Right(data);
                 }
                 else {
                     MoveAndReplaceBody_Left(data);
+                }
+                if (currIndex == 2 && index == 3) {
+                    lastPos = document.documentElement.scrollTop;
+                    document.documentElement.scrollTop = 0;
+                    // alert(document.documentElement.scrollTop);
+                }
+                // else if (currIndex == 3 && index == 2) {
+                // }
+                else {
+                    document.documentElement.scrollTop = lastPos
+                    lastPos = 0;
+                    // document.documentElement.scrollTop = 0;
                 }
                 currIndex = index;
                 ExecuteScript(data);
@@ -199,7 +225,6 @@ function Back() {
 }
 
 function Forward() {
-
     posInHist++;
     let hist = histories[posInHist];
     SwitchPage(hist.filename, hist.header, hist.index, true);
@@ -311,6 +336,23 @@ function ExecuteScript(content) {
         scriptContent += element.innerHTML;
     });
     eval(scriptContent);
+}
+
+function ShowArtworkImage(name) {
+    let elem = document.createElement("div");
+    elem.style = "z-index: 1000; transition: all 100ms; position: fixed; top: 0px; height: 100%; width: 100%; text-align: center; background-color: rgba(0,0,0, 0.5); opacity: 0;";
+    elem.innerHTML = "<image src='OtherWorks/" + name + ".jpg' style='height: 90%; width: 90%; padding-top: calc(0.05 * var(--vh)); object-fit: contain;'/>";
+    // alert(elem.innerHTML);
+    elem.onclick = () => {
+        elem.style.opacity = 0;
+        setTimeout(() => {
+            document.body.removeChild(elem);
+        }, 100);
+    }
+    document.body.appendChild(elem);
+    setTimeout(() => {
+        elem.style.opacity = 1;
+    }, 50);
 }
 
 function DispLine(id) {

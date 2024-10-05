@@ -113,6 +113,23 @@ body {
     margin-top: -6px;
 }
 
+
+.viewPortfolioButton {
+    position: fixed;
+    width: 320px;
+    font-size: 35px;
+    padding-top: 22.5px;
+    padding-left: 30px;
+    padding-right: 50px;
+    height: 60px;
+    right: 50px;
+    bottom: 50px;
+    transform: translateX(200%);
+    /* margin-top: -130px; */
+    /* float: right; */
+    /* right: calc(9% + 10px); */
+}
+
 .viewPortfolio {
     width: 180px;
     font-size: 20px;
@@ -304,7 +321,7 @@ vr {
     border-color: white;
     border-style: solid;
     border-width: 5px;
-    top: 350px;
+    top: 370px;
     right: 9%;
     width: calc(0.3 * var(--vw));
     height: calc(0.4 * var(--vw));
@@ -387,7 +404,7 @@ vr {
     display: grid;
     grid-template-columns: calc(1 * var(--vw));
     row-gap: 2%;
-    grid-template-rows: calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) 300px;
+    grid-template-rows: calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) 500px;
     margin: calc(0.1 * var(--vw) - 50px);
     margin-top: 50px;
     overflow: hidden;
@@ -399,7 +416,7 @@ vr {
     border-radius: 10px;
     border-style: solid;
     border-color: white;
-    box-shadow: 0px 0px 10px rgb(20, 20, 20);
+    box-shadow: 0px 0px 10px rgb(0, 0, 0, 0.8);
 }
 
 .playInBrowser {
@@ -446,6 +463,8 @@ vr {
     margin-top: 110px;
     transform: scale(0.9);
 }
+
+
 
 /* .releasedOnItch:hover {
     transform: scale(0.92);
@@ -520,6 +539,109 @@ hr {
 .portfolioIntro>b {
     color: white;
     text-shadow: 0px 0px 10px rgb(80, 80, 80);
+}
+
+.showcase {
+    display: grid;
+    grid-template-columns: 600px 30px 300px 300px;
+    height: auto;
+    width: 100%;
+    align-items: start;
+    justify-content: space-evenly;
+    overflow: hidden;
+    user-select: none;
+}
+
+.showcaseItem {
+    transition: all 200ms;
+    display: block;
+    height: 330px;
+    width: 600px;
+    margin-top: 30px;
+    margin-bottom: 30px;
+}
+
+.showcaseItem:hover {
+    transform: translateY(-2%);
+    visibility: visible !important;
+}
+
+.showcaseTitle {
+    user-select: none;
+    display: grid;
+    grid-template-columns: 610px 10px 680px;
+    grid-template-rows: 150px;
+    justify-content: space-evenly;
+    text-shadow: 0px 0px 10px rgb(255, 255, 255, 0.4);
+    color: white;
+    font-size: 60px;
+    font-family: sans-serif;
+    font-weight: bolder;
+}
+
+.showcaseTitle p {
+    padding-left: 10px;
+}
+
+.showcaseItem:active {
+    transform: translateY(-2%) scale(0.99);
+}
+
+.showcasePicture {
+    height: 100%;
+    width: 100%;
+    border-color: white;
+    border-style: solid;
+    border-width: 2px;
+    border-radius: 10px;
+    /* align-items: center; */
+    box-shadow: 0 0 10px rgb(0, 0, 0, 0.3);
+    background-size: cover;
+    overflow: hidden;
+}
+
+.showcasePicture .showcaseIntro {
+    transition: all 200ms;
+    visibility: hidden;
+    padding: 20px;
+    text-align: center;
+    padding-top: 110px;
+    font-size: 25px;
+    font-weight: bolder;
+    height: 100%;
+    width: calc(100%-20px);
+    background-color: rgb(0, 0, 0, 0);
+    color: transparent;
+    backdrop-filter: blur(0px);
+}
+
+
+.showcasePicture:hover .showcaseIntro {
+    visibility: visible;
+    backdrop-filter: blur(10px);
+    transform: translate(0, 0);
+    color: white;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.showcasePicture .showcasePlayInBrowser {
+    transition: all 200ms;
+    background-color: rgb(0, 158, 175, 0.7);
+    display: block;
+    margin-top: -130px;
+    height: 50px;
+    color: white;
+    padding: 10px;
+    text-shadow: 0 0 5px rgb(0, 0, 0, 0.3);
+    text-align: center;
+    font-size: 20px;
+    font-family: sans-serif;
+    font-weight: lighter;
+}
+
+.showcasePicture:hover .showcasePlayInBrowser {
+    transform: translateY(-40px);
+    /* margin-top: -120px; */
 }
 
 body {
