@@ -19,10 +19,6 @@ var aboutPos = 0;
 function SwitchToAbout() {
     if (fromAbout) {
         lastPos = aboutPos;
-        // alert(aboutPos);
-        //     SwitchToAbout();
-        // document.scrollTop = 800;
-        // alert(1);
         fromAbout = false;
     }
     SwitchPage("about.html", "About Me", 1);
@@ -161,19 +157,6 @@ function SwitchPage(filename, header, index, blockHist) {
                 else {
                     MoveAndReplaceBody_Left(data);
                 }
-                if (currIndex == 2 && index == 3) {
-                    lastPos = document.documentElement.scrollTop;
-                    document.documentElement.scrollTop = 0;
-                    // alert(document.documentElement.scrollTop);
-                }
-                // else if (currIndex == 3 && index == 2) {
-                // }
-                else {
-                    document.documentElement.scrollTop = lastPos
-                    lastPos = 0;
-                    // document.documentElement.scrollTop = 0;
-                }
-                currIndex = index;
                 ExecuteScript(data);
                 ChangeHeader(header);
                 if (index == 1) {
@@ -182,6 +165,19 @@ function SwitchPage(filename, header, index, blockHist) {
                 else if (index == 2 || index == 3) {
                     $("blurBG").style.backdropFilter = "blur(0px) grayscale(1) brightness(70%) contrast(1.1)"
                 }
+                if (currIndex == 2 && index == 3) {
+                    setTimeout(() => {
+                        lastPos = document.documentElement.scrollTop;
+                        document.documentElement.scrollTop = 0;
+                    }, 50);
+                }
+                else {
+                    setTimeout(() => {
+                        document.documentElement.scrollTop = lastPos
+                        lastPos = 0;
+                    }, 50);
+                }
+                currIndex = index;
                 // else if (index == 3) {
                 //     $("blurBG").style.backdropFilter = "blur(5px) grayscale(0.5) brightness(80%) contrast(1.1)"
                 // }
