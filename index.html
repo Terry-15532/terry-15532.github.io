@@ -23,8 +23,8 @@
 
         AddFileAt("footer", "footer.html", true)
         function updateZoomLevel() {
-            let zoomLevel = window.innerWidth / 1600;
-            zoomLevel = Clamp(zoomLevel, 0.2, 10);
+            zoomLevel = window.innerWidth / 1600;
+            zoomLevel = Clamp(zoomLevel, 0, 10);
             document.documentElement.style.setProperty('--zoom-level', zoomLevel);
         }
         window.addEventListener('resize', updateZoomLevel);

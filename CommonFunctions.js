@@ -15,10 +15,11 @@ function SwitchToPortfolio() {
 }
 
 var aboutPos = 0;
+var zoomLevel = 1;
 
 function SwitchToAbout() {
     if (fromAbout) {
-        lastPos = aboutPos;
+        lastPos = aboutPos * zoomLevel;
         fromAbout = false;
     }
     SwitchPage("about.html", "About Me", 1);
@@ -29,7 +30,7 @@ function SetElm(id, name) {
 }
 
 function checkScroll() {
-    var scrollPosition = window.scrollY;
+    var scrollPosition = window.scrollY / zoomLevel;
 
     if (scrollPosition >= 20 && scrollPosition <= 300) {
         HideFixedElements();
@@ -105,7 +106,7 @@ var currHeader = "";
 lastScroll = 0;
 
 function CheckScroll() {
-    var scrollPosition = window.scrollY;
+    var scrollPosition = window.scrollY / zoomLevel;
 
     if (lastScroll < scrollPosition) {
         HideFixedElements();
@@ -167,13 +168,13 @@ function SwitchPage(filename, header, index, blockHist) {
                 }
                 if (currIndex == 2 && index == 3) {
                     setTimeout(() => {
-                        lastPos = document.documentElement.scrollTop;
-                        document.documentElement.scrollTop = 0;
+                        lastPos = window.scrollY / zoomLevel;
+                        window.scrollTo(0, 0);
                     }, 50);
                 }
                 else {
                     setTimeout(() => {
-                        document.documentElement.scrollTop = lastPos
+                        window.scrollTo(0, lastPos * zoomLevel);
                         lastPos = 0;
                     }, 50);
                 }
