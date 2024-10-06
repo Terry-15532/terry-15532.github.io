@@ -302,7 +302,8 @@ function MoveAndReplaceBody_Left(content) {
 async function alertEmail() {
     await navigator.clipboard.writeText("kafuuchino_15532@foxmail.com");
     setTimeout(async () => {
-        alert("My Email Address: kafuuchino_15532@foxmail.com\n\nThe email address is copied to your clipboard. If the default email software doesn't pop out, please enter this address manually in your email software.");
+        alert("My Email Address: kafuuchino_15532@foxmail.com\n\nThe email address is copied to your clipboard.\
+            If the default email software doesn't pop out, please enter this address manually in your email software.");
     }, 1);
 }
 
@@ -337,9 +338,9 @@ function ExecuteScript(content) {
 
 function ShowArtworkImage(name) {
     let elem = document.createElement("div");
-    elem.style = "z-index: 1000; transition: all 100ms; position: fixed; top: 0px; height: 100%; width: 100%; text-align: center; background-color: rgba(0,0,0, 0.5); opacity: 0;";
-    elem.innerHTML = "<image src='OtherWorks/" + name + ".jpg' style='height: 90%; width: 90%; padding-top: calc(0.05 * var(--vh)); object-fit: contain;'/>";
-    // alert(elem.innerHTML);
+    elem.style = "z-index: 1000; transition: all 100ms; position: fixed; top: 0px; height: 100%; width: 100%; background-color: rgba(0,0,0, 0.5); opacity: 0;";
+    elem.innerHTML += "<image id='img' src='OtherWorks/" + name + ".jpg' style='position: absolute; margin:auto; top: 0px; bottom: 0px; left: 0px; right: 0px; max-height: 90%; max-width: 90%; object-fit: contain;\
+    border-radius: 10px; border-style: solid; border-color: white;'/>";
     elem.onclick = () => {
         elem.style.opacity = 0;
         setTimeout(() => {
