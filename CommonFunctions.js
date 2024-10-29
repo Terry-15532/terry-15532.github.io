@@ -10,7 +10,7 @@ function SwitchToProjects() {
     //     fromAbout = false;
     // }
     // else {
-    SwitchPage("Projects.html", "My Projects", 2);
+    SwitchPage("projects.html", "My Projects", 2);
     // }
 }
 
