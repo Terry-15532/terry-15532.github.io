@@ -172,8 +172,8 @@ body {
 .headButton {
     text-decoration: none;
     color: white;
-    margin-right: 30px;
-    margin-left: 15px;
+    margin-right: 25px;
+    margin-left: 25px;
     padding: 0px !important;
     margin-top: 11px;
     font-size: 30px;
@@ -288,6 +288,7 @@ vr {
     margin-top: 22.5px;
     transition: all 300ms;
     border-radius: 1px;
+    overflow: visible;
 }
 
 .wrapper {

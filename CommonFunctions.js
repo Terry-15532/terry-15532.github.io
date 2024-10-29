@@ -30,7 +30,7 @@ function SwitchToArtworks() {
         lastPos = aboutPos * zoomLevel;
         fromAbout = false;
     }
-    SwitchPage("artworks.html", "Artworks", 4);
+    SwitchPage("artworks.html", "My Artworks", 4);
 }
 
 function SetElm(id, name) {
