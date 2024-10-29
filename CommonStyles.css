@@ -484,7 +484,7 @@ hr {
     height: 1px;
     position: static;
     border: none;
-    background-color: rgb(150, 150, 150);
+    background-color: rgb(255, 255, 255, 0.5);
 }
 
 .ProjectsLink {
