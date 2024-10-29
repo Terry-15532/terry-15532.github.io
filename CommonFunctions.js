@@ -179,7 +179,7 @@ function SwitchPage(filename, header, index, blockHist) {
                 else if (index == 4) {
                     $("blurBG").style.backdropFilter = "blur(10px)  hue-rotate(100deg)";
                 }
-                if (currIndex == 2 && index == 3) {
+                if (currIndex == 2 && index == 3 || index == 4) {
                     setTimeout(() => {
                         lastPos = window.scrollY / zoomLevel;
                         window.scrollTo(0, 0);
