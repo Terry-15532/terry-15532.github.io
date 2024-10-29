@@ -7,7 +7,7 @@
         "A city simulation game that primarily talks about global warming.",
         "A 3D platformer puzzle game using real-time shadows as platforms.",
         "A top-down LAN multiplayer strategy game. \nInspired by the \"Ability Draft\" mode in Dota 2."];
-    let projectsPos = [0, 500, 1050, 1600, 2100];
+    let projectsPos = [0, 500, 1050, 1600, 2150];
 
     let artworks = ["SunWukong", "DownAgainstTheFlow", "Poster_FootballMatch", "Skull", "CarDesign", "PostcardDesign_Shanghai", "Poster_BookDonation", "Transparent"];
     let artworksName = ["Sun Wukong", "Retrograde Dreamer", "Football Match", "Skull", "Car Design", "Postcard: Shanghai", "Book Donation", "Transparent"];
@@ -53,7 +53,7 @@
                 let pos = projectsPos[pIdx];
                 playable = playInBrowser[pIdx];
                 // e += "<div class='showcaseItem' onclick=\"" + "SwitchPage('Projects/" + c + "/" + c + ".html', 'My Portfolio', 3,  false); fromAbout = true;\">";
-                e += "<div class='showcaseItem' onclick='lastPos=" + pos + "; SwitchToPortfolio(); fromAbout = true; aboutPos = " + (750 + pIdx * 620) + ";''>";
+                e += "<div class='showcaseItem' onclick='lastPos=" + pos + "; SwitchToPortfolio(); fromAbout = true; aboutPos = " + (750 + pIdx * 390)/zoomLevel + ";''>";
                 if (playable) {
                     e += "<div style='background-image: url(Resources/PlayInBrowserIcon.png), url(Projects/" + c + "/Cover.png)' class='showcasePicture'>";
                     e += "<div class='showcaseIntro'>" + name;

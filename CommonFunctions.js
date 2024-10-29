@@ -150,7 +150,6 @@ function SwitchPage(filename, header, index, blockHist) {
         fetch(filename)
             .then(response => response.text())
             .then(data => {
-                ShowFixedElements();
                 loading = false;
                 if (index >= currIndex) {
                     MoveAndReplaceBody_Right(data);
@@ -170,6 +169,7 @@ function SwitchPage(filename, header, index, blockHist) {
                     setTimeout(() => {
                         lastPos = window.scrollY / zoomLevel;
                         window.scrollTo(0, 0);
+                        ShowFixedElements();
                     }, 50);
                 }
                 else {
@@ -178,6 +178,9 @@ function SwitchPage(filename, header, index, blockHist) {
                         lastPos = 0;
                     }, 50);
                 }
+                setTimeout(() => {
+                    ShowFixedElements();
+                }, 400)
                 currIndex = index;
                 // else if (index == 3) {
                 //     $("blurBG").style.backdropFilter = "blur(5px) grayscale(0.5) brightness(80%) contrast(1.1)"
