@@ -1,0 +1,54 @@
+<script class="script">
+
+    let artworks = ["SunWukong", "DownAgainstTheFlow", "Skull", "CarDesign", "Transparent", "Poster_BookDonation", "SpaceAndWater", "Shoes", "PostcardDesign_Shanghai", "Poster_FootballMatch"];
+    let artworksName = ["Sun Wukong", "Retrograde Dreamer", "Skull", "Car Design", "Transparent", "Book Donation", "Space and Water", "Shoes", "Postcard: Shanghai", "Football Match"];
+    let artworksDescript = ["Sculpture", "Digital Art", "Sketch", "Sketch", "Sketch", "Poster Design", "Sketch", "Sketch", "Digital Art", "Poster Design"];
+
+    let pIdx = 0;
+    let aIdx = 0;
+    for (i = 0; i < artworks.length + 2; i++) {
+        let e = "";
+        let c = "";
+        let name = "";
+        let descript = "";
+        if (i == 0) {
+            e += "<div class='showcaseItem' style='width: 685px' onclick=\"window.open('https://youtu.be/-OkjF4x01e8', '_blank').focus();\">";
+            e += "<div style='background-image: url(OtherWorks/MacbethFilm.png); background-color: black; background-size: cover; background-position: center; background-repeat: no-repeat;' class='showcasePicture'>";
+            e += "<div class='showcaseIntro' style='padding-top: 130px';> Macbeth Film";
+            e += "<div style='font-size: 23px; font-weight: normal; margin-top: 10px; opacity: 0.8; line-height: 30px; padding-left: 25px; padding-right: 25px;'> A short film I made. Adapted from William Shakespeare's drama \"Macbeth\".\nClick to view the YouTube page. </div></div>";
+            e += "</div>";
+            $("showcase").innerHTML += e;
+            $("showcase").innerHTML += "<div></div>";
+            i++;
+        } else {
+            c = artworks[aIdx];
+            name = artworksName[aIdx];
+            descript = artworksDescript[aIdx];
+            e += "<div class='showcaseItem' style='width: 300px' onclick='ShowArtworkImage(\"" + c + "\");'>";
+            e += "<div style='background-image: url(OtherWorks/" + c + ".jpg); background-color: black; background-size: cover; background-position: center; background-repeat: no-repeat;' class='showcasePicture'>";
+            e += "<div class='showcaseIntro' style='padding-top: 135px';>" + name;
+            e += "<div style='font-size: 20px; font-weight: normal; margin-top: 10px; opacity: 0.8;'>" + descript + "</div></div>";
+            $("showcase").innerHTML += e;
+            if (i % 4 == 1) {
+                e += "<br/>";
+            }
+            aIdx++;
+        }
+    }
+
+
+    // SwitchPage('Projects/IslandCity/IslandCity.html', 'My Projects', 3, false)
+</script>
+
+<!-- <div style=""></div> -->
+<div style="font-family: sans-serif;">
+    <div class="showcaseTitle">
+        <p>Artworks</p>
+        <!-- <br /> -->
+    </div>
+
+    <div class="artworks" id="showcase"></div>
+
+
+    <div style="height: 100px"></div>
+</div>

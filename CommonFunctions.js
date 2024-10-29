@@ -2,7 +2,7 @@ function $(id) {
     return document.getElementById(id);
 }
 
-function SwitchToPortfolio() {
+function SwitchToProjects() {
     // if (fromAbout) {
     //     lastPos = 800;
     //     SwitchToAbout();
@@ -10,7 +10,7 @@ function SwitchToPortfolio() {
     //     fromAbout = false;
     // }
     // else {
-    SwitchPage("portfolio.html", "My Portfolio", 2);
+    SwitchPage("Projects.html", "My Projects", 2);
     // }
 }
 
@@ -23,6 +23,14 @@ function SwitchToAbout() {
         fromAbout = false;
     }
     SwitchPage("about.html", "About Me", 1);
+}
+
+function SwitchToArtworks() {
+    if (fromAbout) {
+        lastPos = aboutPos * zoomLevel;
+        fromAbout = false;
+    }
+    SwitchPage("artworks.html", "Artworks", 4);
 }
 
 function SetElm(id, name) {
@@ -68,11 +76,11 @@ function ShowFixedElements() {
     });
 }
 
-function AddPortfolioPictures(name, number) {
+function AddProjectsPictures(name, number) {
     for (i = 1; i <= number; i++) {
-        $("portfolioPictures").innerHTML += "<img src= 'Projects/" + name + "/Pictures/" + i + ".jpeg' width = '90%' class='portfolioDetailPicture'>";
+        $("ProjectsPictures").innerHTML += "<img src= 'Projects/" + name + "/Pictures/" + i + ".jpeg' width = '90%' class='ProjectsDetailPicture'>";
     }
-    $("portfolioPictures").innerHTML += "<div style='height: calc(0.1 * var(--vh));'></div>"
+    $("ProjectsPictures").innerHTML += "<div style='height: calc(0.1 * var(--vh));'></div>"
 }
 
 function ShowUI() {
@@ -160,10 +168,16 @@ function SwitchPage(filename, header, index, blockHist) {
                 ExecuteScript(data);
                 ChangeHeader(header);
                 if (index == 1) {
-                    $("blurBG").style.backdropFilter = "blur(10px)  grayscale(0) brightness(100%) contrast(1)"
+                    $("blurBG").style.backdropFilter = "blur(10px)  hue-rotate(0deg)";
                 }
-                else if (index == 2 || index == 3) {
-                    $("blurBG").style.backdropFilter = "blur(0px) grayscale(1) brightness(70%) contrast(1.1)"
+                else if (index == 2) {
+                    $("blurBG").style.backdropFilter = "blur(10px)  hue-rotate(33deg)";
+                }
+                else if (index == 3) {
+                    $("blurBG").style.backdropFilter = "blur(10px)  hue-rotate(66deg)";
+                }
+                else if (index == 4) {
+                    $("blurBG").style.backdropFilter = "blur(10px)  hue-rotate(100deg)";
                 }
                 if (currIndex == 2 && index == 3) {
                     setTimeout(() => {
@@ -221,7 +235,6 @@ function Back() {
         let hist = histories[posInHist];
         SwitchPage(hist.filename, hist.header, hist.index, true);
     }
-
 }
 
 function Forward() {
