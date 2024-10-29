@@ -1,12 +1,13 @@
 <script class="script">
-    let projects = ["MetaClash", "VolleySpikers", "IslandCity", "ShadowEscape"];
-    let projectsName = ["Meta Clash", "Volley Spikers", "Island City", "Shadow Escape"];
-    let playInBrowser = [1, 0, 1, 1];
+    let projects = ["MetaClash", "VolleySpikers", "IslandCity", "ShadowEscape", "PlanOneirous"];
+    let projectsName = ["Meta Clash", "Volley Spikers", "Island City", "Shadow Escape", "Plan Oneirous"];
+    let playInBrowser = [1, 0, 1, 1, 0];
     let projectsDescript = ["A roguelike action game with unique mechanics based on physics.",
-        "A motion-sensing, multiplayer volleyball game.",
+        "A motion-sensing, multiplayer volleyball game without the need of specialized devices.",
         "A city simulation game that primarily talks about global warming.",
-        "A 3D platformer puzzle game using real-time shadows as platforms."];
-    let projectsPos = [0, 500, 1050, 1600];
+        "A 3D platformer puzzle game using real-time shadows as platforms.",
+        "A top-down LAN multiplayer strategy game. \nInspired by the \"Ability Draft\" mode in Dota 2."];
+    let projectsPos = [0, 500, 1050, 1600, 2100];
 
     let artworks = ["SunWukong", "DownAgainstTheFlow", "Poster_FootballMatch", "Skull", "CarDesign", "PostcardDesign_Shanghai", "Poster_BookDonation", "Transparent"];
     let artworksName = ["Sun Wukong", "Retrograde Dreamer", "Football Match", "Skull", "Car Design", "Postcard: Shanghai", "Book Donation", "Transparent"];
@@ -14,50 +15,62 @@
 
     let pIdx = 0;
     let aIdx = 0;
-    for (i = 0; i < projects.length + artworks.length; i++) {
+    for (i = 0; i < projects.length + artworks.length + 2; i++) {
         let e = "";
         let c = "";
         let name = "";
         let descript = "";
-        if (i % 3 >= 1) {
-            if (i % 3 == 1) {
-                e += "<br/>";
-            }
-            c = artworks[aIdx];
-            name = artworksName[aIdx];
-            descript = artworksDescript[aIdx];
-            e += "<div class='showcaseItem' style='width: 300px' onclick='ShowArtworkImage(\"" + c + "\");'>";
-            e += "<div style='background-image: url(OtherWorks/" + c + ".jpg); background-color: black; background-size: cover; background-position: center; background-repeat: no-repeat;' class='showcasePicture'>";
-            e += "<div class='showcaseIntro' style='padding-top: 135px';>" + name;
-            e += "<div style='font-size: 20px; font-weight: normal; margin-top: 10px; opacity: 0.8;'>" + descript + "</div></div>";
+        if (i == 1) {
+            e += "<div class='showcaseItem' style='width: 670px' onclick=\"window.open('https://youtu.be/-OkjF4x01e8', '_blank').focus();\">";
+            e += "<div style='background-image: url(OtherWorks/MacbethFilm.png); background-color: black; background-size: cover; background-position: center; background-repeat: no-repeat;' class='showcasePicture'>";
+            e += "<div class='showcaseIntro' style='padding-top: 130px';> Macbeth Film";
+            e += "<div style='font-size: 20px; font-weight: normal; margin-top: 10px; opacity: 0.8; padding-left: 15px; padding-right: 15px;'> A short film I made. Adapted from William Shakespeare's drama \"Macbeth\".\nClick to view the YouTube page. </div></div>";
             e += "</div>";
+            $("showcase").innerHTML += "<div></div>";
             $("showcase").innerHTML += e;
-            aIdx++;
-        }
-        else if (i % 3 < 1) {
-            c = projects[pIdx]
-            name = projectsName[pIdx];
-            descript = projectsDescript[pIdx];
-            let pos = projectsPos[pIdx];
-            playable = playInBrowser[pIdx];
-            // e += "<div class='showcaseItem' onclick=\"" + "SwitchPage('Projects/" + c + "/" + c + ".html', 'My Portfolio', 3,  false); fromAbout = true;\">";
-            e += "<div class='showcaseItem' onclick='lastPos=" + pos + "; SwitchToPortfolio(); fromAbout = true; aboutPos = " + (750 + pIdx * 620) + ";''>";
-            if (playable) {
-                e += "<div style='background-image: url(Resources/PlayInBrowserIcon.png), url(Projects/" + c + "/Cover.png)' class='showcasePicture'>";
-                e += "<div class='showcaseIntro'>" + name;
+            $("showcase").innerHTML += "<div></div>";
+            i++;
+        } else {
+            if (i % 3 >= 1) {
+                if (i % 3 == 1) {
+                    e += "<br/>";
+                }
+                c = artworks[aIdx];
+                name = artworksName[aIdx];
+                descript = artworksDescript[aIdx];
+                e += "<div class='showcaseItem' style='width: 300px' onclick='ShowArtworkImage(\"" + c + "\");'>";
+                e += "<div style='background-image: url(OtherWorks/" + c + ".jpg); background-color: black; background-size: cover; background-position: center; background-repeat: no-repeat;' class='showcasePicture'>";
+                e += "<div class='showcaseIntro' style='padding-top: 135px';>" + name;
+                e += "<div style='font-size: 20px; font-weight: normal; margin-top: 10px; opacity: 0.8;'>" + descript + "</div></div>";
+                e += "</div>";
+                $("showcase").innerHTML += e;
+                aIdx++;
             }
-            else {
-                e += "<div style='background-image: url(Projects/" + c + "/Cover.png)' class='showcasePicture'>";
-                e += "<div class='showcaseIntro'  style='padding-top: 140px;'>" + name;
+            else if (i % 3 < 1) {
+                c = projects[pIdx]
+                name = projectsName[pIdx];
+                descript = projectsDescript[pIdx];
+                let pos = projectsPos[pIdx];
+                playable = playInBrowser[pIdx];
+                // e += "<div class='showcaseItem' onclick=\"" + "SwitchPage('Projects/" + c + "/" + c + ".html', 'My Portfolio', 3,  false); fromAbout = true;\">";
+                e += "<div class='showcaseItem' onclick='lastPos=" + pos + "; SwitchToPortfolio(); fromAbout = true; aboutPos = " + (750 + pIdx * 620) + ";''>";
+                if (playable) {
+                    e += "<div style='background-image: url(Resources/PlayInBrowserIcon.png), url(Projects/" + c + "/Cover.png)' class='showcasePicture'>";
+                    e += "<div class='showcaseIntro'>" + name;
+                }
+                else {
+                    e += "<div style='background-image: url(Projects/" + c + "/Cover.png)' class='showcasePicture'>";
+                    e += "<div class='showcaseIntro'  style='padding-top: 120px;'>" + name;
 
+                }
+                e += "<div style='font-size: 25px; font-weight: normal; margin-top: 10px; opacity: 0.7;'>" + descript + "</div></div>";
+                if (playable) {
+                    e += "<div class='showcasePlayInBrowser'>Play in Browser</div>"
+                }
+                e += "</div>";
+                $("showcase").innerHTML += e;
+                pIdx++;
             }
-            e += "<div style='font-size: 25px; font-weight: normal; margin-top: 10px; opacity: 0.7;'>" + descript + "</div></div>";
-            if (playable) {
-                e += "<div class='showcasePlayInBrowser'>Play in Browser</div>"
-            }
-            e += "</div>";
-            $("showcase").innerHTML += e;
-            pIdx++;
         }
     }
 
@@ -69,7 +82,7 @@
 
 <div class="showcaseTitle">
     <p>Games</p>
-    <div style="height: 1520px; padding: 4.1px; margin-top: 170px;">
+    <div style="height: 1900px; padding: 4.1px; margin-top: 170px;">
         <div style="border-radius: 5px; background-color: rgb(200, 200, 200); height: 100%;"></div>
     </div>
     <p>Other Works</p>
@@ -80,3 +93,4 @@
 
 
 <div style="height: 100px"></div>
+
