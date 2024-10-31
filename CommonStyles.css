@@ -405,7 +405,7 @@ vr {
     display: grid;
     grid-template-columns: calc(1 * var(--vw));
     row-gap: 2%;
-    grid-template-rows: calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) 500px;
+    grid-template-rows: calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) calc(0.3 * var(--vw)) 630px;
     margin: calc(0.1 * var(--vw) - 50px);
     margin-top: 50px;
     overflow: hidden;

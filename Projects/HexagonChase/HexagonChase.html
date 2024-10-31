@@ -1,0 +1,24 @@
+<script class="script">
+    MoveElement("back", "body");
+    MoveElement("pdf", "body");
+
+    AddProjectsPictures("HexagonChase", 5);
+</script>
+
+<div class="wrapper">
+
+    <div class="normalButton backButton" onclick="SwitchToProjects()" hiddenValue="translateX(-200%)" id="back">
+        <div class="arrow">〈 </div>
+        Back
+    </div>
+
+    <a class="normalButton pdfInNewTab" href="Projects/HexagonChase/HexagonChase.pdf" target="_blank" id="pdf"
+        hiddenValue="translateX(500%)" style="right:50px">
+        Open PDF in New Tab
+        <div class="arrow"> 〉</div>
+    </a>
+
+    <div id="ProjectsPictures"></div>
+
+
+</div>
