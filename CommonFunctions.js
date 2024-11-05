@@ -17,6 +17,10 @@ function SwitchToProjects() {
 var aboutPos = 0;
 var zoomLevel = 1;
 
+function RunGame(name) {
+    $("WebBuild").innerHTML = '<iframe src="Projects/' + name + '/WebBuild/index.html" class="webGLProject"></iframe>';
+}
+
 function SwitchToAbout() {
     if (fromAbout) {
         lastPos = aboutPos * zoomLevel;
