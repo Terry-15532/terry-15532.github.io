@@ -14,12 +14,6 @@
     <link rel="preload" href="Projects/PlanOneirous/PlanOneirous.html" as="fetch" crossorigin="anonymous" />
     <link rel="preload" href="Projects/ShadowEscape/ShadowEscape.html" as="fetch" crossorigin="anonymous" />
     <link rel="preload" href="Projects/MetaClash/MetaClash.html" as="fetch" crossorigin="anonymous" />
-    <link rel="preload" href="Projects/MetaClash/WebBuild/Build/WebBuild.data" as="fetch" crossorigin="anonymous" />
-    <link rel="preload" href="Projects/MetaClash/WebBuild/Build/WebBuild.wasm" as="fetch" crossorigin="anonymous" />
-    <link rel="preload" href="Projects/IslandCity/WebBuild/Build/WebBuild.data" as="fetch" crossorigin="anonymous" />
-    <link rel="preload" href="Projects/IslandCity/WebBuild/Build/WebBuild.wasm" as="fetch" crossorigin="anonymous" />
-    <link rel="preload" href="Projects/ShadowEscape/WebBuild/Build/WebBuild.data" as="fetch" crossorigin="anonymous" />
-    <link rel="preload" href="Projects/ShadowEscape/WebBuild/Build/WebBuild.wasm" as="fetch" crossorigin="anonymous" />
     <link rel="preload" href="Projects/HexagonChase/HexagonChase.html" as="fetch" crossorigin="anonymous" />
     <link rel="icon" href="Resources/icon.png" type="image/png" />
 
@@ -33,13 +27,13 @@
 
 
         AddFileAt("footer", "footer.html", true)
-        function updateZoomLevel() {
+        function UpdateZoomLevel() {
             zoomLevel = window.innerWidth / 1600;
             zoomLevel = Clamp(zoomLevel, 0, 10);
             document.documentElement.style.setProperty('--zoom-level', zoomLevel);
         }
-        window.addEventListener('resize', updateZoomLevel);
-        window.addEventListener('load', updateZoomLevel);
+        window.addEventListener('resize', UpdateZoomLevel);
+        window.addEventListener('load', UpdateZoomLevel);
         window.addEventListener('popstate', function (event) {
             // event.preventDefault();
             if (!loading) {
@@ -57,6 +51,30 @@
                 }
             }
         });
+
+        window.addEventListener("load", CheckPreloadOption);
+
+        function CheckPreloadOption() {
+            function PreloadProjects() {
+                setTimeout(() => {
+                    document.head.innerHTML += '\
+                    <link rel="preload" href="Projects/MetaClash/WebBuild/Build/WebBuild.data" as="fetch" crossorigin="anonymous" />\
+                    <link rel="preload" href="Projects/MetaClash/WebBuild/Build/WebBuild.wasm" as="fetch" crossorigin="anonymous" />\
+                    <link rel="preload" href="Projects/IslandCity/WebBuild/Build/WebBuild.data" as="fetch" crossorigin="anonymous" />\
+                    <link rel="preload" href="Projects/IslandCity/WebBuild/Build/WebBuild.wasm" as="fetch" crossorigin="anonymous" />\
+                    <link rel="preload" href="Projects/ShadowEscape/WebBuild/Build/WebBuild.data" as="fetch" crossorigin="anonymous" />\
+                    <link rel="preload" href="Projects/ShadowEscape/WebBuild/Build/WebBuild.wasm" as="fetch" crossorigin="anonymous" />';
+                }, 5000);
+            }
+            if (navigator.connection) {
+                if (!navigator.connection.saveData) {
+                    PreloadProjects();
+                }
+            }
+            else {
+                PreloadProjects();
+            }
+        }
 
     </script>
 </head>
