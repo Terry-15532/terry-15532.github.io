@@ -124,11 +124,8 @@ body {
     height: 60px;
     right: 50px;
     bottom: 50px;
-    transform: translateX(200%);
-    /* margin-top: -130px; */
-    /* float: right; */
-    /* right: calc(9% + 10px); */
 }
+
 
 .viewProjects {
     width: 180px;

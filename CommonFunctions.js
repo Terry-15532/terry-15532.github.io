@@ -71,7 +71,6 @@ function ShowFixedElements() {
         if (style.position === "fixed") {
             if (element.hasAttribute("shownValue")) {
                 element.style.transform = element.getAttribute("shownValue");
-
             }
             else {
                 element.style.transform = "";

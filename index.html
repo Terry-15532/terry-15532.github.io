@@ -66,23 +66,18 @@
                     <link rel="preload" href="Projects/ShadowEscape/WebBuild/Build/WebBuild.wasm" as="fetch" crossorigin="anonymous" />';
             }
 
-            setTimeout(() => {
-                const userLanguage = navigator.language || navigator.userLanguage;
+            const userLanguage = navigator.language || navigator.userLanguage;
 
-                if (userLanguage === "zh-CN") {
-                    var txt = "是否要预加载网站内的游戏? 这会消耗约100MB流量, 但可以提高加载速度。";
-                    const preload = confirm(txt);
-                    if (preload) {
-                        PreloadProjects();
-                    }
+            if (userLanguage === "zh-CN") {
+                var txt = "是否要预加载网站内的游戏? 这会消耗约100MB流量, 但可以提高加载速度。";
+                const preload = confirm(txt);
+                if (preload) {
+                    PreloadProjects();
                 }
-                else {
-                    setTimeout(() => {
-                        PreloadProjects();
-                    }, 3000);
-                }
-
-            }, 1000);
+            }
+            else {
+                PreloadProjects();
+            }
         }
 
         window.dataLayer = window.dataLayer || [];

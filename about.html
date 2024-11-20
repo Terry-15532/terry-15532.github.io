@@ -2,6 +2,9 @@
     AddFileAt("accounts", "accounts.html", true);
     AddFileAt("showcaseDiv", "showcase.html", true);
     MoveElement("viewProjects", "body");
+    // setTimeout(() => {
+    //     ShowFixedElements();
+    // }, 100);
 </script>
 
 <div style="font-family: sans-serif; overflow: hidden;" class="wrapper">
@@ -22,9 +25,10 @@
 
     <div id="accounts"></div>
 
-    <div class="normalButton viewProjectsButton" id="viewProjects" onclick="SwitchToProjects()" hiddenValue="translateX(0px)" shownValue="translateX(200%)"> View All
-       Projects <div style="font-weight: normal; float:right; margin-right: -30px; margin-top: -6px;">〉</div>
-   </div>
+    <div class="normalButton viewProjectsButton" id="viewProjects" onclick="SwitchToProjects()"
+        shownValue="translateX(200%)" style="transform: translateX(200%)"> View All
+        Projects <div style="font-weight: normal; float:right; margin-right: -30px; margin-top: -6px;">〉</div>
+    </div>
 
     <p style="height: 50px;"></p>
     <div id="showcaseDiv"></div>
