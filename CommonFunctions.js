@@ -122,13 +122,13 @@ function CheckScroll() {
     var scrollPosition = window.scrollY / zoomLevel;
 
     if (lastScroll < scrollPosition - 10) {
-        if (fixedElementsShwon = true) {
+        if (fixedElementsShwon == true) {
             HideFixedElements();
         }
         lastScroll = scrollPosition;
     }
     else if (lastScroll > scrollPosition + 10) {
-        if (fixedElementsShwon = false) {
+        if (fixedElementsShwon == false) {
             ShowFixedElements();
         }
         lastScroll = scrollPosition;
