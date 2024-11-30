@@ -41,18 +41,18 @@ function SetElm(id, name) {
     $(id).innerHTML = name;
 }
 
-function checkScroll() {
-    var scrollPosition = window.scrollY / zoomLevel;
+// function checkScroll() {
+//     var scrollPosition = window.scrollY / zoomLevel;
 
-    if (scrollPosition >= 20 && scrollPosition <= 300) {
-        HideFixedElements();
-    } else {
-        // alert(scrollPosition);
-        ShowFixedElements();
-    }
-}
+//     if (scrollPosition >= 20 && scrollPosition <= 300) {
+//         HideFixedElements();
+//     } else {
+//         ShowFixedElements();
+//     }
+// }
 
 function HideFixedElements() {
+    fixedElementsShwon = false;
     var elements = document.querySelectorAll("body *");
     elements.forEach(function (element) {
         var style = window.getComputedStyle(element);
@@ -65,6 +65,7 @@ function HideFixedElements() {
 
 // Function to show fixed elements by resetting the transform property
 function ShowFixedElements() {
+    fixedElementsShwon = true;
     var elements = document.querySelectorAll("body *");
     elements.forEach(function (element) {
         var style = window.getComputedStyle(element);
@@ -115,18 +116,24 @@ function AddFooter() {
 var currHeader = "";
 
 lastScroll = 0;
+fixedElementsShwon = false;
 
 function CheckScroll() {
     var scrollPosition = window.scrollY / zoomLevel;
 
-    if (lastScroll < scrollPosition) {
-        HideFixedElements();
-    } else {
-        // alert(scrollPosition);
-        ShowFixedElements();
+    if (lastScroll < scrollPosition - 10) {
+        if (fixedElementsShwon = true) {
+            HideFixedElements();
+        }
+        lastScroll = scrollPosition;
+    }
+    else if (lastScroll > scrollPosition + 10) {
+        if (fixedElementsShwon = false) {
+            ShowFixedElements();
+        }
+        lastScroll = scrollPosition;
     }
 
-    lastScroll = scrollPosition;
 }
 
 function ChangeHeader(header) {

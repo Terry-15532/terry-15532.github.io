@@ -4,7 +4,7 @@
     let playInBrowser = [1, 0, 1, 1, 0];
     let projectsDescript = ["A roguelike action game with unique mechanics based on physics.",
         "A motion-sensing, multiplayer volleyball game without the need of specialized devices.",
-        "A city simulation game. Won the Gold Award in the 2024 Bow Seat Competition",
+        "A city simulation game. Won the <div style='display: inline-block; color: rgb(255,200,0); font-weight: bold;'>Gold Award</div> in the 2024 Bow Seat Competition",
         "A 3D platformer puzzle game using real-time shadows as platforms.",
         "A top-down LAN multiplayer strategy game. \nInspired by the \"Ability Draft\" mode in Dota 2."];
     let projectsPos = [0, 500, 1050, 1600, 2150];
@@ -55,7 +55,12 @@
                 // e += "<div class='showcaseItem' onclick=\"" + "SwitchPage('Projects/" + c + "/" + c + ".html', 'My Projects', 3,  false); fromAbout = true;\">";
                 e += "<div class='showcaseItem' onclick='lastPos=" + pos + "; SwitchToProjects(); fromAbout = true; aboutPos = " + (750 + pIdx * 390) / zoomLevel + ";''>";
                 if (playable) {
-                    e += "<div style='background-image: url(Resources/PlayInBrowserIcon.png), url(Projects/" + c + "/Cover.png)' class='showcasePicture'>";
+                    if(pIdx == 2){
+                        e += "<div style='background-image: url(Resources/GoldAwardIcon.png), url(Projects/" + c + "/Cover.png)' class='showcasePicture'>";
+                    }
+                    else{
+                        e += "<div style='background-image: url(Resources/PlayInBrowserIcon.png), url(Projects/" + c + "/Cover.png)' class='showcasePicture'>";
+                    }
                     e += "<div class='showcaseIntro'>" + name;
                 }
                 else {
@@ -63,7 +68,7 @@
                     e += "<div class='showcaseIntro'  style='padding-top: 120px;'>" + name;
 
                 }
-                e += "<div style='font-size: 25px; font-weight: normal; margin-top: 10px; opacity: 0.7;'>" + descript + "</div></div>";
+                e += "<div style='font-size: 25px; font-weight: normal; margin-top: 10px; color: rgb(255,255,255, 0.7)'>" + descript + "</div></div>";
                 if (playable) {
                     e += "<div class='showcasePlayInBrowser'>Play in Browser</div>"
                 }

@@ -646,6 +646,7 @@ hr {
 .showcasePicture .showcaseIntro {
     transition: all 200ms;
     visibility: hidden;
+    opacity: 0;
     padding: 20px;
     text-align: center;
     padding-top: 110px;
@@ -664,6 +665,7 @@ hr {
     backdrop-filter: blur(10px);
     transform: translate(0, 0);
     color: white;
+    opacity: 1;
     background-color: rgba(0, 0, 0, 0.5);
 }
 
