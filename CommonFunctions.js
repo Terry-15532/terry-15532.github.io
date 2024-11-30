@@ -52,7 +52,6 @@ function SetElm(id, name) {
 // }
 
 function HideFixedElements() {
-    fixedElementsShwon = false;
     var elements = document.querySelectorAll("body *");
     elements.forEach(function (element) {
         var style = window.getComputedStyle(element);
@@ -65,7 +64,6 @@ function HideFixedElements() {
 
 // Function to show fixed elements by resetting the transform property
 function ShowFixedElements() {
-    fixedElementsShwon = true;
     var elements = document.querySelectorAll("body *");
     elements.forEach(function (element) {
         var style = window.getComputedStyle(element);
@@ -116,21 +114,16 @@ function AddFooter() {
 var currHeader = "";
 
 lastScroll = 0;
-fixedElementsShwon = false;
 
 function CheckScroll() {
     var scrollPosition = window.scrollY / zoomLevel;
 
-    if (lastScroll < scrollPosition - 10) {
-        if (fixedElementsShwon == true) {
-            HideFixedElements();
-        }
+    if (lastScroll < scrollPosition - 20) {
+        HideFixedElements();
         lastScroll = scrollPosition;
     }
-    else if (lastScroll > scrollPosition + 10) {
-        if (fixedElementsShwon == false) {
-            ShowFixedElements();
-        }
+    else if (lastScroll > scrollPosition + 20) {
+        ShowFixedElements();
         lastScroll = scrollPosition;
     }
 
