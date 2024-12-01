@@ -29,9 +29,11 @@
 
         AddFileAt("footer", "footer.html", true)
         function UpdateZoomLevel() {
-            zoomLevel = window.innerWidth / 1600;
-            zoomLevel = Clamp(zoomLevel, 0, 10);
-            document.documentElement.style.setProperty('--zoom-level', zoomLevel);
+            setTimeout(() => {
+                zoomLevel = window.innerWidth / 1600;
+                zoomLevel = Clamp(zoomLevel, 0, 10);
+                document.documentElement.style.setProperty('--zoom-level', zoomLevel);
+            }, 50);
         }
         window.addEventListener('resize', UpdateZoomLevel);
         window.addEventListener('load', UpdateZoomLevel);
@@ -81,16 +83,13 @@
                     const bitsLoaded = fileSize;
                     const speedMbps = bitsLoaded / duration / 1024;
                     console.log(`Download Speed: ${speedMbps.toFixed(2)} Mbps`);
-                    
+
                     return speedMbps;
 
                 } catch (error) {
                     console.error('Error:', error.message);
                 }
             }
-
-            
-
 
             const userLanguage = navigator.language || navigator.userLanguage;
 
@@ -103,7 +102,7 @@
             }
             else {
                 const speed = checkDownloadSpeed();
-                if(speed > 10){
+                if (speed > 10) {
                     PreloadProjects();
                 }
             }
