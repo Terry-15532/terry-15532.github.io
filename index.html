@@ -66,6 +66,32 @@
                     <link rel="preload" href="Projects/ShadowEscape/WebBuild/Build/WebBuild.wasm" as="fetch" crossorigin="anonymous" />';
             }
 
+            async function checkDownloadSpeed() {
+                const fileSize = 115 * 8;
+                const url = 'Resources/NoPDFViewer.png';
+
+                try {
+                    const startTime = new Date().getTime();
+                    const response = await fetch(url);
+                    const endTime = new Date().getTime();
+
+                    if (!response.ok) throw new Error('Network response was not ok');
+
+                    const duration = (endTime - startTime) / 1000;
+                    const bitsLoaded = fileSize;
+                    const speedMbps = bitsLoaded / duration / 1024;
+                    console.log(`Download Speed: ${speedMbps.toFixed(2)} Mbps`);
+                    
+                    return speedMbps;
+
+                } catch (error) {
+                    console.error('Error:', error.message);
+                }
+            }
+
+            
+
+
             const userLanguage = navigator.language || navigator.userLanguage;
 
             if (userLanguage === "zh-CN") {
@@ -76,7 +102,10 @@
                 }
             }
             else {
-                PreloadProjects();
+                const speed = checkDownloadSpeed();
+                if(speed > 10){
+                    PreloadProjects();
+                }
             }
         }
 
