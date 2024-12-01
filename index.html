@@ -35,6 +35,9 @@
                 document.documentElement.style.setProperty('--zoom-level', zoomLevel);
             }, 50);
         }
+
+        UpdateZoomLevel();
+
         window.addEventListener('resize', UpdateZoomLevel);
         window.addEventListener('load', UpdateZoomLevel);
         window.addEventListener('popstate', function (event) {
