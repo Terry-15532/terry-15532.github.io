@@ -29,11 +29,9 @@
 
         AddFileAt("footer", "footer.html", true)
         function UpdateZoomLevel() {
-            setTimeout(() => {
-                zoomLevel = window.innerWidth / 1600;
-                zoomLevel = Clamp(zoomLevel, 0, 10);
-                document.documentElement.style.setProperty('--zoom-level', zoomLevel);
-            }, 50);
+            zoomLevel = window.innerWidth / 1600;
+            zoomLevel = Clamp(zoomLevel, 0, 10);
+            document.documentElement.style.setProperty('--zoom-level', zoomLevel);
         }
 
         UpdateZoomLevel();
