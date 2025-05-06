@@ -95,11 +95,54 @@
             const userLanguage = navigator.language || navigator.userLanguage;
 
             if (userLanguage === "zh-CN") {
-                var txt = "是否要预加载网站内的游戏? 这会消耗约100MB流量, 但可以提高加载速度。";
-                const preload = confirm(txt);
-                if (preload) {
-                    PreloadProjects();
-                }
+                // var cookieName = "Preload_Games";
+                // var cookieMatch = document.cookie.match(new RegExp('(^| )' + cookieName + '=([^;]+)'));
+                // var preload = false;
+
+                // if (cookieMatch) {
+                //     try {
+                //         var cookieData = JSON.parse(decodeURIComponent(cookieMatch[2]));
+                //         var now = Date.now();
+                //         if (typeof cookieData.value === "boolean" && typeof cookieData.timestamp === "number") {
+                //             var age = now - cookieData.timestamp;
+                //             if (age <= 30 * 60 * 1000) { // 30分钟以内
+                //                 preload = cookieData.value;
+                //             } else {
+                //                 // 时间超出30分钟，重新询问
+                //                 var txt = "是否要预加载网站内的游戏? 这会消耗约100MB流量, 但可以提高加载速度。";
+                //                 preload = confirm(txt);
+                //                 var newData = {
+                //                     value: preload,
+                //                     timestamp: now
+                //                 };
+                //                 document.cookie = cookieName + '=' + encodeURIComponent(JSON.stringify(newData)) + '; path=/';
+                //             }
+                //         }
+                //     } catch (e) {
+                //         // 解析失败，重新询问
+                //         var txt = "是否要预加载网站内的游戏? 这会消耗约100MB流量, 但可以提高加载速度。";
+                //         preload = confirm(txt);
+                //         var newData = {
+                //             value: preload,
+                //             timestamp: Date.now()
+                //         };
+                //         document.cookie = cookieName + '=' + encodeURIComponent(JSON.stringify(newData)) + '; path=/';
+                //     }
+                // } else {
+                //     // cookie 不存在，首次询问
+                //     var txt = "是否要预加载网站内的游戏? 这会消耗约100MB流量, 但可以提高加载速度。";
+                //     preload = confirm(txt);
+                //     var newData = {
+                //         value: preload,
+                //         timestamp: Date.now()
+                //     };
+                //     document.cookie = cookieName + '=' + encodeURIComponent(JSON.stringify(newData)) + '; path=/';
+                // }
+
+                // if (preload) {
+                //     PreloadProjects(); // 用户同意，执行预加载
+                // }
+
             }
             else {
                 const speed = checkDownloadSpeed();
