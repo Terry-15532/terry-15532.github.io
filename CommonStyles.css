@@ -228,12 +228,12 @@ body {
 }
 
 .selfIntro {
-    font-size: 29px;
+    font-size: 29.8px;
     margin-left: calc(7% + 50px);
     margin-top: 10px;
     font-weight: 500;
     color: rgb(230, 230, 230);
-    line-height: 150%;
+    line-height: 155%;
     width: 45%;
 }
 
