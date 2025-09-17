@@ -310,7 +310,7 @@ vr {
 
 #about_self {
     background-image: url('Resources/About_Self.png');
-    border-radius: 10px;
+    border-radius: 15px;
     box-shadow: 0px 0px 10px rgb(50, 50, 50);
     background-size: cover;
     background-repeat: no-repeat;
@@ -355,7 +355,7 @@ vr {
 
 .ProjectsItem {
     /* background-image: url('Resources/About_Self.png'); */
-    border-radius: 5px;
+    border-radius: 15px;
     box-shadow: 0px 0px 10px black;
     background-size: cover;
     background-color: rgb(20, 20, 20);
@@ -636,7 +636,7 @@ hr {
     border-color: white;
     border-style: solid;
     border-width: 2px;
-    border-radius: 15px;
+    border-radius: 13px;
     /* align-items: center; */
     box-shadow: 0 0 10px rgb(0, 0, 0, 0.3);
     background-size: cover;
