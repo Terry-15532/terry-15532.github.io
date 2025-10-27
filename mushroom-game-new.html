@@ -198,16 +198,16 @@
         }
 
         .skill-number {
-            font-size: 1.5em;
+            font-size: 2em;
             font-weight: bold;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             color: #667eea;
         }
 
         .skill-text {
             text-align: center;
-            line-height: 1.8;
-            font-size: 1.2em;
+            line-height: 1.6;
+            font-size: 1em;
             font-weight: 500;
         }
 
@@ -303,29 +303,157 @@
         }
 
         @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 15px;
+                border-radius: 15px;
+            }
+
             h1 {
-                font-size: 1.8em;
+                font-size: 1.5em;
+                margin-bottom: 5px;
+            }
+
+            .subtitle {
+                font-size: 0.9em;
+                margin-bottom: 15px;
+            }
+
+            .game-phase {
+                font-size: 1em;
+                margin-bottom: 15px;
+                padding: 8px;
+            }
+
+            .players-section p {
+                font-size: 0.85em;
+                margin-bottom: 15px;
             }
 
             .cards-grid {
                 grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .card-slot {
+                padding: 15px;
+                min-height: 180px;
+            }
+
+            .card-slot h4 {
+                font-size: 1em;
+                margin-bottom: 8px;
+            }
+
+            .card-slot svg {
+                width: 70px;
+                height: 70px;
+            }
+
+            .card-slot p {
+                font-size: 0.8em;
             }
 
             .flip-card {
-                height: 350px;
+                height: 280px;
+            }
+
+            .flip-card-front,
+            .flip-card-back {
+                padding: 15px;
             }
 
             .skill-number {
-                font-size: 2.8em;
+                font-size: 1.5em;
+                margin-bottom: 10px;
             }
 
             .skill-text {
-                font-size: 1.25em;
-                line-height: 1.6;
+                font-size: 0.85em;
+                line-height: 1.5;
+            }
+
+            .mushroom-svg {
+                width: 90px;
+                height: 90px;
+                margin-bottom: 10px;
+            }
+
+            .mushroom-name {
+                font-size: 1.1em;
+                margin-bottom: 5px;
+            }
+
+            .original-position {
+                font-size: 0.85em;
+            }
+
+            .btn {
+                padding: 10px 20px;
+                font-size: 0.9em;
+            }
+
+            .action-buttons {
+                gap: 10px;
+                margin: 15px 0;
+            }
+
+            .modal-content {
+                margin: 20px auto;
+                padding: 20px;
+            }
+
+            .modal-title {
+                font-size: 1.2em;
+                margin-bottom: 15px;
             }
 
             .mushroom-grid {
                 grid-template-columns: repeat(3, 1fr);
+                gap: 10px;
+            }
+
+            .mushroom-option {
+                padding: 8px;
+            }
+
+            .mushroom-option svg {
+                width: 60px;
+                height: 60px;
+            }
+
+            .mushroom-option p {
+                font-size: 0.7em;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.3em;
+            }
+
+            .cards-grid {
+                grid-template-columns: 1fr;
+                gap: 8px;
+            }
+
+            .flip-card {
+                height: 240px;
+            }
+
+            .skill-number {
+                font-size: 1.3em;
+            }
+
+            .skill-text {
+                font-size: 0.75em;
+            }
+
+            .mushroom-grid {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
@@ -483,17 +611,10 @@
                 const option = document.createElement('div');
                 option.className = 'mushroom-option';
 
-                const isAlreadySelected = selectedMushrooms.some((card, i) =>
-                    card && i !== index && card.name === mushroom.name
-                );
                 const isCurrent = selectedMushrooms[index]?.name === mushroom.name;
 
                 if (isCurrent) option.classList.add('selected');
-                if (isAlreadySelected) {
-                    option.classList.add('disabled');
-                } else {
-                    option.onclick = () => selectMushroom(idx);
-                }
+                option.onclick = () => selectMushroom(idx);
 
                 option.innerHTML = `
                     <svg viewBox="0 0 100 100">
@@ -511,15 +632,6 @@
         // Select a mushroom
         function selectMushroom(mushroomIndex) {
             const mushroom = mushroomTypes[mushroomIndex];
-
-            const isAlreadySelected = selectedMushrooms.some((card, i) =>
-                card && i !== currentSelectingIndex && card.name === mushroom.name
-            );
-
-            if (isAlreadySelected) {
-                alert('This mushroom is already selected!');
-                return;
-            }
 
             selectedMushrooms[currentSelectingIndex] = mushroom;
             closeModal();
