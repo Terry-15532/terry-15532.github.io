@@ -667,43 +667,12 @@ header.hero::before {
     margin: 0 auto;
 }
 
-/* Featured Grid for About Page (2 columns) */
+/* Featured Grid for About Page (3 columns) */
 .grid-container.featured-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-    /* max-width: 1600px; */
-    grid-auto-rows: auto; /* allow explicit row spanning */
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    grid-auto-rows: auto;
     gap: 3rem;
-}
-
-/* Ensure the featured projects section stays on a single line and cards scale by width
-   Keep this scoped to the about page projects section so other grids (art-grid) are unaffected */
-.about-container #projects .grid-container.featured-grid {
-    display: flex;
-    flex-wrap: nowrap;       /* never wrap to second line */
-    gap: 2rem;
-    overflow-x: auto;       /* allow horizontal scroll if items shrink past min-width */
-    align-items: flex-start;
-    padding-bottom: 0.5rem; /* room for possible scrollbar */
-}
-
-.about-container #projects .grid-container.featured-grid .card {
-    flex: 1 1 300px;  /* grow/shrink based on available width, prefer 300px */
-    min-width: 220px; /* avoid shrinking too small */
-    max-width: 1fr;
-    height: auto;
-    display: flex;
-    flex-direction: column;
-}
-
-.about-container #projects .grid-container.featured-grid .card .card-media {
-    width: 100%;
-    aspect-ratio: 16 / 9; /* persist media ratio */
-    height: auto;
-}
-
-.about-container #projects .grid-container.featured-grid .card .card-content {
-    width: 100%;
 }
 
 .card {
