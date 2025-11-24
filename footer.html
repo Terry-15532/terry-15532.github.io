@@ -1,82 +1,116 @@
-<!-- <script class="script">
-    AddFileAt("accounts_footer", "accounts.html", true);
-</script> -->
-
-<script class="script">
-    function InitIcons() {
-        let icons = document.getElementsByClassName("account");
-        Array.from(icons).forEach(element => {
-            element.style.backgroundImage = "url('Resources/Icons/" + element.getAttribute("fileName") + ".png')";
-        });
-    }
-    InitIcons();
-</script>
+<footer class="ak-footer">
+    <div class="footer-inner">
+        <div class="footer-top">
+            <div class="footer-info">
+                <div class="footer-logo text-mono">TERRY_LI.SYSTEM</div>
+                <p class="footer-desc">Game Developer & Technical Artist based in USC.</p>
+                <div class="footer-socials">
+                    <a href="https://github.com/terry-15532" target="_blank" class="social-link">GITHUB</a>
+                    <a href="https://www.pixiv.net/users/87998395" target="_blank" class="social-link">PIXIV</a>
+                    <a href="https://flandrescarlet-15532.itch.io/" target="_blank" class="social-link">ITCH.IO</a>
+                    <a href="mailto:kafuuchino_15532@foxmail.com" class="social-link">EMAIL</a>
+                </div>
+            </div>
+            
+            <div class="footer-tech text-mono">
+                <div>SYS.VER: 2.0.25</div>
+                <div>BUILD: 2025.11.22</div>
+                <div>PWR: 100%</div>
+            </div>
+        </div>
+        
+        <div class="deco-line"></div>
+        
+        <div class="footer-bottom">
+            <div class="copyright">© 2025 Terry Li. All Rights Reserved.</div>
+            <div class="made-with">DESIGNED WITH <span class="text-accent">♥</span> & CODE</div>
+        </div>
+    </div>
+</footer>
 
 <style>
-    .accounts_footer {
-        display: grid;
-        grid-template-columns: 50px 50px 50px 50px 50px;
-        column-count: 5;
-        column-width: 100px;
-        height: 100px;
-        column-gap: calc(10px + 5%);
-        margin-left: 5%;
-        margin-top: 40px;
-        overflow: visible !important;
-    }
+.ak-footer {
+    background: var(--c-bg-panel);
+    border-top: 1px solid var(--c-border);
+    padding: 60px 0 40px;
+    margin-top: 100px;
+}
 
-    .hostedBy {
-        color: white;
-        font-size: 30px;
-        text-align: left;
-        margin-right: 20px;
-        margin-top: -88px;
-        float: right;
-    }
+.footer-inner {
+    max-width: var(--max-w);
+    margin: 0 auto;
+    padding: 0 40px;
+}
 
-    @media (max-width: 500px) {
-        .hostedBy {
-            color: white;
-            font-size: 30px;
-            text-align: left;
-            margin-right: -290px;
-            margin-top: -165px;
-            float: right;
-        }
-    }
+.footer-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 40px;
+}
+
+.footer-logo {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--c-text-primary);
+    margin-bottom: 16px;
+    letter-spacing: 2px;
+}
+
+.footer-desc {
+    color: var(--c-text-secondary);
+    margin-bottom: 24px;
+    font-size: 14px;
+}
+
+.footer-socials {
+    display: flex;
+    gap: 24px;
+}
+
+.social-link {
+    font-family: var(--font-tech);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--c-text-secondary);
+    position: relative;
+    padding-bottom: 4px;
+}
+
+.social-link::before {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; width: 0; height: 1px;
+    background: var(--c-accent-cyan);
+    transition: width 0.3s;
+}
+
+.social-link:hover {
+    color: var(--c-accent-cyan);
+}
+
+.social-link:hover::before {
+    width: 100%;
+}
+
+.footer-tech {
+    text-align: right;
+    font-size: 12px;
+    color: var(--c-text-tertiary);
+    line-height: 1.8;
+}
+
+.footer-bottom {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--c-text-tertiary);
+}
+
+@media (max-width: 768px) {
+    .footer-inner { padding: 0 20px; }
+    .footer-top { flex-direction: column; gap: 40px; }
+    .footer-tech { text-align: left; }
+    .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
+}
 </style>
-
-<div style="font-family: Arial;">
-
-    <p
-        style="color: rgb(200,200,200); font-size: 25px; text-align: left; margin-left: calc(5% + 10px); margin-top: 50px;">
-        <image src="Resources/icon.png" style="height: 40px; width: 40px; display: inline-block; margin-bottom: -10px; margin-right: 10px; margin-left: -5px;" />
-        © 2025 Terry Li. All rights reserved.
-    </p>
-
-    <div class="accounts_footer">
-        <a class="account" fileName="GitHub" href="https://github.com/terry-15532" target="_blank"></a>
-        <a class="account" fileName="Pixiv" href="https://www.pixiv.net/users/87998395" target="_blank"></a>
-        <a class="account" fileName="Itch" href="https://flandrescarlet-15532.itch.io/" target="_blank"></a>
-        <a class="account" fileName="Youtube" href="https://www.youtube.com/@Terry-w-" target="_blank"></a>
-        <a class="account" fileName="Email" href="mailto:kafuuchino_15532@foxmail.com" target="_blank"
-            onclick="alertEmail()"></a>
-    </div>
-    <a style="background-image: url(Resources/Icons/GitHub_Pages.png); 
-        width: 300px;
-        height: 160px;
-        float: right;
-        background-size: contain;
-        margin-top: -155px;
-        margin-right: calc(5% + 10px);
-        background-position: center;
-        background-repeat: no-repeat;" href="https://pages.github.com/" target="_blank"></a>
-    <div style="width: 100%; height: 0px;"></div>
-
-    <p class="hostedBy">
-        Hosted by
-    </p>
-
-    <hr style="margin-left:5%; width: 90%; margin-top: 0px;">
-    </hr>
-</div>

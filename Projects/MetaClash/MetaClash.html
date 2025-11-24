@@ -1,44 +1,64 @@
-<script class="script">
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>META CLASH // DETAILS</title>
+    <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+    <nav>
+        <a href="../../index.html" class="logo">
+            PRTS_DESIGN
+            <span class="sub">PERSONAL TERMINAL</span>
+        </a>
+        <div class="nav-links">
+            <a href="../../index.html" class="nav-item">
+                <span class="en">ABOUT</span>
+                <span class="cn">关于</span>
+            </a>
+            <a href="../../projects.html" class="nav-item active">
+                <span class="en">PROJECTS</span>
+                <span class="cn">游戏项目</span>
+            </a>
+            <a href="../../art.html" class="nav-item">
+                <span class="en">ARTWORKS</span>
+                <span class="cn">艺术作品</span>
+            </a>
+        </div>
+    </nav>
 
-    MoveElement("back", "body");
-    MoveElement("pdf", "body");
-    MoveElement("itch", "body");
+    <div class="container project-detail-container">
+        <div class="webgl-container" id="game-container-metaclash">
+             <iframe width="100%" height="100%" data-src="projects/MetaClash/WebBuild/index.html" frameborder="0" allowfullscreen></iframe>
+             <div class="game-start-overlay" id="start-overlay-metaclash" style="background-image: url('projects/MetaClash/Cover.png');">
+                 <button class="game-start-btn">START GAME</button>
+             </div>
+        </div>
 
+        <div class="deco-line"></div>
 
-
-    AddProjectsPictures("MetaClash", 6);
-</script>
-
-<div class="wrapper">
-
-    <div class="normalButton backButton" onclick="SwitchToProjects()" hiddenValue="translateX(-200%)" id="back">
-        <div class="arrow">〈 </div>
-        Back
+        <div class="project-content">
+            <div class="project-gallery">
+                <img src="projects/MetaClash/Pictures/1.jpeg" alt="Screenshot 1">
+                <img src="projects/MetaClash/Pictures/2.jpeg" alt="Screenshot 2">
+                <img src="projects/MetaClash/Pictures/3.jpeg" alt="Screenshot 3">
+                <img src="projects/MetaClash/Pictures/4.jpeg" alt="Screenshot 4">
+                <img src="projects/MetaClash/Pictures/5.jpeg" alt="Screenshot 5">
+                <img src="projects/MetaClash/Pictures/6.jpeg" alt="Screenshot 6">
+            </div>
+        </div>
     </div>
 
-    <div class="ProjectsDetailPicture"
-        style="display: block; height: 800px; width: 90%; border-style: none; background-image: url(Projects/MetaClash/Instructions.png); background-size: contain; background-color: black; background-repeat: no-repeat; background-position: center;">
+    <!-- Floating Controls -->
+    <div class="project-controls">
+        <a href="../../projects.html" class="rhombus-btn">RETURN</a>
+        <div class="project-controls-right">
+            <a href="https://flandrescarlet-15532.itch.io/meta-clash" target="_blank" class="rhombus-btn">ITCH.IO</a>
+            <a href="../../projects/MetaClash/MetaClash.pdf" target="_blank" class="rhombus-btn">VIEW PDF</a>
+        </div>
     </div>
 
-    <!-- <iframe src="Projects/MetaClash/WebBuild/index.html" class="webGLProject"></iframe> -->
-    <div id="WebBuild" class="webGLProject"
-        style="margin-top: 75px; margin-bottom: 50px; margin-left: 5%; background-image: linear-gradient(to top, rgb(0, 0, 0, 0.7), rgb(0, 0, 0, 0.7)), url('Projects/MetaClash/Cover.png')">
-        <div class="runProject" onclick="alert('This game might not run smoothly at full screen or high resolutions on some computers.\n\nIf you find it lagging, please try scaling down the webpage. \nClick OK to continue.'); window.open('https://flandrescarlet-15532.itch.io/meta-clash', '_blank')">Run Game</div>
-    </div>
-
-    <a class="normalButton pdfInNewTab" href="Projects/MetaClash/MetaClash.pdf" target="_blank" id="pdf"
-        hiddenValue="translateX(500%)" style="right: 500px">
-        Open PDF in New Tab
-        <div class="arrow"> 〉</div>
-    </a>
-
-    <a class="normalButton pdfInNewTab" href="https://flandrescarlet-15532.itch.io/meta-clash" target="_blank"
-        style="margin-left: 35%; width: 370px; position: fixed; right: 30px;" hiddenValue="translateX(300%)" id="itch">
-        View On Itch.io
-        <div class="arrow" style="margin-right: 30px; right: 50px;"> 〉</div>
-    </a>
-
-    <div id="ProjectsPictures"></div>
-
-
-</div>
+    <script src="../../js/main.js"></script>
+</body>
+</html>

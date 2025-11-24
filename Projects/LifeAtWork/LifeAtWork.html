@@ -1,25 +1,61 @@
-<script class="script">
-    MoveElement("back", "body");
-    MoveElement("pdf", "body");
-    AddProjectsPictures("LifeAtWork", 7);
-</script>
-
-<div class="wrapper">
-
-    <div class="normalButton backButton" onclick="SwitchToProjects()" id="back" hiddenValue="translateX(-200%)">
-        <div class="arrow">〈 </div>
-        Back
-    </div>
-
-    <!-- <iframe src="Projects/LifeAtWork/LifeAtWork.pdf" class="ProjectsPDF" type="application/pdf"></iframe> -->
-
-    <div style="display: grid;">
-        <a class="normalButton pdfInNewTab" href="Projects/LifeAtWork/LifeAtWork.pdf" style="right: 50px;" target="_blank" id="pdf" hiddenValue="translateX(200%)">
-            Open PDF in New Tab
-            <div class="arrow"> 〉</div>
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LIFE AT WORK // DETAILS</title>
+    <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+    <nav>
+        <a href="../../index.html" class="logo">
+            PRTS_DESIGN
+            <span class="sub">PERSONAL TERMINAL</span>
         </a>
+        <div class="nav-links">
+            <a href="../../index.html" class="nav-item">
+                <span class="en">ABOUT</span>
+                <span class="cn">关于</span>
+            </a>
+            <a href="../../projects.html" class="nav-item active">
+                <span class="en">PROJECTS</span>
+                <span class="cn">游戏项目</span>
+            </a>
+            <a href="../../art.html" class="nav-item">
+                <span class="en">ARTWORKS</span>
+                <span class="cn">艺术作品</span>
+            </a>
+        </div>
+    </nav>
+
+    <div class="project-detail-container">
+        <div class="webgl-container">
+             <img src="projects/LifeAtWork/Cover.png" style="width:100%; height:100%; object-fit:cover;">
+        </div>
+
+        <div class="deco-line"></div>
+
+        <div class="project-content">
+            <div class="project-gallery">
+                <img src="projects/LifeAtWork/Pictures/1.jpeg" alt="Screenshot 1">
+                <img src="projects/LifeAtWork/Pictures/2.jpeg" alt="Screenshot 2">
+                <img src="projects/LifeAtWork/Pictures/3.jpeg" alt="Screenshot 3">
+                <img src="projects/LifeAtWork/Pictures/4.jpeg" alt="Screenshot 4">
+                <img src="projects/LifeAtWork/Pictures/5.jpeg" alt="Screenshot 5">
+                <img src="projects/LifeAtWork/Pictures/6.jpeg" alt="Screenshot 6">
+                <img src="projects/LifeAtWork/Pictures/7.jpeg" alt="Screenshot 7">
+            </div>
+        </div>
     </div>
 
-    <div id="ProjectsPictures"></div>
+    <!-- Floating Controls -->
+    <div class="project-controls">
+        <a href="../../projects.html" class="rhombus-btn">RETURN</a>
+        <div class="project-controls-right">
+            <a href="../../projects/LifeAtWork/LifeAtWork.pdf" target="_blank" class="rhombus-btn">VIEW PDF</a>
+        </div>
+    </div>
 
-</div>
+    <script src="../../js/main.js"></script>
+</body>
+</html>

@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terminal</title>
+    <title>Personal Website</title>
     <link rel="stylesheet" href="css/style.css">
-    <link rel="icon" href="Resources/icon.png">
 </head>
 <body>
 
@@ -16,7 +15,7 @@
         <div class="deco-bar-left"></div>
         <!-- <div class="deco-corner-tr"></div> -->
         <!-- <div class="deco-corner-bl"></div> -->
-        <div class="deco-text-bg">UNLIMITED</div>
+        <div class="deco-text-bg">IDENTITY</div>
         
         <!-- Added more decorations -->
         <div class="deco-grid-overlay"></div>
@@ -33,12 +32,12 @@
     </div>
 
     <nav>
-        <a href="index.html" class="logo" style="font-size: 20px;">
+        <a href="index.html" class="logo">
             PRTS_DESIGN
             <span class="sub">PERSONAL TERMINAL</span>
         </a>
         <div class="nav-links">
-            <a href="index.html" class="nav-item active">
+            <a href="index.html" class="nav-item">
                 <span class="en">ABOUT</span>
                 <span class="cn">关于</span>
             </a>
@@ -46,129 +45,24 @@
                 <span class="en">PROJECTS</span>
                 <span class="cn">游戏项目</span>
             </a>
-            <a href="art.html" class="nav-item">
+            <a href="art.html" class="nav-item active">
                 <span class="en">ARTWORKS</span>
                 <span class="cn">艺术作品</span>
             </a>
         </div>
     </nav>
 
-    <div class="container about-container">
-        <!-- New Profile Layout -->
-        <div id="profile-section" class="profile-section-new">
-            <div class="profile-content-left">
-                <h1 class="glitch-text profile-name-large" data-text="TERRY LI">TERRY <span class="highlight">LI</span></h1>
-                
-                <div class="profile-bio-box">
-                    <p class="profile-bio-text">
-                       A student at <span class="highlight">USC</span>. Interested in Game Design & Development, Technical Art, Drawing, Sculpturing, etc. 
-                    </p>
-                </div>
-
-                <div class="profile-tags-row">
-                    <span class="tag">UNITY</span>
-                    <span class="tag">C#</span>
-                    <span class="tag">SHADER GRAPH</span>
-                    <span class="tag">BLENDER</span>
-                    <span class="tag">WEBGL</span>
-                    <span class="tag">UI/UX</span>
-                </div>
-
-                <div class="contact-info-grid">
-                    <div class="info-item">
-                        <span class="label">CONTACT ME</span>
-                        <div class="social-icons-row">
-                            <a href="mailto:kafuuchino_15532@foxmail.com" class="icon-link" title="Email" target="_blank">
-                                <img src="Resources/Icons/Email.png" alt="Email" class="social-icon-img">
-                            </a>
-                            <a href="https://github.com/terry-15532" class="icon-link" title="GitHub" target="_blank">
-                                <img src="Resources/Icons/GitHub.png" alt="GitHub" class="social-icon-img">
-                            </a>
-                            <a href="https://www.pixiv.net/users/87998395" class="icon-link" title="Pixiv" target="_blank">
-                                <img src="Resources/Icons/Pixiv.png" alt="Pixiv" class="social-icon-img">
-                            </a>
-                            <a href="https://flandrescarlet-15532.itch.io/" class="icon-link" title="Itch.io" target="_blank">
-                                <img src="Resources/Icons/Itch.png" alt="Itch.io" class="social-icon-img">
-                            </a>
-                            <a href="https://www.youtube.com/@Terry-w-" class="icon-link" title="YouTube" target="_blank">
-                                <img src="Resources/Icons/Youtube.png" alt="YouTube" class="social-icon-img">
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="profile-content-right">
-                <div class="profile-image-large">
-                    <img src="Resources/About_Self.png" alt="Terry Li">
-                    <div class="scan-line"></div>
-                </div>
-            </div>
-        </div>
+    <div class="container">
+        <header class="hero">
+            <h1 class="glitch-text" data-text="VISUAL ARTS">VISUAL <span class="highlight">ARTS</span></h1>
+            <p>Concept art, illustrations, and character designs. <br> 概念设计、插画与角色原画展示。</p>
+        </header>
 
         <div class="deco-line"></div>
 
-        <!-- Featured Arts (moved below Projects) -->
-
-        <!-- Projects Grid from Projects Page -->
-        <section id="projects">
-            <div class="section-title-text">Featured Projects</div>
+        <section id="artworks">
+            <div class="section-title" aria-hidden="true"></div>
             
-            <div class="grid-container featured-grid">
-                <!-- Project 1: Meta Clash -->
-                <a href="Projects/MetaClash/MetaClash.html" class="card">
-                    <div class="card-media">
-                        <img src="Projects/MetaClash/Cover.png" alt="Meta Clash Cover">
-                    </div>
-                    <div class="card-content">
-                        <div class="card-header">
-                            <h3>Meta Clash</h3>
-                        </div>
-                        <p>A Roguelike game.</p>
-                        <div class="card-tags">
-                            <span class="tag play-online">Play Online</span> <span class="tag">Action Game</span>
-                        </div>
-                    </div>
-                </a>
-
-                <!-- Project 2: Island City -->
-                <a href="Projects/IslandCity/IslandCity.html" class="card">
-                    <div class="card-media">
-                        <img src="Projects/IslandCity/Cover.png" alt="Island City Cover">
-                    </div>
-                    <div class="card-content">
-                        <div class="card-header">
-                            <h3>Island City</h3>
-                        </div>
-                        <p>A Simulation game.</p>
-                        <div class="card-tags">
-                            <span class="tag gold-award">Gold Award</span> <span class="tag play-online">Play Online</span> <span class="tag">SIMULATION</span>
-                        </div>
-                    </div>
-                </a>
-
-                <!-- Project 3: Shadow Escape -->
-                <a href="Projects/ShadowEscape/ShadowEscape.html" class="card">
-                    <div class="card-media">
-                        <img src="Projects/ShadowEscape/Cover.png" alt="Shadow Escape Cover">
-                    </div>
-                    <div class="card-content">
-                        <div class="card-header">
-                            <h3>Shadow Escape</h3>
-                        </div>
-                        <p>A Puzzle game.</p>
-                        <div class="card-tags">
-                            <span class="tag">PUZZLE</span>
-                        </div>
-                    </div>
-                </a>
-
-            </div>
-        </section>
-
-        <!-- Featured Arts -->
-        <section id="featured-arts">
-            <div class="section-title-text">Featured Arts</div>
             <div class="grid-container art-grid">
                 <!-- Macbeth Film -->
                 <div class="card art-card double-width">
@@ -181,6 +75,16 @@
                     </div>
                 </div>
 
+                <!-- Car Design -->
+                <div class="card art-card">
+                    <div class="card-media">
+                        <img src="OtherWorks/CarDesign.jpg" alt="Car Design">
+                        <div class="art-overlay">
+                            <h3>Car Design</h3>
+                            <p>Industrial Design / Sketch</p>
+                        </div>
+                    </div>
+                </div>
                 
                 <!-- Down Against The Flow -->
                 <div class="card art-card">
@@ -225,16 +129,65 @@
                         </div>
                     </div>
                 </div>
-            </section>
-            
+
+                <!-- Shoes -->
+                <div class="card art-card">
+                    <div class="card-media">
+                        <img src="OtherWorks/Shoes.jpg" alt="Shoes">
+                        <div class="art-overlay">
+                            <h3>Shoes</h3>
+                            <p>Product Design Sketch</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Skull -->
+                <div class="card art-card">
+                    <div class="card-media">
+                        <img src="OtherWorks/Skull.jpg" alt="Skull">
+                        <div class="art-overlay">
+                            <h3>Skull</h3>
+                            <p>Anatomy Study</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Space And Water -->
+                <div class="card art-card">
+                    <div class="card-media">
+                        <img src="OtherWorks/SpaceAndWater.jpg" alt="Space And Water">
+                        <div class="art-overlay">
+                            <h3>Space And Water</h3>
+                            <p>Concept Art</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sun Wukong -->
+                <div class="card art-card">
+                    <div class="card-media">
+                        <img src="OtherWorks/SunWukong.jpg" alt="Sun Wukong">
+                        <div class="art-overlay">
+                            <h3>Sun Wukong</h3>
+                            <p>Character Design</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transparent -->
+                <div class="card art-card">
+                    <div class="card-media">
+                        <img src="OtherWorks/Transparent.jpg" alt="Transparent">
+                        <div class="art-overlay">
+                            <h3>Transparent</h3>
+                            <p>Material Study</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </div>
 
-    <!-- Floating View All Projects Button -->
-    <div class="about-floating-btn">
-        <a href="projects.html" class="rhombus-btn">VIEW ALL PROJECTS</a>
-    </div>
-
-    <!-- Footer -->
     <footer class="site-footer">
         <div class="footer-container">
             <div class="footer-content">

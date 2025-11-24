@@ -1,35 +1,151 @@
-<script class="script">
-    AddFileAt("accounts", "accounts.html", true);
-    AddFileAt("showcaseDiv", "showcase.html", true);
-    MoveElement("viewProjects", "body");
-    // setTimeout(() => {
-    //     ShowFixedElements();
-    // }, 100);
+<div class="wrapper">
+    <div class="grid-2">
+        <!-- Left: Info & Stats -->
+        <div class="anim-slide-up">
+            <div class="ak-card">
+                <h1 style="font-size: 48px; line-height: 1.1; margin-bottom: 16px;">TERRY LI</h1>
+                <div class="text-mono text-secondary mb-4">USC STUDENT // GAME DEV</div>
+                
+                <div class="deco-line"></div>
+                
+                <p style="margin-bottom: 24px; font-size: 18px;">
+                    A passionate Game Developer and Technical Artist currently studying at <span class="text-accent">USC</span>. 
+                    Specializing in bridging the gap between art and code, creating immersive interactive experiences.
+                </p>
+                
+                <div class="deco-line"></div>
+                
+                <div class="text-mono text-secondary mb-2">SKILLS</div>
+                <div class="tags-container">
+                    <span class="ak-tag">UNITY</span>
+                    <span class="ak-tag">C#</span>
+                    <span class="ak-tag">SHADER GRAPH</span>
+                    <span class="ak-tag">BLENDER</span>
+                    <span class="ak-tag">WEBGL</span>
+                    <span class="ak-tag">UI/UX</span>
+                </div>
+                
+                <div style="margin-top: 40px;">
+                    <button class="ak-button" onclick="SwitchPage('projects.html', 'Projects')">
+                        VIEW ALL PROJECTS
+                    </button>
+                </div>
+            </div>
+            <!-- Accounts Section -->
+            <div class="anim-slide-up anim-delay-4" style="margin-top: 60px;">
+                <div class="ak-card">
+                    <div class="flex-between">
+                        <h3 class="text-mono">CONTACT ME</h3>
+                    </div>
+                    <div class="deco-line"></div>
+                    <div id="accounts-container"></div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right: Visual / Image -->
+        <div class="anim-slide-up anim-delay-2">
+            <div class="profile-visual">
+                <div class="visual-frame">
+                    <img src="Resources/About_Self.png" alt="Profile Visual" class="profile-img">
+                    <div class="corner-deco top-left"></div>
+                    <div class="corner-deco bottom-right"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Featured Projects Section -->
+    <div class="anim-slide-up anim-delay-3" style="margin-top: 80px;">
+        <div class="flex-between">
+            <h3 class="text-mono">FEATURED PROJECTS</h3>
+            <div class="text-mono text-accent" style="cursor: pointer;" onclick="SwitchPage('projects.html', 'Projects')">VIEW ALL ></div>
+        </div>
+        <div class="deco-line"></div>
+        
+        <div class="grid-3" id="featured-projects">
+            <!-- Injected via JS -->
+        </div>
+    </div>
+    
+</div>
+
+<script>
+    // Load Accounts Component
+    LoadComponent('accounts-container', 'accounts.html');
+
+    // Render Featured Projects
+    var featured = [
+        { id: 'MetaClash', title: 'Meta Clash', type: 'ROGUELIKE' },
+        { id: 'IslandCity', title: 'Island City', type: 'SIMULATION' },
+        { id: 'ShadowEscape', title: 'Shadow Escape', type: 'PUZZLE' }
+    ];
+
+    var featHtml = '';
+    featured.forEach(p => {
+        featHtml += `
+            <div class="ak-card" style="padding: 0; cursor: pointer; overflow: hidden;" onclick="SwitchPage('projects.html', 'Projects')">
+                <div style="height: 150px; overflow: hidden;">
+                    <img src="Projects/${p.id}/Cover.png" style="width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+                </div>
+                <div style="padding: 16px;">
+                    <div class="text-mono text-accent" style="font-size: 10px;">${p.type}</div>
+                    <div style="font-family: var(--font-tech); font-weight: 700; font-size: 18px; margin-top: 4px;">${p.title}</div>
+                </div>
+            </div>
+        `;
+    });
+    document.getElementById('featured-projects').innerHTML = featHtml;
 </script>
 
-<div style="font-family: Arial; overflow: hidden;" class="wrapper">
-    <div style="height:120px;"></div>
-    <div class="myName glow-white">Terry Li</div>
+<style>
+.mb-2 { margin-bottom: 8px; }
+.mb-4 { margin-bottom: 16px; }
 
-    <div class="selfIntro noSelect" style="color: rgb(255, 255, 255, 0.6); font-size:
-     30px; margin-left: calc(7% + 10px); margin-bottom: 20px;">
-        Undergrad Student
-    </div>
+.tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
 
-    <div class="selfIntro">A student at USC. Interested in Game Design & Development, Technical Art, Drawing,
-        Sculpturing, etc. <br>
-        <!-- <div style="opacity: 0.5; font-size:23px; margin-top: 15px;">This website is entirely made by myself, without using any template.</div> -->
-    </div>
+/* Visual Profile */
+.profile-visual {
+    position: relative;
+    height: 100%;
+    min-height: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
 
-    <div id="about_self"></div>
+.visual-frame {
+    position: relative;
+    border: 1px solid var(--c-border);
+    padding: 10px;
+    margin: 20px;
+    margin-top: 100px;
+    background: rgba(0,0,0,0.2);
+}
 
-    <div id="accounts"></div>
+.profile-img {
+    width: 100%;
+    height: auto;
+    filter: grayscale(100%) contrast(1.1);
+    /* margin-top: 90px; */
+    /* margin: -20px; */
+    transition: filter 0.5s;
+}
 
-    <div class="normalButton viewProjectsButton" id="viewProjects" onclick="SwitchToProjects()"
-        shownValue="translateX(200%)" style="transform: translateX(200%)"> View All
-        Projects <div style="font-weight: normal; float:right; margin-right: -30px; margin-top: -6px;">〉</div>
-    </div>
+/* .visual-frame:hover .profile-img {
+    filter: grayscale(0%) contrast(1);
+} */
 
-    <p style="height: 50px;"></p>
-    <div id="showcaseDiv"></div>
-</div>
+.corner-deco {
+    position: absolute;
+    width: 20px; height: 20px;
+    border: 2px solid var(--c-accent-cyan);
+}
+
+.top-left { top: -2px; left: -2px; border-right: none; border-bottom: none; }
+.bottom-right { bottom: -2px; right: -2px; border-left: none; border-top: none; }
+</style>

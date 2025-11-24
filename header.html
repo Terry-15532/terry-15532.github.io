@@ -1,22 +1,154 @@
-<div style="height: 110px; width: 120%; position: static; background-color: rgb(10,10,10); ">
-    <div class="head" style="padding-top: 10px; transition: all 200ms !important;" hiddenValue="translateY(-200%)">
-        <image src="Resources/icon_white.png" style="height: 45px; width: 45px; float: left; margin-top: 4px; margin-left: 15px;"/>
-        <a style="padding-left: 15px; float: left; padding-top: 5px;" id="headerTitle">Title</a>
+<header class="ak-header">
+    <div class="header-inner">
+        <!-- Logo / Brand -->
+        <div class="brand" onclick="SwitchPage('about.html', 'About')">
+            <div class="brand-logo">
+                <img src="Resources/icon.png" alt="Logo">
+            </div>
+            <div class="brand-text">
+                <div class="name">TERRY LI</div>
+                <div class="role text-mono">LV.22 DEV // ARTIST</div>
+            </div>
+        </div>
 
-        <a class="headButton" onclick="SwitchToArtworks()" onmouseenter="DispLine(id+'_Line')"
-            onmouseleave="HideLine(id+'_Line')" id="My Artworks">Artworks</a>
-        <vr id="My Artworks_Line"></vr>
-        <vr style="width: 1px; height: 20px; margin-top:18px; transform: translateX(3px);"></vr>
-
-
-        <a class="headButton" onclick="SwitchToProjects()" onmouseenter="DispLine(id+'_Line')"
-            onmouseleave="HideLine(id+'_Line')" id="My Projects">Projects</a>
-        <vr id="My Projects_Line"></vr>
-        <vr style="width: 1px; height: 20px; margin-top:18px; transform: translateX(3px);"></vr>
-
-        <a class="headButton" onclick="SwitchToAbout()" onmouseenter="DispLine(id+'_Line')"
-            onmouseleave="HideLine(id+'_Line')" id="About Me">About</a>
-        <vr id="About Me_Line"></vr>
-        <vr style="width: 1px; height: 20px; margin-top:18px; transform: translateX(3px);"></vr>
+        <!-- Navigation -->
+        <nav class="nav-menu">
+            <a class="nav-item" onclick="SwitchPage('about.html', 'About')">
+                <span class="nav-code">01</span> ABOUT
+            </a>
+            <a class="nav-item" onclick="SwitchPage('projects.html', 'Projects')">
+                <span class="nav-code">02</span> PROJECTS
+            </a>
+            <a class="nav-item" onclick="SwitchPage('artworks.html', 'Artworks')">
+                <span class="nav-code">03</span> ARTWORKS
+            </a>
+            
+            <!-- Theme Toggle -->
+            <button id="themeIcon" class="theme-btn" onclick="ToggleTheme()">☀</button>
+        </nav>
     </div>
-</div>
+    
+    <!-- Decorative Progress Bar -->
+    <div class="header-line"></div>
+</header>
+
+<style>
+.ak-header {
+    position: fixed;
+    top: 0; left: 0; width: 100%;
+    height: var(--header-h);
+    background: rgba(10, 10, 10, 0.9);
+    backdrop-filter: blur(10px);
+    z-index: 1000;
+    border-bottom: 1px solid var(--c-border);
+}
+
+[data-theme='light'] .ak-header {
+    background: rgba(240, 240, 240, 0.9);
+}
+
+.header-inner {
+    max-width: var(--max-w);
+    margin: 0 auto;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+}
+
+/* Brand */
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    cursor: pointer;
+}
+
+.brand-logo img {
+    width: 48px; height: 48px;
+    border: 1px solid var(--c-border-light);
+}
+
+.brand-text .name {
+    font-family: var(--font-tech);
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.brand-text .role {
+    font-size: 10px;
+    color: var(--c-text-secondary);
+    margin-top: 4px;
+    letter-spacing: 1px;
+}
+
+/* Nav */
+.nav-menu {
+    display: flex;
+    align-items: center;
+    gap: 32px;
+}
+
+.nav-item {
+    font-family: var(--font-tech);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--c-text-secondary);
+    cursor: pointer;
+    position: relative;
+    padding: 8px 0;
+    transition: color 0.3s;
+}
+
+.nav-item:hover {
+    color: var(--c-text-primary);
+}
+
+.nav-item::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; width: 0; height: 2px;
+    background: var(--c-accent-cyan);
+    transition: width 0.3s var(--ease-out-expo);
+}
+
+.nav-item:hover::after {
+    width: 100%;
+}
+
+.nav-code {
+    font-size: 10px;
+    color: var(--c-accent-cyan);
+    margin-right: 4px;
+    opacity: 0.6;
+}
+
+/* Theme Btn */
+.theme-btn {
+    background: none;
+    border: 1px solid var(--c-border);
+    color: var(--c-text-primary);
+    width: 32px; height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s;
+}
+
+.theme-btn:hover {
+    background: var(--c-text-primary);
+    color: var(--c-bg-main);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header-inner { padding: 0 20px; }
+    .brand-text { display: none; }
+    .nav-menu { gap: 16px; }
+    .nav-item span { display: none; }
+}
+</style>

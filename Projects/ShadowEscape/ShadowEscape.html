@@ -1,56 +1,56 @@
-<script class="script">
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SHADOW ESCAPE // DETAILS</title>
+    <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+    <nav>
+        <a href="../../index.html" class="logo">
+            PRTS_DESIGN
+            <span class="sub">PERSONAL TERMINAL</span>
+        </a>
+        <div class="nav-links">
+            <a href="../../index.html" class="nav-item">
+                <span class="en">ABOUT</span>
+                <span class="cn">关于</span>
+            </a>
+            <a href="../../projects.html" class="nav-item active">
+                <span class="en">PROJECTS</span>
+                <span class="cn">游戏项目</span>
+            </a>
+            <a href="../../art.html" class="nav-item">
+                <span class="en">ARTWORKS</span>
+                <span class="cn">艺术作品</span>
+            </a>
+        </div>
+    </nav>
 
-    MoveElement("back", "body");
-    MoveElement("itch", "body");
+    <div class="container project-detail-container">
+        <div class="webgl-container" id="game-container-shadowescape">
+             <iframe width="100%" height="100%" data-src="projects/ShadowEscape/WebBuild/index.html" frameborder="0" allowfullscreen></iframe>
+             <div class="game-start-overlay" id="start-overlay-shadowescape" style="background-image: url('projects/ShadowEscape/Cover.png');">
+                 <button class="game-start-btn">START GAME</button>
+             </div>
+        </div>
 
-</script>
+        <div class="deco-line"></div>
 
-<div class="wrapper">
-
-    <div class="normalButton backButton" onclick="SwitchToProjects()" id="back" hiddenValue="translateX(-200%)">
-        <div class="arrow">〈 </div>
-        Back
-    </div>
-
-
-
-    <div style="border-style: solid; border-width: 3px; border-color: white; border-radius: 15px;
-            background-color: rgb(30, 30, 30); margin-left: 5%; width: 85%; margin-bottom: 0px; margin-top: 5%; padding: 30px;
-             padding-top: 20px; font-family: Arial; text-shadow: 0px 0px 10px rgb(100, 100, 100);">
-        <p><strong style="font-size: 30px; color: white; margin-bottom: 20px;">Controls
-            </strong>
-        </p>
-        <div style="color: white">
-            <p><strong style="font-size: 25px">A / D</strong> and <strong style="font-size: 25px">Spacebar</strong>
-                to
-                move and jump.
-            </p>
-            <p><strong style="font-size: 15px">Press <strong style="font-size: 25px">'R'</strong> to restart from
-                    last
-                    checkpoint (helpful if you are stuck)</strong>
-            </p>
-            <p><strong style="font-size: 20px">Click on highlighted lights</strong> to drag and drop lights, and use
-                <strong style="font-size: 25px">mouse-wheel</strong> when dragging lights to push and pull them.
-            </p>
-            <p><strong style="font-size: 20px">Left-click</strong> on highlighted platforms to scale them up in
-                size,
-                <strong style="font-size: 20px">Right-click</strong> to scale them down.
-            </p>
+        <div class="project-content">
+            <div class="project-gallery"></div>
         </div>
     </div>
 
-    <div id="WebBuild" class="webGLProject"
-        style="margin-top: 75px; margin-bottom: 50px; margin-left: 5%; overflow: hidden; height: calc(0.444 * var(--vw)); background-image: linear-gradient(to top, rgb(0, 0, 0, 0.7), rgb(0, 0, 0, 0.7)), url('Projects/ShadowEscape/Cover.png')">
-        <div class="runProject" style="margin-top: 300px" onclick="RunGame('ShadowEscape')">Run Game</div>
+    <!-- Floating Controls -->
+    <div class="project-controls">
+        <a href="../../projects.html" class="rhombus-btn">RETURN</a>
+        <div class="project-controls-right">
+            <a href="https://gothamz.itch.io/shadow-escape" target="_blank" class="rhombus-btn">ITCH.IO</a>
+        </div>
     </div>
 
-    <div style="height: 50px"></div>
-
-    <a class="normalButton pdfInNewTab" href="https://gothamz.itch.io/shadow-escape" target="_blank" id="itch"
-        style="margin-left: 10%; margin-top: 5%; width: 370px; padding-left: 30px; right: 50px;"
-        hiddenValue="translateX(200%)">
-        View On Itch.io
-        <div class="arrow" style="margin-right: 30px; "> 〉</div>
-    </a>
-
-</div>
+    <script src="../../js/main.js"></script>
+</body>
+</html>

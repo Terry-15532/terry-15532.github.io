@@ -1,43 +1,67 @@
-<script class="script">
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ISLAND CITY // DETAILS</title>
+    <link rel="stylesheet" href="../../css/style.css">
+</head>
+<body>
+    <nav>
+        <a href="../../index.html" class="logo">
+            PRTS_DESIGN
+            <span class="sub">PERSONAL TERMINAL</span>
+        </a>
+        <div class="nav-links">
+            <a href="../../index.html" class="nav-item">
+                <span class="en">ABOUT</span>
+                <span class="cn">关于</span>
+            </a>
+            <a href="../../projects.html" class="nav-item active">
+                <span class="en">PROJECTS</span>
+                <span class="cn">游戏项目</span>
+            </a>
+            <a href="../../art.html" class="nav-item">
+                <span class="en">ARTWORKS</span>
+                <span class="cn">艺术作品</span>
+            </a>
+        </div>
+    </nav>
 
-    MoveElement("back", "body");
-    MoveElement("pdf", "body");
-    MoveElement("itch", "body");
-
-
-
-    AddProjectsPictures("IslandCity", 9);
-</script>
-
-<div class="wrapper">
-
-    <div class="normalButton backButton" onclick="SwitchToProjects()" hiddenValue="translateX(-200%)" id="back">
-        <div class="arrow">〈 </div>
-        Back
-    </div>
-
-    <div id="WebBuild" class="webGLProject" style="margin-top: 75px; margin-bottom: 50px; margin-left: 5%; background-image: linear-gradient(to top, rgb(0, 0, 0, 0.8), rgb(0, 0, 0, 0.8)), url('Projects/IslandCity/Cover.png')">
-
-        <div class="runProject" onclick="RunGame('IslandCity')">
-            Run Game
+    <div class="project-detail-container">
+        <div class="webgl-container" id="game-container-islandcity">
+             <iframe width="100%" height="100%" data-src="projects/IslandCity/WebBuild/index.html" frameborder="0" allowfullscreen></iframe>
+             <div class="game-start-overlay" id="start-overlay-islandcity" style="background-image: url('projects/IslandCity/Cover.png');">
+                 <button class="game-start-btn">START GAME</button>
+             </div>
         </div>
 
+        <div class="deco-line"></div>
+
+        <div class="project-content">
+            <div class="project-gallery">
+                <img src="projects/IslandCity/Pictures/1.jpeg" alt="Screenshot 1">
+                <img src="projects/IslandCity/Pictures/2.jpeg" alt="Screenshot 2">
+                <img src="projects/IslandCity/Pictures/3.jpeg" alt="Screenshot 3">
+                <img src="projects/IslandCity/Pictures/4.jpeg" alt="Screenshot 4">
+                <img src="projects/IslandCity/Pictures/5.jpeg" alt="Screenshot 5">
+                <img src="projects/IslandCity/Pictures/6.jpeg" alt="Screenshot 6">
+                <img src="projects/IslandCity/Pictures/7.jpeg" alt="Screenshot 7">
+                <img src="projects/IslandCity/Pictures/8.jpeg" alt="Screenshot 8">
+                <img src="projects/IslandCity/Pictures/9.jpeg" alt="Screenshot 9">
+            </div>
+        </div>
     </div>
 
-    <a class="normalButton pdfInNewTab" href="Projects/IslandCity/IslandCity.pdf" target="_blank" id="pdf"
-        hiddenValue="translateX(500%)" style="right:500px">
-        Open PDF in New Tab
-        <div class="arrow"> 〉</div>
-    </a>
+    <!-- Floating Controls -->
+    <div class="project-controls">
+        <a href="../../projects.html" class="rhombus-btn">RETURN</a>
+        <div class="project-controls-right">
+            <a href="https://flandrescarlet-15532.itch.io/island-city" target="_blank" class="rhombus-btn">ITCH.IO</a>
+            <a href="../../projects/IslandCity/IslandCity.pdf" target="_blank" class="rhombus-btn">VIEW PDF</a>
+        </div>
+    </div>
 
-    <a class="normalButton pdfInNewTab" href="https://flandrescarlet-15532.itch.io/island-city" target="_blank"
-        style="margin-left: 35%; width: 370px; position: fixed; right: 30px;" hiddenValue="translateX(300%)" id="itch">
-        View On Itch.io
-        <div class="arrow" style="margin-right: 30px; right: 50px"> 〉</div>
-    </a>
-
-    <div id="ProjectsPictures"></div>
-
-    <!-- <iframe src="Projects/IslandCity/IslandCity.pdf" class="ProjectsPDF" style="margin-top: -50px;"></iframe> -->
-
-</div>
+    <script src="../../js/main.js"></script>
+</body>
+</html>

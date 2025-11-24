@@ -1,0 +1,35 @@
+<script class="script">
+    AddFileAt("accounts", "accounts.html", true);
+    AddFileAt("showcaseDiv", "showcase.html", true);
+    MoveElement("viewProjects", "body");
+    // setTimeout(() => {
+    //     ShowFixedElements();
+    // }, 100);
+</script>
+
+<div style="font-family: Arial; overflow: hidden;" class="wrapper">
+    <div style="height:120px;"></div>
+    <div class="myName glow-white">Terry Li</div>
+
+    <div class="selfIntro noSelect" style="color: rgb(255, 255, 255, 0.6); font-size:
+     30px; margin-left: calc(7% + 10px); margin-bottom: 20px;">
+        Undergrad Student
+    </div>
+
+    <div class="selfIntro">A student at USC. Interested in Game Design & Development, Technical Art, Drawing,
+        Sculpturing, etc. <br>
+        <!-- <div style="opacity: 0.5; font-size:23px; margin-top: 15px;">This website is entirely made by myself, without using any template.</div> -->
+    </div>
+
+    <div id="about_self"></div>
+
+    <div id="accounts"></div>
+
+    <div class="normalButton viewProjectsButton" id="viewProjects" onclick="SwitchToProjects()"
+        shownValue="translateX(200%)" style="transform: translateX(200%)"> View All
+        Projects <div style="font-weight: normal; float:right; margin-right: -30px; margin-top: -6px;">〉</div>
+    </div>
+
+    <p style="height: 50px;"></p>
+    <div id="showcaseDiv"></div>
+</div>
