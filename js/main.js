@@ -280,6 +280,12 @@ function initLightbox() {
     // Add click listeners to art cards
     const artCards = document.querySelectorAll('.art-card');
     artCards.forEach(card => {
+        // Skip art cards that are links (have href attribute)
+        if (card.tagName === 'A' && card.hasAttribute('href')) {
+            card.style.cursor = 'pointer';
+            return;
+        }
+        
         const img = card.querySelector('img');
         if(img) {
             card.style.cursor = 'zoom-in';
