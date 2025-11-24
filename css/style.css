@@ -994,6 +994,32 @@ header.hero::before {
     color: #000000;
 }
 
+/* Motion-Sensing Tag - Green */
+.tag.motion-sensing {
+    background: #27ae60;
+    color: #ffffff;
+    border: 1px solid #27ae60;
+    font-weight: 700;
+}
+
+[data-theme="dark"] .tag.motion-sensing {
+    background: #2ecc71;
+    color: #000000;
+    border: 1px solid #2ecc71;
+}
+
+.card:hover .tag.motion-sensing {
+    background: #1e8449;
+    border-color: #1e8449;
+    color: #ffffff;
+}
+
+[data-theme="dark"] .card:hover .tag.motion-sensing {
+    background: #66ff99;
+    border-color: #66ff99;
+    color: #000000;
+}
+
 .project-link {
     text-decoration: none;
     color: inherit;
