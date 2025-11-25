@@ -72,6 +72,7 @@ function initPage() {
     initScrollAnimations();
     updateActiveNav();
     initDecoAnimations(); // New function
+    initDotController(); // Initialize 3D dots controller
     initLightbox(); // Initialize Lightbox
     initAboutButton(); // Initialize about button visibility
 }
@@ -96,6 +97,182 @@ function initDecoAnimations() {
         }, 2000);
     }
     */
+}
+
+// Dot-only 2D Xbox-style controller (repelling points, transparent background)
+function initDotController() {
+    const canvas = document.getElementById('gamepad-canvas');
+
+    if (!canvas) {
+        if (window._dotControllerCleanup) window._dotControllerCleanup();
+        return;
+    }
+
+    if (window._dotControllerCleanup) window._dotControllerCleanup();
+
+    const ctx = canvas.getContext('2d');
+    let dpr = window.devicePixelRatio || 1;
+
+    const DESIGN_W = 480; // design coordinate space
+    const DESIGN_H = 420;
+
+    let scale = 1;
+
+    function resize() {
+        dpr = window.devicePixelRatio || 1;
+        const pw = Math.max(1, canvas.clientWidth);
+        const ph = Math.max(1, canvas.clientHeight);
+        canvas.width = Math.round(pw * dpr);
+        canvas.height = Math.round(ph * dpr);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        scale = Math.min(canvas.clientWidth / DESIGN_W, canvas.clientHeight / DESIGN_H);
+    }
+
+    resize();
+    window.addEventListener('resize', resize);
+
+    // Directly use the provided SVG path as the source of dot positions.
+    // We sample the SVG path deterministically (fixed spacing) and create points that map to the canvas design space.
+    const points = [];
+    const UNIFORM_DOT = 1.5;
+
+    // SVG path data (two paths combined from the user-supplied SVG)
+    const svgPathData = `M11.5 6.027a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0zm-1.5 1.5a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1zm2.5-.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0zm-1.5 1.5a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1zm-6.5-3h1v1h1v1h-1v1h-1v-1h-1v-1h1v-1z M3.051 3.26a.5.5 0 0 1 .354-.613l1.932-.518a.5.5 0 0 1 .62.39c.655-.079 1.35-.117 2.043-.117.72 0 1.443.041 2.12.126a.5.5 0 0 1 .622-.399l1.932.518a.5.5 0 0 1 .306.729c.14.09.266.19.373.297.408.408.78 1.05 1.095 1.772.32.733.599 1.591.805 2.466.206.875.34 1.78.364 2.606.024.816-.059 1.602-.328 2.21a1.42 1.42 0 0 1-1.445.83c-.636-.067-1.115-.394-1.513-.773-.245-.232-.496-.526-.739-.808-.126-.148-.25-.292-.368-.423-.728-.804-1.597-1.527-3.224-1.527-1.627 0-2.496.723-3.224 1.527-.119.131-.242.275-.368.423-.243.282-.494.575-.739.808-.398.38-.877.706-1.513.773a1.42 1.42 0 0 1-1.445-.83c-.27-.608-.352-1.395-.329-2.21.024-.826.16-1.73.365-2.606.206-.875.486-1.733.805-2.466.315-.722.687-1.364 1.094-1.772a2.34 2.34 0 0 1 .433-.335.504.504 0 0 1-.028-.079zm2.036.412c-.877.185-1.469.443-1.733.708-.276.276-.587.783-.885 1.465a13.748 13.748 0 0 0-.748 2.295 12.351 12.351 0 0 0-.339 2.406c-.022.755.062 1.368.243 1.776a.42.42 0 0 0 .426.24c.327-.034.61-.199.929-.502.212-.202.4-.423.615-.674.133-.156.276-.323.44-.504C4.861 9.969 5.978 9.027 8 9.027s3.139.942 3.965 1.855c.164.181.307.348.44.504.214.251.403.472.615.674.318.303.601.468.929.503a.42.42 0 0 0 .426-.241c.18-.408.265-1.02.243-1.776a12.354 12.354 0 0 0-.339-2.406 13.753 13.753 0 0 0-.748-2.295c-.298-.682-.61-1.19-.885-1.465-.264-.265-.856-.523-1.733-.708-.85-.179-1.877-.27-2.913-.27-1.036 0-2.063.091-2.913.27z`;
+
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const tmpSvg = document.createElementNS(svgNS, 'svg');
+    tmpSvg.setAttribute('viewBox', '0 0 16 16');
+    tmpSvg.style.position = 'absolute';
+    tmpSvg.style.left = '-9999px';
+    tmpSvg.style.width = '1px';
+    tmpSvg.style.height = '1px';
+    tmpSvg.style.opacity = '0';
+
+    const tmpPath = document.createElementNS(svgNS, 'path');
+    tmpPath.setAttribute('d', svgPathData);
+    tmpSvg.appendChild(tmpPath);
+    document.body.appendChild(tmpSvg);
+
+    try {
+        const totalLen = Math.max(1, tmpPath.getTotalLength());
+        // sample density: fewer samples for a lighter dotted look
+        const samples = Math.min(400, Math.max(100, Math.round(totalLen * 6)));
+
+        const scaleToDesignX = (DESIGN_W / 16);
+        const scaleToDesignY = (DESIGN_H / 16);
+
+        for (let i = 0; i < samples; i++) {
+            const pt = tmpPath.getPointAtLength((i / (samples - 1)) * totalLen);
+            const rx = pt.x - 8; // center around 0
+            const ry = pt.y - 8;
+            const bx = rx * scaleToDesignX;
+            const by = ry * scaleToDesignY;
+            points.push({ bx, by, x: bx, y: by, baseSize: UNIFORM_DOT });
+        }
+    } catch (err) {
+        // if sampling fails, fallback to a simpler ring
+        for (let a = 0; a < Math.PI * 2; a += 0.04) {
+            const bx = Math.cos(a) * 160;
+            const by = Math.sin(a) * 60;
+            points.push({ bx, by, x: bx, y: by, baseSize: UNIFORM_DOT });
+        }
+    } finally {
+        if (tmpSvg && tmpSvg.parentNode) tmpSvg.parentNode.removeChild(tmpSvg);
+    }
+
+
+    // visual parameters
+    // Make avoiding effect smaller and subtler
+    const repulsionRadius = 150; // px — reduced avoiding radius
+    const repulsionStrength = 30; // reduced avoidance force
+    const easePos = 0.05; // easing factor for movement (no bouncing)
+
+    let pointerX = null, pointerY = null;
+
+    function onPointerMove(e) {
+        const rect = canvas.getBoundingClientRect();
+        pointerX = (e.clientX - rect.left);
+        pointerY = (e.clientY - rect.top);
+    }
+
+    function onPointerLeave() {
+        pointerX = null; pointerY = null;
+    }
+
+    // make sure canvas responds directly
+    canvas.style.touchAction = 'none';
+    canvas.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerdown', (e) => { onPointerMove(e); });
+    canvas.addEventListener('pointerleave', onPointerLeave);
+
+    let rafId = null;
+
+    function draw() {
+        // transparent background — clear leaves it transparent
+        ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+
+        // dynamic monochrome color based on theme (white on dark, black on light)
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const dotColor = isDark ? '#ffffffc0' : '#000000c0';
+
+        // center transform
+        const cx = canvas.clientWidth / 2;
+        const cy = canvas.clientHeight / 2 + 6;
+
+        // ease positions toward target (base + repulsion offset) — avoids bounce
+        for (let p of points) {
+            let targetX = p.bx;
+            let targetY = p.by;
+
+            if (pointerX !== null) {
+                const baseScreenX = cx + p.bx * scale;
+                const baseScreenY = cy + p.by * scale;
+                const dx = baseScreenX - pointerX;
+                const dy = baseScreenY - pointerY;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist < repulsionRadius && dist > 0.01) {
+                    const norm = 1 - (dist / repulsionRadius);
+                    const push = (norm * norm) * repulsionStrength; // screen-space push in pixels
+                    // convert push to design space (divide by scale)
+                    const pushX = (dx / dist) * push / scale;
+                    const pushY = (dy / dist) * push / scale;
+                    targetX = p.bx + pushX;
+                    targetY = p.by + pushY;
+                }
+            }
+
+            // ease current toward target position
+            p.x += (targetX - p.x) * easePos;
+            p.y += (targetY - p.y) * easePos;
+        }
+
+        // draw dots
+        for (let p of points) {
+            const sx = cx + p.x * scale;
+            const sy = cy + p.y * scale;
+            const size = Math.max(0.8, p.baseSize) * scale;
+
+            ctx.beginPath();
+            ctx.fillStyle = dotColor;
+            ctx.arc(sx, sy, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        rafId = requestAnimationFrame(draw);
+    }
+
+    // start animation
+    draw();
+
+    // store cleanup for SPA re-init
+    window._dotControllerCleanup = () => {
+        if (rafId) cancelAnimationFrame(rafId);
+        canvas.removeEventListener('pointermove', onPointerMove);
+        canvas.removeEventListener('pointerleave', onPointerLeave);
+        window.removeEventListener('resize', resize);
+        window._dotControllerCleanup = null;
+    };
 }
 
 function initNavbarScroll() {

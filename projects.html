@@ -39,8 +39,20 @@
 
     <div class="container">
         <header class="hero">
-            <h1 class="glitch-text" data-text="GAME DESIGN">GAME <span class="highlight">DESIGN</span></h1>
-            <p>Immersive experiences through technology and art.<br> 来自科技与艺术的沉浸式体验</p>
+            <div class="hero-row">
+                <div class="hero-text">
+                    <h1 class="glitch-text" data-text="GAME DESIGN">GAME <span class="highlight">DESIGN</span></h1>
+                    <p>Immersive experiences through technology and art.<br> 来自科技与艺术的沉浸式体验</p>
+                </div>
+
+                <!-- Interactive dot-only 3D controller canvas -->
+                <div class="hero-widget" aria-hidden="false">
+                    <div class="controller-wrap">
+                            <!-- larger, transparent 2D controller canvas -->
+                            <canvas id="gamepad-canvas" width="640" height="420"></canvas>
+                        </div>
+                </div>
+            </div>
         </header>
 
         <div class="deco-line"></div>
