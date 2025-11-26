@@ -123,7 +123,7 @@ class DotController {
             // Optional override for a fixed dot color (skips theme choice)
             dotColor: null,
             repulsionRadius: 150,
-            repulsionStrength: 30,
+            repulsionStrength: 50,
             squeezeStrength: 0.1
         }, config);
 
@@ -554,9 +554,9 @@ function initAboutController(canvasId = 'about-canvas') {
         designW: 380,
         designH: 320,
         viewBoxSize: 1900,
-        totalSamples: 2000,
+        totalSamples: 1300,
         svgPaths: aboutPaths,
-        dotRadius: 0.1
+        dotRadius: 0.01
 
     });
 }
