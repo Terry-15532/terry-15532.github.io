@@ -1808,6 +1808,34 @@ header.hero::before {
     );
 }
 
+/* ------------------------------------------------------------------ */
+/* Disable text selection for images and most title-like headings       */
+/* Add any classes to the selector list below if you want pages to     */
+/* treat them as non-selectable titles (or add `.no-select` to any      */
+/* element in the HTML to make it non-selectable).                     */
+/* ------------------------------------------------------------------ */
+img, picture img, svg, canvas, video,
+.glitch-text, .profile-name-large, .hero h1, .logo,
+.card h3, .featured-grid .card h3, .art-overlay h3,
+.section-title-text, .nav-item .en, .nav-item .cn {
+    -webkit-user-select: none; /* Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10+/Edge */
+    user-select: none; /* Standard */
+    -webkit-touch-callout: none; /* iOS Safari - disable callout */
+    cursor: default; /* Use default pointer to reduce unintended text selection UI */
+}
+
+/* Utility helper: add this class to any element in the HTML to disable selection */
+.no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    cursor: default;
+}
+
 /* Hover effects disabled for project gallery images */
 /* .project-gallery img:hover {
     border-color: var(--accent-cyan);

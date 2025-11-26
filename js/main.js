@@ -33,6 +33,8 @@ document.addEventListener('DOMContentLoaded', () => {
         console.warn('Warning: SPA navigation (fetch API) may be blocked by CORS when running from file://. Please use a local server (e.g. Live Server extension) for full functionality.');
     }
 
+    // Allow runtime updates to the controller config (class method provided below)
+
     // Intercept all clicks for SPA navigation
     document.addEventListener('click', (e) => {
         const link = e.target.closest('a');
@@ -125,11 +127,19 @@ class DotController {
             repulsionRadius: 150,
             repulsionStrength: 50,
             squeezeStrength: 0.1
+            // Idle animation config
+            , idleSpeed: 1.0 // multiplier for idle motion speed (1.0 = default)
+            , idleAmplitude: 1.0 // multiplier for idle motion amplitude (1.0 = default)
+            , baseIdleAmp: 0.8 // base per-point idle amplitude before random variation
         }, config);
 
         const cleanupKey = `_cleanup_${canvasId.replace(/[^a-zA-Z0-9]/g, '_')}`;
         if (window[cleanupKey]) window[cleanupKey]();
         window[cleanupKey] = this.destroy.bind(this);
+
+        // Expose controller for runtime configuration/debugging
+        if (!window._dotControllers) window._dotControllers = {};
+        window._dotControllers[canvasId] = this;
 
         this.ctx = this.canvas.getContext('2d');
         this.points = [];
@@ -237,7 +247,8 @@ class DotController {
                         startX: Math.cos(ang) * r,
                         startY: Math.sin(ang) * r,
                         phase: Math.random() * Math.PI * 2,
-                        idleAmp: 0.8,
+                        // Per-point idle amplitude is a slightly randomized base so points feel organic.
+                        idleAmp: ((typeof this.config.baseIdleAmp === 'number' ? this.config.baseIdleAmp : 0.8) * (0.8 + Math.random() * 0.4)),
                         baseSize: (typeof dotRadius === 'number' ? dotRadius : dotSize)
                     });
                 }
@@ -356,7 +367,7 @@ class DotController {
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
         const dotColor = config.dotColor ? config.dotColor : (isDark ? (config.dotColorDark || '#ffffff') : (config.dotColorLight || '#000000'));
 
-        const cx = canvas.clientWidth / 2;
+            const cx = canvas.clientWidth / 2;
         const now = performance.now();
 
         // Smoothly transition focus level
@@ -385,9 +396,13 @@ class DotController {
         const verticalScale = 1 - Math.abs(squeezeAmount) * config.squeezeStrength;
         const anchor = state.squeezeAnchor;
 
-        for (let p of points) {
-            const idleX = Math.sin((now * 0.002) * 2 + p.phase) * p.idleAmp * 1.2;
-            const idleY = Math.cos((now * 0.002) * 2.2 + p.phase) * p.idleAmp * 1.2;
+            // Prepare idle timing and amplitudes using config
+            const baseTimeMul = 0.002 * (this.config.idleSpeed || 1);
+            const globalIdleAmp = (this.config.idleAmplitude !== undefined ? this.config.idleAmplitude : 1);
+
+            for (let p of points) {
+            const idleX = Math.sin((now * baseTimeMul) * 2 + p.phase) * p.idleAmp * globalIdleAmp * 1.2;
+            const idleY = Math.cos((now * baseTimeMul) * 2.2 + p.phase) * p.idleAmp * globalIdleAmp * 1.2;
 
             // Interpolate between scattered (startX/Y) and assembled (bx/by) based on focus
             const baseX = (1 - focusEase) * p.startX + focusEase * p.bx;
@@ -429,6 +444,12 @@ class DotController {
         this.rafId = requestAnimationFrame(this.draw);
     }
 
+    // Update configuration at runtime (allows changing idle speed/amplitude)
+    updateConfig(newConfig) {
+        if (!newConfig || typeof newConfig !== 'object') return;
+        Object.assign(this.config, newConfig);
+    }
+
     destroy() {
         if (this.rafId) cancelAnimationFrame(this.rafId);
         this.canvas.removeEventListener('pointermove', this.onPointerMove);
@@ -440,6 +461,8 @@ class DotController {
         window.removeEventListener('focus', this.onFocus);
         // no blur listener used for scatter anymore
         if (this.ro) this.ro.disconnect();
+        // Remove runtime reference
+        if (window._dotControllers && window._dotControllers[this.canvas.id]) delete window._dotControllers[this.canvas.id];
     }
 }
 
@@ -640,8 +663,10 @@ function initAboutController(canvasId = 'about-canvas') {
         viewBoxSize: 1900,
         totalSamples: 1300,
         svgPaths: aboutPaths,
-        dotRadius: 0.01
-
+        dotRadius: 0.01,
+        idleAmplitude: 0.6,
+        idleSpeed: 1.2
+        
     });
 }
 // function initDotController(canvasId = 'gamepad-canvas') {
