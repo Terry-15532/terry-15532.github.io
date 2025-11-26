@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log('System Online. Welcome to PRTS Design.');
-    
+
     // Inject Loader
     const loaderHTML = `
         <div id="loader"><div class="spinner"></div></div>
@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initBackgroundAnimation();
     initNavbarScroll(); // Added Navbar Scroll Logic
     initThemeToggle(); // Initialize theme toggle
-    
+
     // Handle Browser Back/Forward
     window.addEventListener('popstate', () => {
         const path = window.location.hash.slice(1) || 'index.html';
@@ -42,9 +42,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 return;
             }
-            
+
             const href = link.getAttribute('href');
-            
+
             // Check if it's an internal link and not an anchor link or external
             if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('mailto:') && !link.hasAttribute('target')) {
                 e.preventDefault();
@@ -73,6 +73,8 @@ function initPage() {
     updateActiveNav();
     initDecoAnimations(); // New function
     initDotController(); // Initialize 3D dots controller
+    initArtworksDot(); // Initialize rocket dots for art page
+    initAboutController(); // Initialize controller on About page image area
     initLightbox(); // Initialize Lightbox
     initAboutButton(); // Initialize about button visibility
 }
@@ -99,193 +101,491 @@ function initDecoAnimations() {
     */
 }
 
-// Dot-only 2D Xbox-style controller (repelling points, transparent background)
-function initDotController() {
-    const canvas = document.getElementById('gamepad-canvas');
+// Unified Dot Controller Class
+class DotController {
+    constructor(canvasId, config) {
+        this.canvas = document.getElementById(canvasId);
+        if (!this.canvas) return;
 
-    if (!canvas) {
-        if (window._dotControllerCleanup) window._dotControllerCleanup();
-        return;
+        this.config = Object.assign({
+            designW: 480,
+            designH: 480,
+            viewBoxSize: 100,
+            svgPaths: [],
+            totalSamples: 150,
+            // Backwards-compatible: dotSize kept for older usage
+            dotSize: 1.2,
+            // New: more explicit dot radius
+            dotRadius: 1.2,
+            // Color settings (light/dark can be customized)
+            dotColorLight: '#000000',
+            dotColorDark: '#ffffff',
+            // Optional override for a fixed dot color (skips theme choice)
+            dotColor: null,
+            repulsionRadius: 150,
+            repulsionStrength: 30,
+            squeezeStrength: 0.1
+        }, config);
+
+        const cleanupKey = `_cleanup_${canvasId.replace(/[^a-zA-Z0-9]/g, '_')}`;
+        if (window[cleanupKey]) window[cleanupKey]();
+        window[cleanupKey] = this.destroy.bind(this);
+
+        this.ctx = this.canvas.getContext('2d');
+        this.points = [];
+        this.rafId = null;
+        this.ro = null;
+        this.dpr = window.devicePixelRatio || 1;
+        this.scale = 1;
+
+        this.state = {
+            pointerX: null, pointerY: null,
+            scrollSqueeze: 0, targetScrollSqueeze: 0,
+            squeezeAnchor: 0, targetSqueezeAnchor: 0,
+            screenOffsetY: 0, targetScreenOffsetY: 0,
+            centerOffsetY: 0,
+            lastScrollY: window.scrollY,
+            lastScrollTime: performance.now(),
+            focusLevel: 0, // 0 = scattered, 1 = assembled
+            targetFocusLevel: 1
+        };
+
+        this.CONSTANTS = {
+            TOP_ANCHOR: -this.config.designH / 1.5,
+            BOTTOM_ANCHOR: this.config.designH / 1.5,
+            SCREEN_MAX: Math.max(120, this.config.designH),
+            SCREEN_ANCHOR_INFLUENCE: -0.25,
+            CENTER_EASE: 0.09,
+            SCREEN_DAMPING: 0.01,
+            SCREEN_DECAY: 0.1
+        };
+
+        this.resize = this.resize.bind(this);
+        this.onPointerMove = this.onPointerMove.bind(this);
+        this.onPointerLeave = this.onPointerLeave.bind(this);
+        this.onWheel = this.onWheel.bind(this);
+        this.onScroll = this.onScroll.bind(this);
+        this.onFocus = this.onFocus.bind(this);
+        this.onBlur = this.onBlur.bind(this);
+        this.draw = this.draw.bind(this);
+
+        this.init();
     }
 
-    if (window._dotControllerCleanup) window._dotControllerCleanup();
-
-    const ctx = canvas.getContext('2d');
-    let dpr = window.devicePixelRatio || 1;
-
-    const DESIGN_W = 480; // design coordinate space
-    const DESIGN_H = 420;
-
-    let scale = 1;
-
-    function resize() {
-        dpr = window.devicePixelRatio || 1;
-        const pw = Math.max(1, canvas.clientWidth);
-        const ph = Math.max(1, canvas.clientHeight);
-        canvas.width = Math.round(pw * dpr);
-        canvas.height = Math.round(ph * dpr);
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        scale = Math.min(canvas.clientWidth / DESIGN_W, canvas.clientHeight / DESIGN_H);
+    init() {
+        // Initialize events first so we can detect visibility before heavy sampling
+        this.setupEvents();
+        this.setupPoints();
+        this.resize();
+        this.draw();
     }
 
-    resize();
-    window.addEventListener('resize', resize);
+    async setupPoints() {
+        // Performance optimization: Cache points to avoid re-sampling and keep state
+        if (!DotController.cache) DotController.cache = {};
+        const cacheKey = this.canvas.id;
 
-    // Directly use the provided SVG path as the source of dot positions.
-    // We sample the SVG path deterministically (fixed spacing) and create points that map to the canvas design space.
-    const points = [];
-    const UNIFORM_DOT = 1.5;
-
-    // SVG path data (two paths combined from the user-supplied SVG)
-    const svgPathData = `M11.5 6.027a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0zm-1.5 1.5a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1zm2.5-.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0zm-1.5 1.5a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1zm-6.5-3h1v1h1v1h-1v1h-1v-1h-1v-1h1v-1z M3.051 3.26a.5.5 0 0 1 .354-.613l1.932-.518a.5.5 0 0 1 .62.39c.655-.079 1.35-.117 2.043-.117.72 0 1.443.041 2.12.126a.5.5 0 0 1 .622-.399l1.932.518a.5.5 0 0 1 .306.729c.14.09.266.19.373.297.408.408.78 1.05 1.095 1.772.32.733.599 1.591.805 2.466.206.875.34 1.78.364 2.606.024.816-.059 1.602-.328 2.21a1.42 1.42 0 0 1-1.445.83c-.636-.067-1.115-.394-1.513-.773-.245-.232-.496-.526-.739-.808-.126-.148-.25-.292-.368-.423-.728-.804-1.597-1.527-3.224-1.527-1.627 0-2.496.723-3.224 1.527-.119.131-.242.275-.368.423-.243.282-.494.575-.739.808-.398.38-.877.706-1.513.773a1.42 1.42 0 0 1-1.445-.83c-.27-.608-.352-1.395-.329-2.21.024-.826.16-1.73.365-2.606.206-.875.486-1.733.805-2.466.315-.722.687-1.364 1.094-1.772a2.34 2.34 0 0 1 .433-.335.504.504 0 0 1-.028-.079zm2.036.412c-.877.185-1.469.443-1.733.708-.276.276-.587.783-.885 1.465a13.748 13.748 0 0 0-.748 2.295 12.351 12.351 0 0 0-.339 2.406c-.022.755.062 1.368.243 1.776a.42.42 0 0 0 .426.24c.327-.034.61-.199.929-.502.212-.202.4-.423.615-.674.133-.156.276-.323.44-.504C4.861 9.969 5.978 9.027 8 9.027s3.139.942 3.965 1.855c.164.181.307.348.44.504.214.251.403.472.615.674.318.303.601.468.929.503a.42.42 0 0 0 .426-.241c.18-.408.265-1.02.243-1.776a12.354 12.354 0 0 0-.339-2.406 13.753 13.753 0 0 0-.748-2.295c-.298-.682-.61-1.19-.885-1.465-.264-.265-.856-.523-1.733-.708-.85-.179-1.877-.27-2.913-.27-1.036 0-2.063.091-2.913.27z`;
-
-    const svgNS = 'http://www.w3.org/2000/svg';
-    const tmpSvg = document.createElementNS(svgNS, 'svg');
-    tmpSvg.setAttribute('viewBox', '0 0 16 16');
-    tmpSvg.style.position = 'absolute';
-    tmpSvg.style.left = '-9999px';
-    tmpSvg.style.width = '1px';
-    tmpSvg.style.height = '1px';
-    tmpSvg.style.opacity = '0';
-
-    const tmpPath = document.createElementNS(svgNS, 'path');
-    tmpPath.setAttribute('d', svgPathData);
-    tmpSvg.appendChild(tmpPath);
-    document.body.appendChild(tmpSvg);
-
-    try {
-        const totalLen = Math.max(1, tmpPath.getTotalLength());
-        // sample density: fewer samples for a lighter dotted look
-        const samples = Math.min(400, Math.max(100, Math.round(totalLen * 6)));
-
-        const scaleToDesignX = (DESIGN_W / 16);
-        const scaleToDesignY = (DESIGN_H / 16);
-
-        for (let i = 0; i < samples; i++) {
-            const pt = tmpPath.getPointAtLength((i / (samples - 1)) * totalLen);
-            const rx = pt.x - 8; // center around 0
-            const ry = pt.y - 8;
-            const bx = rx * scaleToDesignX;
-            const by = ry * scaleToDesignY;
-            points.push({ bx, by, x: bx, y: by, baseSize: UNIFORM_DOT });
+        if (DotController.cache[cacheKey]) {
+            this.points = DotController.cache[cacheKey].points;
+            // Start scattered if restoring, to allow re-assembly animation
+            this.state.focusLevel = 0;
+            this.state.targetFocusLevel = 1;
+            return;
         }
-    } catch (err) {
-        // if sampling fails, fallback to a simpler ring
-        for (let a = 0; a < Math.PI * 2; a += 0.04) {
-            const bx = Math.cos(a) * 160;
-            const by = Math.sin(a) * 60;
-            points.push({ bx, by, x: bx, y: by, baseSize: UNIFORM_DOT });
+
+        // Async generation to avoid blocking UI
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        const { svgPaths, viewBoxSize, designW, designH, totalSamples, dotRadius, dotSize, dotColorLight, dotColorDark } = this.config;
+        const svgNS = 'http://www.w3.org/2000/svg';
+        const tmpSvg = document.createElementNS(svgNS, 'svg');
+        tmpSvg.style.position = 'absolute';
+        tmpSvg.style.left = '-9999px';
+        document.body.appendChild(tmpSvg);
+
+        try {
+            const pathEls = svgPaths.map(d => {
+                const p = document.createElementNS(svgNS, 'path');
+                p.setAttribute('d', d);
+                tmpSvg.appendChild(p);
+                return p;
+            });
+
+            const lengths = pathEls.map(p => p.getTotalLength());
+            const totalLen = lengths.reduce((a, b) => a + b, 0);
+            const scaleToDesign = designW / viewBoxSize;
+            const offset = viewBoxSize / 2;
+
+            pathEls.forEach((p, i) => {
+                const len = lengths[i];
+                if (len <= 0) return;
+                const samples = Math.max(Math.floor(totalSamples * (len / totalLen)), 2);
+                
+                for (let j = 0; j < samples; j++) {
+                    const pt = p.getPointAtLength((j / (samples - 1)) * len);
+                    const bx = (pt.x - offset) * scaleToDesign;
+                    const by = (pt.y - offset) * scaleToDesign;
+
+                    const scatterRadius = Math.max(designW, designH) * 0.45;
+                    const ang = Math.random() * Math.PI * 2;
+                    const r = Math.sqrt(Math.random()) * scatterRadius;
+                    
+                    this.points.push({
+                        bx, by,
+                        x: Math.cos(ang) * r,
+                        y: Math.sin(ang) * r,
+                        startX: Math.cos(ang) * r,
+                        startY: Math.sin(ang) * r,
+                        phase: Math.random() * Math.PI * 2,
+                        idleAmp: 0.8,
+                        baseSize: (typeof dotRadius === 'number' ? dotRadius : dotSize)
+                    });
+                }
+            });
+
+            // Save to cache
+            DotController.cache[cacheKey] = {
+                points: this.points
+            };
+
+        } catch (e) {
+            console.error('Error sampling SVG', e);
+        } finally {
+            if (tmpSvg.parentNode) document.body.removeChild(tmpSvg);
         }
-    } finally {
-        if (tmpSvg && tmpSvg.parentNode) tmpSvg.parentNode.removeChild(tmpSvg);
     }
 
+    setupEvents() {
+        this.canvas.style.touchAction = 'none';
+        this.canvas.addEventListener('pointermove', this.onPointerMove);
+        this.canvas.addEventListener('pointerdown', this.onPointerMove);
+        this.canvas.addEventListener('pointerleave', this.onPointerLeave);
+        window.addEventListener('resize', this.resize);
+        window.addEventListener('wheel', this.onWheel, { passive: true });
+        window.addEventListener('scroll', this.onScroll, { passive: true });
+        window.addEventListener('focus', this.onFocus);
 
-    // visual parameters
-    // Make avoiding effect smaller and subtler
-    const repulsionRadius = 150; // px — reduced avoiding radius
-    const repulsionStrength = 30; // reduced avoidance force
-    const easePos = 0.05; // easing factor for movement (no bouncing)
-
-    let pointerX = null, pointerY = null;
-
-    function onPointerMove(e) {
-        const rect = canvas.getBoundingClientRect();
-        pointerX = (e.clientX - rect.left);
-        pointerY = (e.clientY - rect.top);
+        try {
+            const target = this.canvas.closest('.controller-wrap, .rocket-wrap') || this.canvas.parentElement;
+            if (window.ResizeObserver && target) {
+                this.ro = new ResizeObserver(this.resize);
+                this.ro.observe(target);
+            }
+            // Visibility observer controls whether the points are scattered or assembled
+            const visTarget = target || this.canvas;
+            if ('IntersectionObserver' in window) {
+                this.io = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        const visible = entry.isIntersecting;
+                        this.isVisible = visible;
+                        this.state.targetFocusLevel = visible ? 1 : 0;
+                    });
+                }, { threshold: 0.05 });
+                this.io.observe(visTarget);
+                // Initialize visible flag based on current bounding rect
+                const rect = visTarget.getBoundingClientRect();
+                this.isVisible = rect.width > 0 && rect.height > 0 && rect.bottom >= 0 && rect.top <= window.innerHeight;
+                // Set initial focus based on visibility
+                this.state.focusLevel = this.isVisible ? 1 : 0;
+                this.state.targetFocusLevel = this.isVisible ? 1 : 0;
+            }
+        } catch (e) {}
     }
 
-    function onPointerLeave() {
-        pointerX = null; pointerY = null;
+    resize() {
+        this.dpr = window.devicePixelRatio || 1;
+        const pw = Math.max(1, this.canvas.clientWidth);
+        const ph = Math.max(1, this.canvas.clientHeight);
+        this.canvas.width = Math.round(pw * this.dpr);
+        this.canvas.height = Math.round(ph * this.dpr);
+        this.ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
+        this.scale = Math.min(pw / this.config.designW, ph / this.config.designH);
     }
 
-    // make sure canvas responds directly
-    canvas.style.touchAction = 'none';
-    canvas.addEventListener('pointermove', onPointerMove);
-    canvas.addEventListener('pointerdown', (e) => { onPointerMove(e); });
-    canvas.addEventListener('pointerleave', onPointerLeave);
+    onPointerMove(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        this.state.pointerX = e.clientX - rect.left;
+        this.state.pointerY = e.clientY - rect.top;
+    }
 
-    let rafId = null;
+    onPointerLeave() {
+        this.state.pointerX = null;
+        this.state.pointerY = null;
+    }
 
-    function draw() {
-        // transparent background — clear leaves it transparent
+    onFocus() {
+        this.state.targetFocusLevel = 1;
+    }
+
+    onBlur() {
+        this.state.targetFocusLevel = 0;
+    }
+
+    clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+    onWheel(e) {
+        const v = this.clamp(e.deltaY / 800, -0.9, 0.9);
+        this.state.targetScrollSqueeze = this.clamp(this.state.targetScrollSqueeze + v, -1, 1);
+        const dir = Math.sign(e.deltaY) || 1;
+        const strength = this.clamp(Math.abs(v) * 1.4, 0, 1);
+        this.state.targetSqueezeAnchor = (dir > 0 ? this.CONSTANTS.TOP_ANCHOR : this.CONSTANTS.BOTTOM_ANCHOR) * strength;
+        this.state.targetScreenOffsetY = this.clamp(this.state.targetScreenOffsetY + (-e.deltaY) * 0.35, -this.CONSTANTS.SCREEN_MAX, this.CONSTANTS.SCREEN_MAX);
+    }
+
+    onScroll() {
+        const now = performance.now();
+        const dy = window.scrollY - this.state.lastScrollY;
+        const dt = Math.max(16, now - this.state.lastScrollTime);
+        const velocity = dy / dt;
+        const v = this.clamp(velocity * 30, -0.6, 0.6);
+        
+        this.state.targetScrollSqueeze = this.clamp(this.state.targetScrollSqueeze + v, -1, 1);
+        const dir = Math.sign(dy) || 1;
+        const strength = this.clamp(Math.abs(v) * 1.2, 0, 1);
+        this.state.targetSqueezeAnchor = (dir > 0 ? this.CONSTANTS.TOP_ANCHOR : this.CONSTANTS.BOTTOM_ANCHOR) * strength;
+        this.state.targetScreenOffsetY = this.clamp(this.state.targetScreenOffsetY + (-dy) * 0.35, -this.CONSTANTS.SCREEN_MAX, this.CONSTANTS.SCREEN_MAX);
+        
+        this.state.lastScrollY = window.scrollY;
+        this.state.lastScrollTime = now;
+    }
+
+    draw() {
+        const { ctx, canvas, dpr, scale, points, state, config, CONSTANTS } = this;
         ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
-        // dynamic monochrome color based on theme (white on dark, black on light)
         const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-        const dotColor = isDark ? '#ffffffc0' : '#000000c0';
+        const dotColor = config.dotColor ? config.dotColor : (isDark ? (config.dotColorDark || '#ffffff') : (config.dotColorLight || '#000000'));
 
-        // center transform
         const cx = canvas.clientWidth / 2;
-        const cy = canvas.clientHeight / 2 + 6;
+        const now = performance.now();
+        
+        // Smoothly transition focus level
+        state.focusLevel += (state.targetFocusLevel - state.focusLevel) * 0.05;
+        const focusEase = 1 - Math.pow(1 - state.focusLevel, 3); // Cubic ease
 
-        // ease positions toward target (base + repulsion offset) — avoids bounce
+        state.scrollSqueeze += (state.targetScrollSqueeze - state.scrollSqueeze) * 0.12;
+        state.targetScrollSqueeze *= 0.92;
+        if (Math.abs(state.targetScrollSqueeze) < 0.001) state.targetScrollSqueeze = 0;
+
+        state.squeezeAnchor += (state.targetSqueezeAnchor - state.squeezeAnchor) * 0.12;
+        state.targetSqueezeAnchor *= 0.92;
+        if (Math.abs(state.targetSqueezeAnchor) < 0.5) state.targetSqueezeAnchor = 0;
+
+        state.screenOffsetY += (state.targetScreenOffsetY - state.screenOffsetY) * CONSTANTS.SCREEN_DAMPING;
+        state.targetScreenOffsetY *= CONSTANTS.SCREEN_DECAY;
+        if (Math.abs(state.targetScreenOffsetY) < 0.5) state.targetScreenOffsetY = 0;
+
+        const anchorPx = state.squeezeAnchor * scale * CONSTANTS.SCREEN_ANCHOR_INFLUENCE;
+        const desiredCenter = state.screenOffsetY + anchorPx;
+        state.centerOffsetY += (desiredCenter - state.centerOffsetY) * CONSTANTS.CENTER_EASE;
+        
+        const cy = canvas.clientHeight / 2 + state.centerOffsetY;
+
+        const squeezeAmount = this.clamp(state.scrollSqueeze, -0.95, 0.95);
+        const verticalScale = 1 - Math.abs(squeezeAmount) * config.squeezeStrength;
+        const anchor = state.squeezeAnchor;
+
         for (let p of points) {
-            let targetX = p.bx;
-            let targetY = p.by;
+            const idleX = Math.sin((now * 0.002) * 2 + p.phase) * p.idleAmp * 1.2;
+            const idleY = Math.cos((now * 0.002) * 2.2 + p.phase) * p.idleAmp * 1.2;
 
-            if (pointerX !== null) {
+            // Interpolate between scattered (startX/Y) and assembled (bx/by) based on focus
+            const baseX = (1 - focusEase) * p.startX + focusEase * p.bx;
+            const baseY = (1 - focusEase) * p.startY + focusEase * p.by;
+
+            const squeezedBaseY = anchor + (baseY - anchor) * verticalScale;
+
+            let targetX = baseX + idleX * focusEase;
+            let targetY = squeezedBaseY + idleY * focusEase;
+
+            if (state.pointerX !== null) {
                 const baseScreenX = cx + p.bx * scale;
-                const baseScreenY = cy + p.by * scale;
-                const dx = baseScreenX - pointerX;
-                const dy = baseScreenY - pointerY;
+                const baseScreenY = cy + squeezedBaseY * scale;
+                const dx = baseScreenX - state.pointerX;
+                const dy = baseScreenY - state.pointerY;
                 const dist = Math.hypot(dx, dy);
 
-                if (dist < repulsionRadius && dist > 0.01) {
-                    const norm = 1 - (dist / repulsionRadius);
-                    const push = (norm * norm) * repulsionStrength; // screen-space push in pixels
-                    // convert push to design space (divide by scale)
-                    const pushX = (dx / dist) * push / scale;
-                    const pushY = (dy / dist) * push / scale;
-                    targetX = p.bx + pushX;
-                    targetY = p.by + pushY;
+                if (dist < config.repulsionRadius && dist > 0.01) {
+                    const norm = 1 - (dist / config.repulsionRadius);
+                    const push = (norm * norm) * config.repulsionStrength;
+                    targetX += (dx / dist) * push / scale;
+                    targetY += (dy / dist) * push / scale;
                 }
             }
 
-            // ease current toward target position
-            p.x += (targetX - p.x) * easePos;
-            p.y += (targetY - p.y) * easePos;
-        }
+            p.x += (targetX - p.x) * 0.05;
+            p.y += (targetY - p.y) * 0.05;
 
-        // draw dots
-        for (let p of points) {
             const sx = cx + p.x * scale;
             const sy = cy + p.y * scale;
             const size = Math.max(0.8, p.baseSize) * scale;
-
+            
             ctx.beginPath();
             ctx.fillStyle = dotColor;
             ctx.arc(sx, sy, size, 0, Math.PI * 2);
             ctx.fill();
         }
 
-        rafId = requestAnimationFrame(draw);
+        this.rafId = requestAnimationFrame(this.draw);
     }
 
-    // start animation
-    draw();
-
-    // store cleanup for SPA re-init
-    window._dotControllerCleanup = () => {
-        if (rafId) cancelAnimationFrame(rafId);
-        canvas.removeEventListener('pointermove', onPointerMove);
-        canvas.removeEventListener('pointerleave', onPointerLeave);
-        window.removeEventListener('resize', resize);
-        window._dotControllerCleanup = null;
-    };
+    destroy() {
+        if (this.rafId) cancelAnimationFrame(this.rafId);
+        this.canvas.removeEventListener('pointermove', this.onPointerMove);
+        this.canvas.removeEventListener('pointerdown', this.onPointerMove);
+        this.canvas.removeEventListener('pointerleave', this.onPointerLeave);
+        window.removeEventListener('resize', this.resize);
+        window.removeEventListener('wheel', this.onWheel);
+        window.removeEventListener('scroll', this.onScroll);
+        window.removeEventListener('focus', this.onFocus);
+        // no blur listener used for scatter anymore
+        if (this.ro) this.ro.disconnect();
+    }
 }
+
+function initAboutController() {
+    initDotController('about-canvas');
+}
+
+// Dot-only rocket SVG effect (same as controller but for rocket icon)
+function initArtworksDot() {
+    const artworksPaths = [
+        "M 20.5833,55.4167C 15.8333,55.4167 22.1667,49.875 22.1667,49.875L 25.3333,42.75L 31.6667,49.0833L 25.3333,52.25L 45.9167,52.25L 49.0833,55.4167L 20.5833,55.4167 Z M 36.4166,47.5L 33.25,47.5L 26.9167,41.1667L 26.9167,38L 36.4166,47.5 Z M 33.7922,33.7922C 31.7487,36.1262 31.0588,38.0282 30.4792,39.1875L 28.8958,37.6042C 28.8958,37.6042 26.9167,36.4167 31.6667,31.6667L 33.7922,33.7922 Z M 36.8125,45.5209L 31.6666,40.375C 32.5843,38.7691 33.1757,36.8972 34.8701,34.8702L 42.75,42.75C 42.75,42.75 38.3958,47.1042 36.8125,45.5209 Z M 36.3335,33.1669C 43.0389,25.5565 53.6589,16.7098 60.1063,11.079C 62.2302,12.8251 64.1438,14.8176 65.8035,17.0128L 44.3333,41.1667L 36.3335,33.1669 Z M 57.1116,8.87302L 58.5878,9.89903C 52.0599,15.7961 41.6159,25.1447 35.2855,32.1189L 33.25,30.0833L 57.1116,8.87302 Z"
+    ];
+
+    new DotController('artworks-canvas', {
+        designW: 480,
+        designH: 480,
+        viewBoxSize: 76,
+        totalSamples: 300,
+        svgPaths: artworksPaths
+    });
+}
+
+
+// Dot-only 2D Xbox-style controller (repelling points, transparent background)
+function initDotController(canvasId = 'gamepad-canvas') {
+    const gamepadPaths = [
+        "M11.5 6.027a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0zm-1.5 1.5a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1zm2.5-.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0zm-1.5 1.5a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1zm-6.5-3h1v1h1v1h-1v1h-1v-1h-1v-1h1v-1z M3.051 3.26a.5.5 0 0 1 .354-.613l1.932-.518a.5.5 0 0 1 .62.39c.655-.079 1.35-.117 2.043-.117.72 0 1.443.041 2.12.126a.5.5 0 0 1 .622-.399l1.932.518a.5.5 0 0 1 .306.729c.14.09.266.19.373.297.408.408.78 1.05 1.095 1.772.32.733.599 1.591.805 2.466.206.875.34 1.78.364 2.606.024.816-.059 1.602-.328 2.21a1.42 1.42 0 0 1-1.445.83c-.636-.067-1.115-.394-1.513-.773-.245-.232-.496-.526-.739-.808-.126-.148-.25-.292-.368-.423-.728-.804-1.597-1.527-3.224-1.527-1.627 0-2.496.723-3.224 1.527-.119.131-.242.275-.368.423-.243.282-.494.575-.739.808-.398.38-.877.706-1.513.773a1.42 1.42 0 0 1-1.445-.83c-.27-.608-.352-1.395-.329-2.21.024-.826.16-1.73.365-2.606.206-.875.486-1.733.805-2.466.315-.722.687-1.364 1.094-1.772a2.34 2.34 0 0 1 .433-.335.504.504 0 0 1-.028-.079zm2.036.412c-.877.185-1.469.443-1.733.708-.276.276-.587.783-.885 1.465a13.748 13.748 0 0 0-.748 2.295 12.351 12.351 0 0 0-.339 2.406c-.022.755.062 1.368.243 1.776a.42.42 0 0 0 .426.24c.327-.034.61-.199.929-.502.212-.202.4-.423.615-.674.133-.156.276-.323.44-.504C4.861 9.969 5.978 9.027 8 9.027s3.139.942 3.965 1.855c.164.181.307.348.44.504.214.251.403.472.615.674.318.303.601.468.929.503a.42.42 0 0 0 .426-.241c.18-.408.265-1.02.243-1.776a12.354 12.354 0 0 0-.339-2.406 13.753 13.753 0 0 0-.748-2.295c-.298-.682-.61-1.19-.885-1.465-.264-.265-.856-.523-1.733-.708-.85-.179-1.877-.27-2.913-.27-1.036 0-2.063.091-2.913.27z"
+    ];
+
+    new DotController(canvasId, {
+        designW: 480,
+        designH: 420,
+        viewBoxSize: 16,
+        totalSamples: 500,
+        svgPaths: gamepadPaths
+    });
+}
+
+/*
+        "M 928.577 450.309 C 932.206 423.181 944.926 409.383 966.376 392.668 C 1025.64 346.486 1121.95 335.023 1194.28 343.301 C 1268.04 351.744 1333.92 406.639 1377.28 463.239 C 1395.38 489.527 1422.2 529.429 1429.86 560.066 C 1438.12 593.131 1447.88 627.636 1455.64 660.217 C 1467.44 709.736 1457.7 786.078 1443.94 834.576 C 1519.57 841.238 1450.54 955.205 1440.38 993.918 C 1430.21 1032.61 1443.69 1081.68 1388.02 1078.06 C 1374.99 1120.42 1365.77 1154.24 1334.01 1187.6 C 1323.5 1198.64 1312.92 1208.03 1302.19 1218.65 C 1301.53 1236.25 1300.61 1253.85 1299.43 1271.43 C 1298.63 1282.71 1296.81 1300.28 1296.91 1311.14 C 1308.89 1326.51 1310.63 1334.97 1318.43 1352.22 C 1323.99 1364.55 1338.77 1383.29 1348.56 1392.8 C 1355.71 1399.75 1369.76 1408.52 1378.88 1413.67 C 1389 1419.4 1401.22 1428.37 1411.11 1433.38 C 1419.44 1437.59 1436.63 1442.93 1445.93 1446.11 C 1464.02 1452.17 1482 1458.53 1499.88 1465.19 C 1516.1 1471.28 1531.96 1478.66 1547.89 1485.49 C 1595.55 1505.93 1646.93 1517.71 1696.44 1533.34 C 1726.46 1542.82 1753.72 1553.4 1783.04 1564.19 C 1795.32 1560.15 1806.54 1555.22 1819.22 1561.45 C 1842.7 1572.98 1853.48 1608.35 1861.55 1631.33 C 1869.22 1653.2 1871.35 1672.05 1869.19 1694.78 C 1868.14 1705.88 1865.4 1726.15 1868.5 1736.14 C 1872.73 1749.79 1883.29 1763.16 1889.58 1777 L 1358.58 1777 L 1202.77 1777 L 1071.77 1777 L 903.913 1777 L 143.691 1777 C 155.513 1733.48 157.716 1687.68 174.615 1644.91 C 178.608 1634.81 179.782 1622.89 185.869 1613.37 C 198.884 1590.65 217.692 1585.94 242.381 1588.97 C 257.694 1580.19 314.463 1564.64 334.575 1558.09 L 427.672 1527 C 458.737 1516.86 490.143 1507.28 520.741 1495.72 C 532.284 1491.36 545.253 1485.54 556.835 1480.04 C 589.344 1464.6 623.255 1453.66 656.746 1441.13 C 661.18 1439.47 671.174 1427.39 675.892 1424.62 C 695.188 1410.61 713.868 1400.23 730.651 1382.86 C 757.183 1355.39 767.659 1312.56 809.203 1304.49 C 824.402 1271.62 826.66 1256.98 859.929 1239.75 C 861.212 1221.84 864.198 1173.75 858.252 1158.2 C 854.727 1148.98 843.792 1132.43 839.051 1118.48 C 833.068 1100.88 831.298 1085.89 826.647 1069.03 C 796.346 1070.45 773.957 1061.08 771.198 1027.53 C 770.033 1013.35 771.243 1002.58 768.16 988.103 C 759.196 946.022 695.271 841.104 772.232 827.918 C 766.976 799.275 764.984 768.308 759.477 738.723 C 755.939 719.718 748.895 677.909 749.599 660.519 C 751.273 619.167 792.611 556.412 814.627 521.664 C 832.336 493.714 868.135 456.414 900.963 452.01 C 909.759 450.831 919.311 449.982 928.577 450.309 z",
+        "M 1089.62 862.156 L 1088.73 861.01 C 1095.19 847.642 1100.67 829.627 1102.53 814.986 C 1105.74 789.838 1098.14 783.622 1130.28 783.015 C 1134.66 782.932 1140.34 782.042 1144.62 783.293 C 1147.09 784.16 1148.26 784.222 1151 784.435 L 1152.14 784.516 L 1145.79 785.001 C 1136.96 784.936 1116.44 782.139 1109.89 789.042 C 1104.26 794.966 1105.8 805.423 1104.87 812.865 C 1104.32 817.205 1102.5 822.079 1102.63 826.399 C 1102.81 831.833 1121.34 843.312 1103.82 864.943 C 1102.6 866.458 1102.02 866.6 1100.22 867.079 L 1097.98 865.713 C 1097.08 858.282 1108.45 842.967 1103.16 834.756 L 1101.29 834.491 C 1096.06 844.514 1097.17 851.593 1089.62 862.156 z",
+        "M 1166.31 827.846 C 1167.91 825.591 1167.57 824.146 1167.66 821.479 L 1168.36 823.559 L 1168.41 822.062 C 1168.09 822.933 1167.12 836.549 1167.18 837.753 C 1167.71 843.088 1169.77 857.08 1167.6 860.945 C 1160.48 853.306 1161.56 836.649 1166.31 827.846 z",
+        "M 1146.7 823.236 C 1147.39 823.59 1149.08 824.496 1149.23 825.185 C 1152.77 842.245 1150.2 862.567 1153.02 880.793 C 1155.91 899.518 1168.12 917.349 1165.77 932.869 C 1163.56 947.518 1147.94 964.588 1135.96 972.319 L 1134.26 971.323 C 1132.5 964.769 1159.07 944.691 1159.71 930.917 C 1160.32 917.646 1152.95 904.034 1149.47 891.485 C 1145.16 875.974 1141.56 838.414 1146.7 823.236 z",
+        "M 1065.8 1068.45 C 1085.19 1067.07 1200.21 1067.21 1203.73 1078.09 L 1202.1 1079.47 C 1196.64 1080.34 1189.65 1079.04 1183.99 1078.31 C 1136.65 1073.57 1093.43 1071.68 1046.06 1074.91 C 1043.96 1075.05 1043.41 1074.04 1042.5 1072.68 L 1043.67 1070.36 C 1047.81 1068.29 1060.37 1068.58 1065.8 1068.45 z",
+        "M 1115.52 1028.95 C 1116.93 1029.17 1128.73 1034.31 1131.6 1035.38 C 1136.24 1034.51 1146.1 1031.02 1149.54 1032.25 L 1149.57 1034.45 C 1138.9 1042.15 1118.34 1044.97 1115.52 1028.95 z",
+        "M 1100.16 956.17 C 1105.59 955.355 1113.49 956.835 1114.38 963.097 C 1111.81 965.484 1110.31 964.686 1105.97 964.794 C 1100.92 966.849 1097.62 969.282 1093.22 965.185 L 1093.34 962.751 C 1095.39 959.036 1096.51 958.668 1100.16 956.17 z",
+        "M 1128.94 990.515 C 1129.68 990.931 1131.16 992.076 1131.91 992.622 C 1134.32 1000.27 1128.84 1014.75 1126.42 1022.27 C 1124.14 1021.45 1125.21 1022.02 1123.51 1019.96 C 1122.59 1012.59 1125.24 996.769 1128.94 990.515 z",
+        "M 1159.71 958.373 C 1164.85 958.578 1169.92 960.512 1172.12 965.49 C 1171.57 968.888 1172.31 967.435 1169.64 969.885 C 1165.35 967.911 1158.37 966.765 1156.23 963.883 C 1156.68 960.507 1156.75 961.411 1159.71 958.373 z",
+        "M 999.146 515.89 C 1015.48 516.048 1035.31 519.369 1054.37 519.613 C 1076.06 519.847 1097.75 519.774 1119.43 519.392 C 1163.65 518.811 1200.8 516.796 1241.75 537.726 C 1275.88 555.171 1293.96 589.552 1317.87 617.58 C 1326.92 628.194 1345.72 643.144 1352.14 654.086 C 1356.61 661.705 1359.74 684.893 1363.64 694.997 C 1373.7 721.088 1385.92 745.302 1394.39 771.947 C 1346.39 751.447 1254.42 739.757 1204.25 754.35 C 1187.14 759.795 1180.46 765.194 1168.23 778.54 C 1143.42 774.023 1128.71 773.673 1103.69 777.535 C 1092.22 761.21 1073.54 750.257 1053.46 746.338 C 992.195 734.38 926.537 737.528 867.99 760.425 C 862.413 762.607 848.357 771.747 842.758 775.096 C 851.883 748.54 868.676 720.664 876.862 692.059 C 881.893 674.48 882.074 658.584 885.507 642.76 C 896.432 592.396 958.998 542.867 999.146 515.89 z",
+        "M 968.632 692.432 C 993.5 690.72 1034.09 691.77 1057.64 700.879 C 1064.07 703.366 1078.62 726.196 1073.27 733.95 C 1065.94 735.403 1015.52 725.607 1001.24 724.165 C 994.156 723.627 987.087 723.052 979.818 722.842 C 952.237 722.043 925.469 732.435 898.35 734.741 C 896.465 734.901 896.473 734.112 895.485 732.864 C 895.666 723.57 919.282 709.506 926.462 704.167 C 941.051 693.318 951.779 694.047 968.632 692.432 z",
+        "M 1274.94 697.497 C 1283.21 698.68 1291.42 698.266 1299.64 699.42 C 1315.36 701.669 1330.47 710.546 1342.68 720.366 C 1348.66 725.174 1362.59 734.716 1360.82 743.037 C 1355.6 745.799 1302.26 731.181 1289.21 730.212 C 1272.96 729.67 1256.69 730.229 1240.51 731.884 C 1225.62 733.457 1211.08 736.221 1196.13 736.122 C 1190.61 731.037 1199.43 715.45 1203.55 711.508 C 1217.99 697.685 1256.17 698.241 1274.94 697.497 z",
+        "M 866.623 1168.38 C 876.685 1177.51 887.332 1191.15 899.11 1199.86 C 946.845 1235.17 1019.54 1278.87 1078.26 1288.31 C 1168.39 1302.81 1225.38 1273.31 1295.91 1223.3 C 1295 1248.4 1292.64 1327.41 1284.56 1346.92 C 1274.7 1370.73 1172.45 1448.49 1145.66 1468.31 C 1136.82 1474.86 1126.54 1479.85 1118.11 1486.8 C 1116.02 1488.51 1114.51 1489.82 1113.55 1492.36 C 1115.7 1494.25 1114.42 1493.52 1118.23 1493.45 C 1157.67 1470.07 1267.05 1386.29 1289.71 1351.15 C 1294.73 1339.64 1294.94 1330.55 1296.31 1318.11 C 1314.11 1354.76 1311.65 1374.89 1315.76 1414.21 C 1317.88 1434.18 1320.31 1454.12 1323.06 1474.02 C 1323.67 1478.65 1327.36 1504.89 1326.78 1507.04 C 1315.15 1549.77 1288.55 1606.87 1271.21 1646.06 C 1257.68 1623.15 1238.15 1599.19 1222.84 1577.4 C 1204.71 1551.62 1160.47 1497.28 1127.81 1494.87 L 1128.5 1497.62 L 1127.21 1498.47 C 1115.94 1498.23 1099.46 1499.48 1087.83 1499.98 C 1092.04 1496.23 1098.07 1489.98 1103.35 1490.03 C 1105.28 1490.04 1106.18 1489.92 1107.46 1488.73 C 1105.75 1486.76 1074.31 1468.75 1069.52 1465.64 L 1009.55 1426.31 C 970.123 1400.89 887.601 1349.56 861.874 1311.17 C 862.092 1291.59 864.392 1271.59 865.569 1251.99 C 867.229 1224.34 868.4 1196.04 866.623 1168.38 z",
+        "M 858.868 1246.03 C 859.991 1248.69 855.384 1296.68 854.872 1303.55 C 852.315 1298.09 843.315 1273.07 838.188 1272.58 C 837.999 1275.31 838.411 1278.48 839.347 1281.16 C 863.832 1351.08 954.664 1396.84 1012.67 1436.29 C 1040.24 1455.04 1067.21 1472.57 1094.22 1487.87 C 1056.07 1517.16 1036.2 1541.72 1006.97 1580.37 C 987.715 1604.27 971.561 1631.61 953.014 1656.05 C 908.993 1609.88 866.666 1553.97 828.839 1501.95 C 812.356 1479.29 801.515 1404.62 795.15 1374.87 C 792.417 1362.09 805.437 1330.83 810.948 1317.72 C 824.356 1285.84 828.777 1265.41 858.868 1246.03 z",
+        "M 1235.8 755.414 C 1266.13 753.521 1325.91 754.866 1352.51 771.046 C 1361.46 776.494 1366.99 786.499 1369.09 797.227 C 1374.54 825.08 1359.19 876.635 1344.87 900.354 C 1336.71 913.874 1321.48 918.996 1307.04 921.722 C 1305.74 921.921 1304.43 922.099 1303.13 922.256 C 1275.88 925.673 1232.99 924.376 1210.27 906.555 C 1187.07 887.086 1174.81 852.011 1171.54 822.993 C 1165.57 770.007 1190.15 760.267 1235.8 755.414 z",
+        "M 1204.57 820.945 C 1209.93 822.251 1215.28 823.16 1220.03 825.833 L 1220 827.195 C 1206.78 827.975 1196.03 820.315 1210.08 810.385 C 1241.58 788.136 1288.82 801.413 1316.2 823.182 C 1310.73 824.718 1311.39 822.992 1307.16 822.782 C 1295.26 814.59 1286.19 810.935 1272.35 806.786 C 1271.69 815.645 1270.88 821.098 1263.24 827.302 C 1258.34 831.244 1252.03 832.993 1245.8 832.138 C 1231.09 830.008 1228.39 817.927 1227.28 805.569 C 1216.77 810.416 1213.36 813.304 1204.57 820.945 z",
+        "M 982.945 746.435 C 1011.68 744.929 1057.71 748.904 1081.89 764.403 C 1106.59 782.786 1100.52 809.127 1093.02 832.982 C 1078.54 879.094 1067.49 906.597 1015.49 914.692 C 1012.54 915.077 1009.58 915.406 1006.61 915.679 C 984.255 917.665 946.377 915.135 928.738 899.186 C 909.194 878.984 902.896 838.585 900.338 812.156 C 894.861 755.554 937.423 749.231 982.945 746.435 z",
+        "M 944.865 817.799 C 942.379 818.265 942.191 818.585 939.908 817.712 L 939.767 816.182 C 943.36 811.812 946.963 810.649 951.609 807.838 C 972.139 795.414 1005.44 790.341 1028.68 797.49 L 1027.21 800.908 L 1027.67 801.983 C 1028.12 809.16 1027.81 815.2 1022.82 820.808 C 1014.31 830.353 997.268 828.218 989.017 819.442 C 983.827 813.92 982.797 808.518 981.152 801.61 C 974.687 803.931 953.903 811.235 948.813 814.685 C 946.352 814.261 946.209 814.951 943.559 816.688 L 944.865 817.799 z",
+        "M 1028.68 797.49 C 1035.84 800.398 1056.44 809.903 1057.64 818.303 C 1054.04 825.353 1039.79 824.112 1032.45 824.324 C 1040.77 821.266 1045.12 820.387 1053.96 819.09 C 1047.61 812.778 1037.55 803.811 1028.62 801.651 L 1027.67 801.983 L 1027.21 800.908 L 1028.68 797.49 z",
+        "M 944.865 817.799 L 943.559 816.688 C 946.209 814.951 946.352 814.261 948.813 814.685 C 956.257 817.302 964.394 819.932 971.472 823.295 C 966.849 824.81 950.382 819.468 944.865 817.799 z",
+        "M 769.771 834.232 C 788.715 835.982 789.49 848.502 792.506 864.555 C 794.034 872.686 795.186 881.006 796.484 889.185 C 791.992 882.385 767.078 841.334 756.299 863.153 C 752.694 870.45 751.591 882.574 754.622 890.376 C 757.45 890.071 756.413 857.96 767.304 862.862 C 775.31 866.467 794.074 891.951 797.264 900.053 C 803.877 916.851 805.931 930.082 814.899 946.163 C 814.262 964.221 815.131 979.903 816.308 997.927 C 818.363 1020.05 821.36 1042.07 825.293 1063.94 C 804.989 1064.47 785.924 1060.18 779.412 1038.34 C 774.355 1021.37 778.828 1002.99 774.02 985.041 C 766.019 953.118 750.39 923.105 742.66 891.191 C 736.638 866.33 740.853 840.029 769.771 834.232 z",
+        "M 772.298 873.619 L 773.669 875.126 C 774.16 879.977 771.29 886.244 770.76 891.001 C 768.157 914.373 764.116 949.6 784.054 966.758 C 789.242 971.222 798.082 977.795 801.479 982.706 L 800.642 985.229 C 763.873 971.314 755.011 904.093 772.298 873.619 z",
+        "M 1441.81 840.95 C 1449.6 840.931 1459.77 840.884 1465.18 847.823 C 1484.04 872.991 1465.8 908.484 1456.26 934.109 C 1444.49 965.717 1428.78 995.25 1428.18 1030.11 C 1427.84 1049.45 1423.49 1072.59 1396.53 1072.53 C 1394.31 1072.53 1394 1071.79 1392.04 1070.5 C 1388.61 1063.23 1394.62 1048.62 1396.16 1040.36 C 1399.61 1021.84 1401.49 1002.84 1406.09 984.631 C 1407.04 980.954 1413.64 982.254 1414.07 978.007 C 1422.09 945.176 1424.89 908.717 1436.44 876.944 C 1436.06 874.265 1436.13 874.446 1437.14 871.906 C 1434.47 866.329 1440.01 847.359 1441.81 840.95 z",
+        "M 1437.14 871.906 C 1462.2 843.633 1466.03 884.272 1454.85 903.109 C 1455.45 894.201 1460.1 870.615 1448.77 869.034 C 1444.8 870.46 1443.79 871.469 1440.32 874.022 C 1450.92 899.88 1454.06 907.058 1444.05 934.609 C 1443.91 920.871 1447.28 888.245 1436.44 876.944 C 1436.06 874.265 1436.13 874.446 1437.14 871.906 z",
+        "M 1426.89 994.973 C 1428.04 996.291 1427.54 995.724 1427.86 997.93 C 1424.84 1005.58 1417.7 1011.64 1410.44 1015.2 L 1409.43 1014.14 L 1409.61 1012.06 C 1414.28 1004.94 1420.28 1000.25 1426.89 994.973 z",
+        "M 1436.31 952.655 C 1436.66 953.187 1437.02 954.311 1437.27 954.958 C 1434.41 964.579 1431.97 968.041 1426.07 976.239 L 1425.36 975.522 C 1425.33 972.91 1434.29 956.836 1436.31 952.655 z"
+    ];
+*/
+
+function initAboutController(canvasId = 'about-canvas') {
+    const aboutPaths = [
+        "M 435.072 83.6352 C 436.716 90.7081 441.549 102.968 443.997 110.229 C 453.892 139.58 466.586 168.033 477.75 196.901 C 497.105 247.045 514.69 297.854 530.472 349.234 C 549.37 410.028 565.004 462.331 564.994 526.671 C 564.987 563.833 559.627 613.724 572.975 648.211 C 618.64 644.521 655.248 648.854 698.03 667.748 C 710.41 673.216 729.666 686.34 742.34 688.677 C 749.249 689.951 765.132 679.001 770.639 674.317 C 793.47 654.901 801.992 626.573 815.941 601.199 C 821.765 590.604 830.988 579.546 838.9 570.354 C 861.989 543.528 888.384 519.393 913.997 494.945 C 933.832 475.798 953.39 456.366 972.663 436.654 C 1029.1 378.406 1078.9 318.923 1137.52 261.458 C 1133.06 274.144 1127.59 298.745 1123.44 313.063 C 1111.09 355.628 1098.55 397.954 1085.34 440.027 C 1057.78 527.831 1027.5 591.425 948.117 642.293 C 921.778 659.229 892.865 673.584 864.369 686.669 C 835.132 700.094 816.203 711.133 791.542 731.589 C 802.68 746.927 814.239 763.114 822.884 780.082 C 860.124 853.18 868.57 940.914 876.753 1021.45 C 880.838 1061.65 884.692 1102.86 898.505 1141.15 C 910.296 1173.84 938.029 1206.4 960.232 1232.54 C 992.91 1271.03 1029.07 1311.81 1046.74 1359.75 C 1062.83 1403.4 1078.63 1470.08 1058.87 1514.4 C 1068.42 1475.22 1059.59 1429.61 1043.66 1393.2 C 1053.33 1439.51 1066.85 1491.22 1024.07 1526.08 C 1026.68 1522.39 1030.16 1518.86 1032.38 1514.85 C 1079.55 1429.74 973.038 1304.01 915.167 1252.58 C 939.915 1295.92 958.507 1344.49 934.251 1392.85 C 950.842 1325.17 926.733 1272.36 880.478 1223.55 C 832.441 1172.87 810.319 1145 796.124 1074.79 C 787.192 1097.56 772.174 1121.91 751.848 1136.1 C 745.829 1140.31 735.037 1146.12 727.444 1144.67 L 728.014 1142.67 C 740.037 1135.94 744.766 1122.63 749.816 1110.29 C 730.693 1131.55 726.711 1137.27 699.123 1149.54 C 718.381 1149.22 749.669 1146.37 766.118 1155.84 C 781.323 1164.59 780.013 1184.27 784.235 1200.15 L 784.546 1201.3 C 795.875 1211.7 808.953 1216.44 819.329 1229.12 C 831.985 1244.57 825.368 1264.85 836.315 1279.24 C 842.717 1287.65 864.203 1292.59 868.91 1302.51 C 880.47 1326.72 887.054 1353.11 896.642 1377.99 C 915.675 1427.38 940.788 1475.13 967.638 1520.69 C 982.888 1546.56 997.929 1572.45 1013.24 1598.24 C 1053.48 1666.31 1094.43 1733.96 1136.1 1801.16 C 1055.4 1800.17 971.463 1800.85 890.659 1801.25 C 889.21 1775.21 881.911 1730.14 878.067 1703.5 C 868.714 1637.53 857.551 1571.82 844.591 1506.46 C 827.928 1539.72 784.664 1578.68 750.22 1592.99 C 745.956 1594.76 739.359 1589.9 735.909 1587.62 C 741.654 1605.61 748.154 1642.39 752.021 1662.06 C 758.391 1694.07 764.101 1726.21 769.148 1758.46 C 771.32 1772.94 774.566 1792.6 774.58 1806.79 C 770.292 1792.26 766.126 1764.77 763.084 1748.62 C 756.821 1716.28 750.343 1683.99 743.649 1651.75 C 737.399 1616.53 725.642 1577.22 714.986 1543.22 C 714.301 1582.61 697.147 1616.52 712.832 1656.94 C 698.541 1636.37 692.169 1619.21 691.523 1594.44 C 684.212 1617.4 681.612 1623.4 670.24 1645.41 C 670.936 1658.61 677.014 1690.58 679.15 1704.89 C 683.738 1736.94 687.916 1769.04 691.683 1801.2 C 680.735 1801.08 669.787 1801.12 658.841 1801.32 C 655.819 1759.71 649.032 1718.14 644.208 1676.71 C 643.579 1671.31 642.894 1666.09 641.665 1660.79 L 639.958 1660.58 C 630.354 1664.56 633.97 1670.38 627.65 1676.18 C 623.257 1677.82 617.831 1676.7 616.419 1671.91 C 614.059 1663.89 623.186 1663.35 618.417 1654.42 C 615.38 1653.02 616.764 1653.13 613.407 1654.15 C 610.473 1657.29 609.381 1662.32 607.995 1666.04 C 597.486 1694.22 569.176 1670.85 572.825 1648.6 C 574.307 1639.55 577.5 1633.27 586.499 1637.94 C 592.892 1646.47 584.979 1646.28 583.983 1655.51 C 586.039 1659.89 589.803 1661.13 594.168 1659.16 C 597.717 1654.49 596.934 1649.6 599.152 1644.85 C 603.255 1636.06 612.809 1635.23 620.411 1639.65 C 629.253 1644.8 629.958 1646.78 632.672 1656.2 C 634.748 1647.06 638.899 1636.77 640.257 1627.16 C 654.464 1526.61 638.881 1382.34 571.676 1303.18 C 549.253 1276.77 438.781 1242.08 402.874 1234.13 C 383.354 1229.74 363.531 1226.83 343.574 1225.43 C 299.11 1222 265.726 1225.98 222.861 1226.79 C 232.42 1218.96 241.711 1206.38 251.097 1197.16 C 264.346 1184.15 285.552 1174.16 293.913 1157.58 C 298.14 1149.2 311.268 1144.6 319.237 1140.95 C 309.592 1141.54 302.43 1142.11 292.904 1143.55 C 286.357 1151.62 281.265 1164.46 274.083 1171.56 C 266.733 1178.83 256.339 1186.41 248.123 1193.37 C 231.868 1206.88 216.21 1221.09 201.191 1235.97 C 220.586 1235.75 240.139 1233.04 259.512 1234.32 C 311.963 1237.79 378.366 1267.63 420.721 1297.91 C 444.735 1315.08 465.944 1334.69 481.932 1359.7 C 537.921 1447.29 554.049 1629.44 565.996 1733.57 C 568.566 1755.97 569.678 1779.04 573.357 1801.24 C 557.226 1801.04 541.094 1801.03 524.963 1801.21 C 530.094 1779.22 527.24 1734.62 525.846 1711.04 C 524.162 1682.54 522.521 1650.42 519.766 1622.07 C 509.24 1620.51 496.24 1618.07 486.026 1615.39 C 481.397 1607.16 476.488 1593.02 473.084 1583.81 C 474.857 1599.36 475.971 1607.56 480.422 1622.47 C 488.408 1624.43 499.572 1624.97 506.131 1630.14 C 513.053 1635.6 520.348 1779.95 522.763 1801.11 L 170.163 1801.2 C 179.368 1781.98 188.835 1766.93 200.996 1749.53 C 204.725 1744.2 208.471 1731.83 212.772 1727.67 C 233.571 1707.56 278.836 1706.33 305.444 1703.84 C 294.392 1701.95 283.513 1700.14 272.423 1700.14 C 249.912 1700.14 215.344 1712 200.356 1729.51 C 186.978 1745.98 178.581 1766.44 168.294 1784.88 C 164.097 1792.4 163.346 1803.38 153.044 1801.01 C 149.801 1793.16 186 1735.28 189.606 1725.22 C 200.35 1695.22 213.379 1665.21 225.341 1635.78 C 222.796 1627.14 219.889 1610.29 221.536 1601.58 C 223.599 1590.65 233.068 1577.76 237.197 1567.08 C 246.137 1543.96 254.07 1520.97 260.769 1497.13 C 266.528 1476.62 261.451 1461.65 263.911 1440.77 C 266.359 1419.99 274.037 1406.09 280.008 1386.55 C 263.077 1366.18 236.075 1353.11 225.788 1326 C 218.84 1307.69 211.748 1289.12 202.114 1272.05 C 180.824 1288.86 176.664 1304.36 169.776 1328.38 C 166.778 1338.84 154.261 1357.45 146.71 1365.48 C 133.246 1362.34 105.183 1352.94 93.2547 1347.52 C 99.9937 1335.98 106.482 1326.39 115.305 1316.23 C 120.671 1310.05 127.048 1303.97 132.249 1297.81 C 136.501 1292.77 136.337 1287.95 142.401 1282.43 C 155.128 1270.85 168.945 1259.88 181.219 1247.89 C 184.409 1243.57 184.766 1237.03 188.511 1233.09 C 207.285 1213.36 228.564 1196.18 245.469 1174.65 C 254.045 1163.73 261.693 1152.03 270.823 1141.57 C 278.797 1132.19 291.638 1128.19 301.42 1121.59 C 332.468 1100.66 349.792 1087.77 388.908 1086.2 C 387.173 1083.52 385.493 1080.8 383.871 1078.05 C 343.728 1009.55 345.844 924.623 364.845 849.636 C 380.415 788.191 411.171 725.07 461.094 684.424 C 471.658 675.822 483.853 668.703 495.653 661.837 C 486.628 634.009 473.155 605.551 459.269 579.861 C 444.636 552.79 428.6 526.472 417.686 497.588 C 381.82 402.666 410.172 264.334 425.111 166.25 C 429.274 138.913 429.26 110.702 435.072 83.6352 z",
+        "M 608.751 962.557 C 598.969 941.126 595.579 911.634 589.13 888.685 C 575.065 885.171 542.3 883.525 531.335 892.791 C 512.248 908.921 489.807 946.538 486.846 971.352 C 500.183 947.124 508.391 942.763 533.172 931.785 C 520.157 934.302 512.64 937.005 501.092 944.373 C 518.404 921.968 551.204 915.626 574.083 934.119 C 582.893 941.241 587.702 943.963 591.93 954.956 L 591.324 955.753 C 583.6 948.105 579.799 945.81 570.486 940.209 C 581.695 952.551 583.921 958.325 585.804 974.963 C 579.676 963.685 577.713 961.629 566.525 954.688 C 567.261 969.262 569.473 985.77 559.163 997.69 C 550.163 1008.09 533.822 1009.93 523.625 1000.37 C 513.319 990.696 514.318 970.427 513.807 957.239 C 492.17 975.832 501.031 991.245 514.851 1010.23 C 501.224 1002.79 497.742 998.798 486.825 987.323 C 486.005 1033.86 500.437 1069.44 543.023 1092.46 C 523.563 1086.87 503.293 1072.51 490.325 1057.06 C 495.269 1097.67 514.178 1117.44 545.545 1141.95 C 560.541 1153.67 594.827 1178.86 615.135 1177.73 C 619.712 1177.48 637.396 1170.56 642.496 1168.64 C 694.885 1146.89 734.3 1129.51 756.828 1074.99 C 758.205 1071.65 759.492 1068.26 760.685 1064.84 C 748.785 1076.39 735.768 1088.91 718.814 1092.9 L 718.631 1092.16 C 743.71 1073.99 762.467 1048.43 772.264 1019.05 L 771.862 1017.57 C 766.841 1017.21 753.34 1029.73 748.069 1032.54 C 743.738 1034.85 740.415 1036.21 735.804 1038 C 756.93 1018.63 758.507 1007.31 743.107 981.8 C 742.021 1001.64 733.718 1031.6 708.381 1029.8 C 702.317 1029.41 696.698 1026.48 692.896 1021.74 C 680.835 1006.61 691.314 979.954 699.756 965.587 C 693.937 969.717 686.793 974.468 681.633 979.227 C 688.923 966.723 696.837 956.401 711.476 952.967 C 731.604 948.245 742.092 951.634 757.132 963.741 C 757.16 949.908 756.765 938.953 755.817 925.203 C 739.151 915.955 724.886 910.098 705.511 909.343 C 698.796 920.219 693.686 931.876 686.727 943.231 C 675.519 961.52 664.234 975.375 651.089 991.868 C 658.805 976.668 686.066 909.902 684.478 895.249 C 680.598 903.399 677.966 913.107 674.296 920.945 C 662.852 945.389 637.141 983.174 616.931 1001.47 C 617.127 970.269 617.647 939.225 615.922 908.067 C 615.37 898.094 615.524 885.41 614.42 875.723 C 609.691 896.126 610.017 940.775 608.751 962.557 z",
+        "M 768.328 934.108 C 767.37 943.51 763.988 957.867 761.713 967.364 L 768.818 980.631 C 758.493 970.908 750.671 961.728 737.056 957.496 C 746.315 963.862 750.774 967.669 757.693 976.839 C 763.529 985.747 765.128 990.055 767.685 1000.43 C 770.234 1002.38 772.948 1004.38 775.435 1006.39 C 779.64 980.902 780.947 971.861 779.747 945.781 C 776.528 941.246 772.975 937.263 768.328 934.108 z",
+        "M 511.256 750.468 C 509.592 760.806 508.876 775.19 509.061 785.717 C 522.985 771.757 533.218 753.616 543.589 736.798 C 539.615 739.201 531.169 743.66 526.469 742.425 C 528.717 739.526 531.351 737.362 531.432 734.38 C 529.07 734.489 530.218 734.149 528.103 735.982 L 527.068 734.713 C 528.4 728 536.633 719.725 541.33 714.635 L 540.784 714.139 C 491.922 745.26 465.067 789.983 453.148 846.348 C 452.907 847.488 452.98 847.931 453.137 849.035 C 454.084 847.789 459.245 832.787 460.589 829.663 C 464.188 821.435 468.202 813.394 472.613 805.571 C 484.054 786.234 496.973 767.812 511.256 750.468 z",
+        "M 694.953 1237.01 C 689.964 1232.27 686.032 1228.34 680.355 1224.35 C 689.283 1223.65 697.876 1220.64 706.705 1218.74 C 714.206 1217.13 720.945 1216.68 728.317 1215.57 C 720.556 1211.83 713.257 1208.44 705.852 1204.01 C 700.51 1204.08 693.046 1203.95 687.884 1204.39 L 685.55 1205.45 C 688.555 1209.79 700.679 1211.79 701.094 1215.51 C 685.515 1220.82 654.752 1212.22 647.423 1215.8 C 666.676 1220.63 666.417 1219.94 682.351 1232.09 C 686.387 1235.28 689.946 1235.81 694.953 1237.01 z",
+        "M 889.972 1138.2 C 884.063 1111.21 879.834 1087.81 875.815 1060.52 C 872.932 1040.94 870.721 1005.34 866.358 987.73 C 863.788 1019.18 872.295 1113.45 889.972 1138.2 z",
+        "M 754.549 911.524 C 752.527 896.687 738.879 822.855 732.227 811.681 C 731.68 836.628 719.437 876.334 709.004 899.039 C 721.232 898.664 727.947 899.128 739.745 904.001 C 744.585 906.364 749.931 908.832 754.549 911.524 z",
+        "M 581.517 1191.35 L 583.433 1190.43 C 575.926 1184.37 535.706 1152.43 528.401 1149.35 C 529.023 1153.1 529.437 1162.36 530.321 1164.28 C 545.256 1174.2 559.638 1184.36 574.092 1194.92 C 575.396 1195.87 580.429 1192.15 581.517 1191.35 z",
+        "M 690.805 825.065 L 691.568 826.439 C 694.543 814.097 706.871 757.733 694.915 749.658 C 698.115 770.064 681.832 763.65 683.967 772.309 C 688.698 791.505 691.669 805.012 690.805 825.065 z",
+        "M 596.78 1205.2 C 609.085 1205.11 622.866 1207.77 635.022 1209.87 C 633.346 1195.75 641.485 1197.07 641.96 1189.65 C 641.175 1189.09 639.985 1188.12 639.147 1187.83 C 626.137 1193.42 618.371 1195.11 604.361 1197.47 C 599.946 1198.21 589.549 1199.77 585.839 1201.32 C 586.759 1203.95 587.471 1204.1 589.93 1205.76 C 592.202 1205.59 594.521 1205.44 596.78 1205.2 z",
+        "M 438.35 1127.26 C 417.783 1094.51 399.892 1054.96 387.027 1018.42 C 385.564 1014.27 381.443 998.29 379.721 995.511 C 380.315 1035.25 412.581 1092.61 435.661 1125.34 C 436.132 1126.01 437.636 1126.85 438.35 1127.26 z",
+        "M 607.171 774.467 C 625.001 775.398 629.78 780.333 642.612 782.099 C 656.589 764.082 620.946 762.172 611.585 759.682 C 609.852 764.744 608.222 769.184 607.171 774.467 z",
+        "M 388.443 1405.89 C 395.848 1413.65 414.138 1434.07 420.687 1439.58 C 403.658 1416.47 385.795 1394.71 367.625 1372.51 C 357.217 1359.8 352.421 1360.12 336.948 1354.95 C 339.488 1336.57 340.256 1318.46 345.213 1300.53 C 345.785 1298.46 347.59 1291.7 347.452 1289.95 C 325.504 1320.96 307.773 1354.75 294.725 1390.43 C 329.579 1343.52 357.785 1376.49 388.443 1405.89 z",
+        "M 523.395 804.091 C 529.166 796.394 570.685 734.193 569.712 727.875 C 552.046 747.672 535.804 765.374 526.709 791.038 C 525.695 793.898 523.38 801.042 523.395 804.091 z",
+        "M 673.171 1391.31 C 666.206 1357.97 635.091 1306 607.653 1282.57 C 607.162 1282.28 606.67 1282 606.179 1281.71 C 623.807 1305.23 637.859 1323.69 652.567 1349.48 C 656.457 1356.29 670.469 1387.72 673.171 1391.31 z",
+        "M 526.74 988.769 C 530.191 997.084 536.788 1001.58 545.787 997.532 C 550.513 995.418 554.18 991.479 555.95 986.613 C 557.131 983.328 557.641 976.849 556.291 973.672 C 551.361 977.921 544.907 984.206 539.493 987.138 L 538.5 986.662 C 531.332 983.168 529.188 976.744 526.273 976.968 C 525.385 981.008 526.18 984.662 526.74 988.769 z",
+        "M 659.557 1238.21 C 663.28 1237.26 664.868 1237.6 666.905 1235.12 C 663.367 1231.85 652.929 1232.01 648.149 1232.3 C 645.514 1233.55 644.712 1233.71 642.865 1235.85 L 643.035 1237.53 C 647.546 1239.77 654.857 1239.49 659.557 1238.21 z",
+        "M 665.323 1639.83 C 668.01 1633.77 672.099 1619.09 670.511 1612.68 C 668.575 1619.11 662.797 1634.27 665.323 1639.83 z",
+        "M 762.644 826.2 C 761.676 809.623 757.39 791.684 747.953 777.797 C 748.557 781.656 761.322 824.81 762.644 826.2 z",
+        "M 586.949 874.679 C 585.505 861.734 584.582 848.736 584.184 835.717 C 584.087 831.189 584.526 810.411 582.763 807.839 C 578.513 816.846 568.261 832.04 562.454 841.059 C 555.08 852.511 546.677 866.587 538.922 877.435 C 541.355 877.54 543.475 876.47 545.773 875.579 C 561.882 870.979 570.57 870.802 586.949 874.679 z",
+        "M 372.541 1663.08 C 359.848 1657.52 334.091 1647.59 320.349 1647.93 C 327.267 1650.74 365.961 1662.55 372.541 1663.08 z",
+        "M 630.239 1239.33 L 632.15 1237.04 C 629.462 1233.01 619.183 1232.9 614.561 1233.19 C 612.623 1241.26 624.917 1240.98 630.239 1239.33 z",
+        "M 770.086 923.127 C 772.628 925.628 775.098 927.883 777.246 930.732 L 778.2 931.072 C 778.552 927.126 776.87 897.867 775.782 895.534 C 774.172 903.903 772.3 915.153 770.086 923.127 z",
+        "M 761.02 717.241 C 745.259 698.856 713.238 678.929 688.525 678.006 C 711.106 687.27 732.661 697.304 752.704 711.424 C 755.511 713.402 758.1 715.401 761.02 717.241 z",
+        "M 593.071 771.579 C 597.091 769.494 601.354 759.717 600.501 755.782 C 596.107 759.929 593.89 763.491 592.522 769.439 L 593.071 771.579 z",
+        "M 367.779 970.265 C 369.173 948.698 370.782 922.103 375.861 901.203 C 395.16 821.802 437.011 735.303 501.974 683.913 C 500.736 679.444 498.969 673.691 498.067 669.267 C 427.214 714.666 391.475 781.998 373.168 862.864 C 366.389 892.805 360.202 947.239 365.328 977.855 C 365.116 983.003 366.683 989.035 367.76 994.169 C 368.611 989.824 367.908 975.254 367.779 970.265 z",
+        "M 661.746 782.707 L 663.498 781.76 C 664.802 775.922 664.348 773.159 661.816 767.933 C 659.285 766.25 659.663 766.794 656.165 766.541 C 654.578 770.938 652.151 776.167 653.817 780.474 C 656.782 782.979 657.348 782.286 661.746 782.707 z",
+        "M 514.132 617.179 C 515.27 598.964 515.859 582.738 514.127 564.574 C 511.986 542.123 505.913 516.987 504.208 494.845 C 500.459 446.175 502.232 402.889 494.052 354.235 C 484.217 295.739 467.128 242.48 450.523 185.834 C 445.391 168.328 443.251 151.768 439.212 134.617 L 438.206 133.682 C 435.379 164.51 432.102 195.294 428.375 226.026 C 418.026 306.061 400.487 404.674 428.801 482.579 C 447.584 534.259 480.193 582.637 503.587 631.747 C 504.977 628.447 491.975 599.833 493.22 595.051 C 497.068 596.836 494.913 598.652 499.038 600.422 C 497.709 594.488 496.111 590.197 494.617 584.602 L 505.681 604.671 C 503.771 595.177 501.666 585.723 499.367 576.315 C 504.671 586.433 510.962 605.773 514.132 617.179 z",
+        "M 656.761 666.739 L 659.074 666.485 C 646.338 659.55 601.015 657.332 584.796 657.322 L 581.569 658.375 L 581.843 659.946 C 588.898 663.582 607.183 662.619 615.763 662.857 C 629.753 663.245 642.885 664.81 656.761 666.739 z",
+        "M 234.152 1597.16 C 236.013 1604.35 237.709 1610.38 238.663 1617.77 L 239.673 1619.89 C 241.457 1617.89 242.579 1611.71 242.992 1608.9 C 245.975 1587.65 264.491 1570.7 270.374 1551.06 C 277.126 1528.51 279.861 1504.35 286.011 1481.44 C 287.458 1476.05 298.824 1440.62 298.453 1438.8 C 286.128 1459.14 276.67 1477.14 270.21 1500.17 C 265.044 1518.58 261.008 1540.03 254.298 1557.69 C 249.854 1569.39 240.208 1585.68 234.152 1597.16 z",
+        "M 905.91 614.535 C 893.887 626.719 882.561 637.633 870.496 649.478 C 873.828 648.441 885.609 644.257 888.128 644.912 L 887.141 645.737 C 879.355 651.947 871.457 658.015 863.452 663.94 C 934.929 644.445 995.579 597.056 1031.78 532.416 C 1039.66 518.139 1046.64 503.388 1052.69 488.247 C 1059.85 470.377 1115.95 312.063 1115.53 304.898 C 1079.81 357.526 1039.74 411.164 1004.49 464.378 C 989.951 486.323 888.072 600.773 890.54 617.105 C 893.509 618.647 895.765 618.02 898.957 616.997 C 901.292 616.226 903.61 615.405 905.91 614.535 z",
+        "M 712.247 749.681 C 711.656 762.38 711.199 793.374 709.293 804.591 L 710.141 805.436 L 710.652 805.342 C 714.097 790.752 718.235 763.42 712.247 749.681 z",
+        "M 701.015 993.543 C 686.498 1015.83 706.504 1033.57 724.04 1011.93 C 726.181 1006.34 727.666 1002 729.349 996.253 C 725.254 1001.25 718.938 1008.16 712.632 1010.27 C 703.122 1009.49 703.756 1000.21 701.015 993.543 z",
+        "M 569.315 750.909 C 566.195 754.113 561.574 758.536 561.079 763.05 C 564.488 766.78 572.496 764.228 579.283 766.384 C 582.05 763.481 584.844 761.164 586.07 757.456 L 585.53 755.226 C 581.073 753.233 577.458 753.256 572.694 754.007 C 571.29 752.833 570.602 752.259 569.315 750.909 z",
+        "M 937.188 1220.61 C 960.8 1258.42 985.302 1290.95 1011.9 1326.61 C 1016.44 1332.7 1030.55 1355.89 1034.18 1359.32 C 1021.97 1318.96 983.481 1271.37 955.923 1239.31 C 952.514 1235.34 941.398 1223.03 937.188 1220.61 z",
+        "M 550.316 1186.77 C 602.844 1235.49 668.219 1338.4 693.521 1405.51 C 697.717 1416.95 701.185 1428.64 703.907 1440.52 C 705.4 1447.11 709.955 1470.82 712.314 1475.49 C 710.645 1401.53 632.128 1258.77 576.335 1206.89 C 571.153 1202.07 556.697 1188.52 550.316 1186.77 z",
+        "M 279.728 1640.41 C 265.623 1642.11 251.623 1644.6 237.795 1647.87 C 235.89 1655.74 226.322 1688.05 227.364 1693.28 C 231.693 1694.66 241.945 1692.47 246.228 1690.36 C 250.096 1688.46 252.031 1684.2 253.662 1680.42 C 259.653 1668.12 264.134 1655.88 275.299 1647.85 L 276.617 1647.61 C 290.245 1645.18 308.645 1648.41 315.102 1646.9 C 312.776 1640.92 286.396 1639.33 279.728 1640.41 z",
+        "M 477.775 724.993 C 423.826 774.854 402.752 832.318 398.885 905.549 C 397.085 939.649 399.49 985.524 409.814 1017.9 L 410.747 1018.19 C 409.677 1002.54 406.095 988.243 405.609 971.569 C 404.048 917.963 413.509 854.588 433.759 805.162 C 444.068 779.929 457.263 755.974 473.081 733.775 C 474.95 731.148 479.258 726.447 477.775 724.993 z"
+    ];
+
+    new DotController(canvasId, {
+        designW: 380,
+        designH: 320,
+        viewBoxSize: 1900,
+        totalSamples: 2000,
+        svgPaths: aboutPaths,
+        dotRadius: 0.1
+
+    });
+}
+// function initDotController(canvasId = 'gamepad-canvas') {
+//     const gamepadPaths = [
+//         "M11.5 6.027a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0zm-1.5 1.5a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1zm2.5-.5a.5.5 0 1 1-1 0 .5.5 0 0 1 1 0zm-1.5 1.5a.5.5 0 1 0 0-1 .5.5 0 0 0 0 1zm-6.5-3h1v1h1v1h-1v1h-1v-1h-1v-1h1v-1z M3.051 3.26a.5.5 0 0 1 .354-.613l1.932-.518a.5.5 0 0 1 .62.39c.655-.079 1.35-.117 2.043-.117.72 0 1.443.041 2.12.126a.5.5 0 0 1 .622-.399l1.932.518a.5.5 0 0 1 .306.729c.14.09.266.19.373.297.408.408.78 1.05 1.095 1.772.32.733.599 1.591.805 2.466.206.875.34 1.78.364 2.606.024.816-.059 1.602-.328 2.21a1.42 1.42 0 0 1-1.445.83c-.636-.067-1.115-.394-1.513-.773-.245-.232-.496-.526-.739-.808-.126-.148-.25-.292-.368-.423-.728-.804-1.597-1.527-3.224-1.527-1.627 0-2.496.723-3.224 1.527-.119.131-.242.275-.368.423-.243.282-.494.575-.739.808-.398.38-.877.706-1.513.773a1.42 1.42 0 0 1-1.445-.83c-.27-.608-.352-1.395-.329-2.21.024-.826.16-1.73.365-2.606.206-.875.486-1.733.805-2.466.315-.722.687-1.364 1.094-1.772a2.34 2.34 0 0 1 .433-.335.504.504 0 0 1-.028-.079zm2.036.412c-.877.185-1.469.443-1.733.708-.276.276-.587.783-.885 1.465a13.748 13.748 0 0 0-.748 2.295 12.351 12.351 0 0 0-.339 2.406c-.022.755.062 1.368.243 1.776a.42.42 0 0 0 .426.24c.327-.034.61-.199.929-.502.212-.202.4-.423.615-.674.133-.156.276-.323.44-.504C4.861 9.969 5.978 9.027 8 9.027s3.139.942 3.965 1.855c.164.181.307.348.44.504.214.251.403.472.615.674.318.303.601.468.929.503a.42.42 0 0 0 .426-.241c.18-.408.265-1.02.243-1.776a12.354 12.354 0 0 0-.339-2.406 13.753 13.753 0 0 0-.748-2.295c-.298-.682-.61-1.19-.885-1.465-.264-.265-.856-.523-1.733-.708-.85-.179-1.877-.27-2.913-.27-1.036 0-2.063.091-2.913.27z"
+//     ];
+
+//     new DotController(canvasId, {
+//         designW: 480,
+//         designH: 420,
+//         viewBoxSize: 16,
+//         totalSamples: 200,
+//         svgPaths: gamepadPaths
+//     });
+// }
+
 
 function initNavbarScroll() {
     let lastScrollY = window.scrollY;
     const nav = document.querySelector('nav');
-    
+
     window.addEventListener('scroll', () => {
         if (!nav) return;
-        
+
         const currentScrollY = window.scrollY;
         const floatingControls = document.querySelector('.project-controls');
         const aboutFloatingBtn = document.querySelector('.about-floating-btn');
-        
+
         // Hide immediately when scrolling down (threshold > 0)
         if (currentScrollY > lastScrollY && currentScrollY > 0) {
             // Scrolling down -> Hide navbar
@@ -298,7 +598,7 @@ function initNavbarScroll() {
             if (floatingControls) floatingControls.classList.remove('controls-hidden');
             if (aboutFloatingBtn) aboutFloatingBtn.classList.add('btn-hidden');
         }
-        
+
         lastScrollY = currentScrollY;
     });
 }
@@ -344,7 +644,7 @@ function initBackgroundAnimation() {
             // Check current theme
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             const color = isDark ? `rgba(255, 255, 255, ${this.alpha})` : `rgba(0, 0, 0, ${this.alpha})`;
-            
+
             ctx.fillStyle = color;
             ctx.beginPath();
             ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
@@ -361,7 +661,7 @@ function initBackgroundAnimation() {
 
     function animate() {
         ctx.clearRect(0, 0, width, height);
-        
+
         particles.forEach(p => {
             p.update();
             p.draw();
@@ -396,7 +696,7 @@ function initGlitchEffect() {
     const glitchTexts = document.querySelectorAll('.glitch-text');
     window.glitchInterval = setInterval(() => {
         glitchTexts.forEach(text => {
-            if(Math.random() > 0.95) {
+            if (Math.random() > 0.95) {
                 text.style.textShadow = `${Math.random() * 10 - 5}px ${Math.random() * 10 - 5}px #ff00c1`;
                 setTimeout(() => {
                     text.style.textShadow = 'none';
@@ -411,7 +711,7 @@ function initScrollAnimations() {
     if (document.querySelector('.project-detail-container')) {
         return;
     }
-    
+
     const observerOptions = {
         threshold: 0.1,
         rootMargin: "0px 0px -50px 0px"
@@ -438,7 +738,7 @@ function initLightbox() {
     const lightbox = document.getElementById('lightbox');
     const lightboxImg = lightbox.querySelector('img');
     const closeBtn = document.getElementById('lightbox-close');
-    
+
     if (!lightbox) return;
 
     // Close on click
@@ -462,15 +762,15 @@ function initLightbox() {
             card.style.cursor = 'pointer';
             return;
         }
-        
+
         const img = card.querySelector('img');
-        if(img) {
+        if (img) {
             card.style.cursor = 'zoom-in';
-            
+
             card.addEventListener('click', (e) => {
                 e.stopPropagation();
                 e.preventDefault();
-                
+
                 lightboxImg.src = img.src;
                 lightbox.classList.add('active');
             });
@@ -496,18 +796,18 @@ function initLightbox() {
     gameStartButtons.forEach(button => {
         button.addEventListener('click', (e) => {
             e.stopPropagation();
-            
+
             // Find the overlay and iframe
             const overlay = button.closest('.game-start-overlay');
             const container = overlay.parentElement;
             const iframe = container.querySelector('iframe');
-            
+
             if (iframe && iframe.hasAttribute('data-src')) {
                 // Load the game by setting src attribute
                 iframe.src = iframe.getAttribute('data-src');
                 iframe.removeAttribute('data-src');
             }
-            
+
             // Hide the overlay
             overlay.classList.add('hidden');
         });
@@ -528,7 +828,7 @@ async function loadPage(url, pushHistory = true) {
 
     // Determine Direction
     const pageOrder = ['index.html', 'projects.html', 'art.html'];
-    
+
     // Helper to get filename from URL
     const getFileName = (path) => {
         const name = path.split('/').pop() || 'index.html';
@@ -538,7 +838,7 @@ async function loadPage(url, pushHistory = true) {
     // FIX: Get current file from hash if present, otherwise default to index.html
     let currentPath = window.location.hash.slice(1);
     if (!currentPath) currentPath = 'index.html';
-    
+
     const currentFile = getFileName(currentPath);
     const nextFile = getFileName(url);
 
@@ -547,7 +847,7 @@ async function loadPage(url, pushHistory = true) {
 
     // Handle sub-pages (e.g. projects/xyz.html) -> treat as same level or deeper
     if (currentIndex === -1) currentIndex = 1; // Default to projects level if unknown
-    if (nextIndex === -1) nextIndex = 1; 
+    if (nextIndex === -1) nextIndex = 1;
 
     let direction = 'right'; // Default slide in from right (moving to next)
     if (nextIndex < currentIndex) {
@@ -564,7 +864,7 @@ async function loadPage(url, pushHistory = true) {
     } else {
         container.classList.add('exit-fade');
     }
-    
+
     const loaderTimeout = setTimeout(() => loader.classList.add('active'), 800);
 
     try {
@@ -592,7 +892,7 @@ async function loadPage(url, pushHistory = true) {
             const currentControls = document.querySelector('.project-controls');
             if (currentControls) currentControls.remove();
             if (newControls) document.body.appendChild(newControls);
-            
+
             // Handle about floating button - only exists in index.html
             const currentAboutBtn = document.querySelector('.about-floating-btn');
             const newAboutBtn = doc.querySelector('.about-floating-btn');
@@ -601,7 +901,7 @@ async function loadPage(url, pushHistory = true) {
             } else if (newAboutBtn && !currentAboutBtn) {
                 document.body.appendChild(newAboutBtn);
             }
-            
+
             window.scrollTo(0, 0);
 
             // Update hash
@@ -611,7 +911,7 @@ async function loadPage(url, pushHistory = true) {
 
             // Clear exit classes
             container.classList.remove('exit-left', 'exit-right', 'exit-fade');
-            
+
             // Set enter state
             if (direction === 'left') {
                 container.classList.add('enter-left');
@@ -620,10 +920,10 @@ async function loadPage(url, pushHistory = true) {
             } else {
                 container.classList.add('enter-fade');
             }
-            
+
             // Force reflow and trigger enter animation
             void container.offsetWidth;
-            
+
             requestAnimationFrame(() => {
                 requestAnimationFrame(() => {
                     container.classList.remove('enter-left', 'enter-right', 'enter-fade');
@@ -632,7 +932,7 @@ async function loadPage(url, pushHistory = true) {
 
             // 6. Re-initialize
             initPage();
-            
+
             // 7. Execute inline scripts from the new page
             const newScripts = doc.querySelectorAll('script');
             newScripts.forEach(script => {
@@ -668,9 +968,9 @@ function updateActiveNav() {
     document.querySelectorAll('.nav-item').forEach(link => {
         link.classList.remove('active');
         const linkHref = link.getAttribute('href');
-        
+
         // Check if current page matches this nav item
-        if (linkHref === currentPath || 
+        if (linkHref === currentPath ||
             (currentPath === 'index.html' && linkHref === 'index.html') ||
             (currentPath.includes('projects/') && linkHref === 'projects.html') ||
             (currentPath === 'projects.html' && linkHref === 'projects.html') ||
@@ -683,7 +983,7 @@ function updateActiveNav() {
 function initThemeToggle() {
     // Check for saved theme preference or default to browser preference
     let currentTheme = localStorage.getItem('theme');
-    
+
     if (!currentTheme) {
         // Detect browser/system preference
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -692,36 +992,36 @@ function initThemeToggle() {
             currentTheme = 'light';
         }
     }
-    
+
     document.documentElement.setAttribute('data-theme', currentTheme);
-    
+
     // Create theme toggle button
     const nav = document.querySelector('nav');
     if (!nav) return;
-    
+
     const navLinks = nav.querySelector('.nav-links');
     if (!navLinks) return;
-    
+
     const themeToggle = document.createElement('button');
     themeToggle.className = 'theme-toggle';
     themeToggle.setAttribute('aria-label', 'Toggle theme');
-    
+
     // Sun icon with rays for light mode, moon for dark mode
     const sunIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>`;
     const moonIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>`;
-    
+
     themeToggle.innerHTML = currentTheme === 'dark' ? sunIcon : moonIcon;
-    
+
     themeToggle.addEventListener('click', () => {
         const theme = document.documentElement.getAttribute('data-theme');
         const newTheme = theme === 'dark' ? 'light' : 'dark';
-        
+
         document.documentElement.setAttribute('data-theme', newTheme);
         localStorage.setItem('theme', newTheme);
-        
+
         themeToggle.innerHTML = newTheme === 'dark' ? sunIcon : moonIcon;
     });
-    
+
     // Listen for browser theme changes
     if (window.matchMedia) {
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
@@ -733,6 +1033,6 @@ function initThemeToggle() {
             }
         });
     }
-    
+
     navLinks.parentElement.appendChild(themeToggle);
 }

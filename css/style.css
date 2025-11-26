@@ -631,7 +631,9 @@ header.hero {
 }
 
 .hero-widget {
-    flex: 0 0 660px;
+    flex: 0 0 auto;
+    max-width: 660px;
+    width: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -639,8 +641,9 @@ header.hero {
 }
 
 .controller-wrap {
-    width: 640px;
-    height: 420px;
+    width: 100%;
+    max-width: 640px;
+    aspect-ratio: 640 / 420; /* keeps the design aspect while allowing scaling */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -657,11 +660,51 @@ header.hero {
     background: transparent; /* keep canvas background transparent */
 }
 
+#about-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: pointer;
+    background: transparent; /* keep canvas background transparent */
+}
+
+.about-wrap {
+    width: 100%;
+    max-width: 480px;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    background: transparent;
+    padding: 0;
+}
+
+.artworks-wrap {
+    width: 100%;
+    max-width: 480px;
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    background: transparent;
+    padding: 0;
+}
+
+#artworks-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    cursor: pointer;
+    background: transparent;
+}
+
 
 @media (max-width: 900px) {
     .hero-row { flex-direction: column; align-items: flex-start; gap: 1.25rem; }
     .hero-widget { width: 100%; flex: 1 1 auto; }
-    .controller-wrap { width: 100%; height: 260px; }
+    .controller-wrap { max-width: 100%; aspect-ratio: 640 / 420; }
 }
 
 header.hero::before {
