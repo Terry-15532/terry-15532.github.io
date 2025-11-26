@@ -664,8 +664,8 @@ function initAboutController(canvasId = 'about-canvas') {
         totalSamples: 1300,
         svgPaths: aboutPaths,
         dotRadius: 0.01,
-        idleAmplitude: 0.6,
-        idleSpeed: 1.2
+        idleAmplitude: 0.7,
+        idleSpeed: 1.1
         
     });
 }
