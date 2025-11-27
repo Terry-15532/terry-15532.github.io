@@ -1032,6 +1032,16 @@ async function loadPage(url, pushHistory = true) {
             // 6. Re-initialize
             initPage();
 
+            // If this was a project detail page, remember it so we can scroll back on projects.html
+            try {
+                const normalizedUrl = url.split('#')[0].split('?')[0];
+                const lower = normalizedUrl.toLowerCase();
+                if (lower.includes('project') && normalizedUrl.toLowerCase().endsWith('.html') && getFileName(normalizedUrl) !== 'projects.html') {
+                    console.log('[ScrollBack] Storing project:', normalizedUrl);
+                    sessionStorage.setItem('lastVisitedProject', normalizedUrl);
+                }
+            } catch (e) { console.error('[ScrollBack] Error storing:', e); }
+
             // 7. Execute inline scripts from the new page
             const newScripts = doc.querySelectorAll('script');
             newScripts.forEach(script => {
@@ -1049,6 +1059,62 @@ async function loadPage(url, pushHistory = true) {
                     }
                 }
             });
+
+            // If this is the projects page, scroll to the last visited project if present
+            try {
+                const loadedFileName = getFileName(url);
+                if (loadedFileName === 'projects.html') {
+                    const lastProj = sessionStorage.getItem('lastVisitedProject');
+                    console.log('[ScrollBack] Loading projects.html, lastProj:', lastProj);
+                    if (lastProj) {
+                        // Wait for page transition animation to complete before scrolling
+                        setTimeout(() => {
+                            const grid = document.querySelector('.grid-container');
+                            if (!grid) {
+                                console.log('[ScrollBack] Grid not found');
+                                return;
+                            }
+                            const cards = grid.querySelectorAll('a.card');
+                            console.log('[ScrollBack] Found', cards.length, 'cards');
+                            let target = null;
+                            for (let card of cards) {
+                                const href = card.getAttribute('href');
+                                if (!href) continue;
+                                // Case-insensitive comparison
+                                const hrefLower = href.toLowerCase();
+                                const lastProjLower = lastProj.toLowerCase();
+                                if (hrefLower === lastProjLower || hrefLower.endsWith(lastProjLower) || lastProjLower.endsWith(hrefLower)) {
+                                    target = card;
+                                    console.log('[ScrollBack] Found match (exact):', href);
+                                    break;
+                                }
+                                const aName = href.split('/').pop();
+                                const bName = lastProj.split('/').pop();
+                                if (aName && bName && aName.toLowerCase() === bName.toLowerCase()) {
+                                    target = card;
+                                    console.log('[ScrollBack] Found match (filename):', href);
+                                    break;
+                                }
+                            }
+                            if (target) {
+                                console.log('[ScrollBack] Scrolling to target');
+                                // calculate scroll position aligning it to center of viewport and considering nav
+                                const rect = target.getBoundingClientRect();
+                                const nav = document.querySelector('nav');
+                                const navHeight = nav ? nav.offsetHeight : 0;
+                                const scrollY = window.scrollY + rect.top - (window.innerHeight / 2) + (rect.height / 2) - navHeight;
+                                window.scrollTo({ top: Math.max(0, scrollY), behavior: 'smooth' });
+                                // temporary highlight for clarity
+                                target.classList.add('scroll-return-highlight');
+                                setTimeout(() => { target.classList.remove('scroll-return-highlight'); }, 2200);
+                            } else {
+                                console.log('[ScrollBack] No matching card found for:', lastProj);
+                            }
+                        }, 400); // Wait for transition animation (200ms exit + 200ms enter + buffer)
+                        sessionStorage.removeItem('lastVisitedProject');
+                    }
+                }
+            } catch (e) { console.error('[ScrollBack] Error:', e); }
         } else {
             throw new Error('New page content not found');
         }

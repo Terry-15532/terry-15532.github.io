@@ -880,6 +880,14 @@ header.hero::before {
     transform: scaleY(1);
 }
 
+/* Highlight used for scrolling back to a project */
+.scroll-return-highlight {
+    outline: 3px solid var(--accent-cyan);
+    box-shadow: 0 12px 40px rgba(0, 86, 179, 0.12);
+    transform: translateY(-6px);
+    transition: all 0.35s ease;
+}
+
 .card .card-media {
     width: 50%;
     flex-shrink: 0;
@@ -2079,7 +2087,7 @@ img, picture img, svg, canvas, video,
 
 .footer-social {
     display: flex;
-    gap: 10px;
+    gap: 30px;
     align-items: center;
 }
 
@@ -2089,14 +2097,16 @@ img, picture img, svg, canvas, video,
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: transform 0.3s ease, background 0.3s ease;
+    transition: all 0.3s ease;
     border-radius: 4px;
     border: 1px solid transparent;
+    padding: 5px;
 }
 
 .footer-social-link:hover {
     background: var(--bg-color);
     border-color: var(--accent-cyan);
+    transform: translateY(-5px);
 }
 
 .footer-social-link img {
