@@ -807,7 +807,7 @@ header.hero::before {
     backdrop-filter: blur(5px);
     border: 2px solid var(--border-color);
     position: relative;
-    transition: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+    transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1), box-shadow 0.3s ease, border-color 0.3s ease;
     display: flex;
     flex-direction: row;
     text-decoration: none;
@@ -1273,11 +1273,11 @@ header.hero::before {
     transform: translateY(0);
 }
 
-/* Staggered delays for grid items */
-.grid-container .card:nth-child(1) { transition-delay: 0.1s; }
+/* Staggered delays for grid items - Removed to fix hover delay issue */
+/* .grid-container .card:nth-child(1) { transition-delay: 0.1s; }
 .grid-container .card:nth-child(2) { transition-delay: 0.2s; }
 .grid-container .card:nth-child(3) { transition-delay: 0.3s; }
-.grid-container .card:nth-child(4) { transition-delay: 0.4s; }
+.grid-container .card:nth-child(4) { transition-delay: 0.4s; } */
 
 /* Loading Overlay */
 #loader {
@@ -2203,4 +2203,57 @@ img, picture img, svg, canvas, video,
         width: 150px;
         height: 80px;
     }
+}
+
+/* --- YouTube Lazy Loading Styles --- */
+.youtube-lazy {
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.youtube-lazy::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    transition: background-color 0.3s ease, backdrop-filter 0.3s ease;
+}
+
+.youtube-lazy:hover::before {
+    background-color: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.youtube-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.youtube-icon {
+    width: 80px;
+    height: 80px;
+    filter: none;
+    transition: transform 0.3s ease;
+}
+
+.youtube-lazy:hover .youtube-icon {
+    transform: scale(1.15);
+}
+
+.youtube-lazy iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
 }
