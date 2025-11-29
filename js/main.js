@@ -142,8 +142,8 @@ class DotController {
             dotColorDark: '#ffffff',
             // Optional override for a fixed dot color (skips theme choice)
             dotColor: null,
-            repulsionRadius: 40,
-            repulsionStrength: 30,
+            repulsionRadius: 30,
+            repulsionStrength: 5,
             // Velocity-based impulse repulsion: pointer movement applies an impulse to dot velocity
             repulsionImpulseScale: 0.03,
             // Decay factor applied to per-dot velocities each frame (0..1)
@@ -472,6 +472,24 @@ class DotController {
             let targetX = baseX + idleX * focusEase;
             let targetY = squeezedBaseY + idleY * focusEase;
 
+            // Subtle cursor avoidance based on distance
+            if (state.pointerX !== null) {
+                const currentScreenX = cx + p.x * effectiveScale + globalOffsetX;
+                const currentScreenY = cy + p.y * effectiveScale + globalOffsetY;
+                const dx = currentScreenX - state.pointerX;
+                const dy = currentScreenY - state.pointerY;
+                const dist = Math.hypot(dx, dy);
+                const avoidRadius = 500;
+
+                if (dist < avoidRadius && dist > 0.01) {
+                    const force = (1 - dist / avoidRadius) * 0.8;
+                    const avoidX = (dx / dist) * force * 15;
+                    const avoidY = (dy / dist) * force * 15;
+                    targetX += avoidX / effectiveScale;
+                    targetY += avoidY / effectiveScale;
+                }
+            }
+
             // If the pointer is within repulsion radius, apply a push: a static base push (like a finger present)
             // plus an additional impulse based on pointer movement. This creates a "push" without dragging.
             let inRepulseRange = false;
@@ -709,11 +727,34 @@ function initBackgroundAnimation() {
     const ctx = canvas.getContext('2d');
     let width, height;
     let particles = [];
+    let mouseX = null;
+    let mouseY = null;
+    let scrollY = 0;
+    let lastScrollY = 0;
+    let scrollVelocity = 0;
 
     function resize() {
         width = canvas.width = window.innerWidth;
         height = canvas.height = window.innerHeight;
     }
+
+    // Track mouse position
+    window.addEventListener('mousemove', (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+    });
+
+    window.addEventListener('mouseleave', () => {
+        mouseX = null;
+        mouseY = null;
+    });
+
+    // Track scroll
+    window.addEventListener('scroll', () => {
+        scrollY = window.scrollY;
+        scrollVelocity = scrollY - lastScrollY;
+        lastScrollY = scrollY;
+    });
 
     // Simple Particle Class
     class Particle {
@@ -722,15 +763,17 @@ function initBackgroundAnimation() {
         }
 
         reset() {
+            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
             this.x = Math.random() * width;
             this.y = Math.random() * height;
             this.vx = (Math.random() - 0.5) * 1; // Random horizontal speed
             this.vy = (Math.random() - 0.5) * 1; // Random vertical speed
             this.size = Math.random() * 3; // Random size
-            this.alpha = Math.random() * 0.2 + 0.2;
+            this.alpha = Math.random() * 0.2 + isDark ? 0.5 : 0.7;
         }
 
         update() {
+            // Update position with velocity
             this.x += this.vx;
             this.y += this.vy;
 
@@ -761,9 +804,37 @@ function initBackgroundAnimation() {
     function animate() {
         ctx.clearRect(0, 0, width, height);
 
+        // Calculate base offset based on mouse position
+        let baseOffsetX = 0;
+        let baseOffsetY = 0;
+        if (mouseX !== null && mouseY !== null) {
+            const centerX = width / 2;
+            const centerY = height / 2;
+            const dx = mouseX - centerX;
+            const dy = mouseY - centerY;
+            baseOffsetX = dx * -0.05;
+            baseOffsetY = dy * -0.05;
+        }
+
+        // Add scroll-based offset
+        const scrollOffsetY = scrollY * -0.4;
+
         particles.forEach(p => {
             p.update();
+
+            // Larger dots get more offset (based on size)
+            const sizeMultiplier = Math.pow(p.size / 2, 3);
+            let particleOffsetX = baseOffsetX * (0.1 + sizeMultiplier * 1);
+            let particleOffsetY = baseOffsetY * (0.1 + sizeMultiplier * 1);
+
+            // Add parallax scroll effect based on size
+            particleOffsetY += scrollOffsetY * (0.1 + sizeMultiplier * 0.5);
+
+            // Save context and apply per-particle translation
+            ctx.save();
+            ctx.translate(particleOffsetX, particleOffsetY);
             p.draw();
+            ctx.restore();
         });
 
         requestAnimationFrame(animate);
@@ -1233,19 +1304,19 @@ function checkYoutubeConnectivity() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2000);
 
-    fetch('https://www.youtube.com/favicon.ico', { 
+    fetch('https://www.youtube.com/favicon.ico', {
         mode: 'no-cors',
         cache: 'no-cache',
         signal: controller.signal
     })
-    .then(() => {
-        clearTimeout(timeoutId);
-        window._youtubeAccessible = true;
-    })
-    .catch(() => {
-        clearTimeout(timeoutId);
-        window._youtubeAccessible = false;
-    });
+        .then(() => {
+            clearTimeout(timeoutId);
+            window._youtubeAccessible = true;
+        })
+        .catch(() => {
+            clearTimeout(timeoutId);
+            window._youtubeAccessible = false;
+        });
 }
 
 function tryLoadYoutube(container, videoId) {
