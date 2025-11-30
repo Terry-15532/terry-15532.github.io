@@ -758,18 +758,47 @@ function initBackgroundAnimation() {
 
     // Simple Particle Class
     class Particle {
-        constructor() {
-            this.reset();
+        constructor(fromEdge = false) {
+            this.reset(fromEdge);
+            this.affectedByScroll = !fromEdge; // Only initial particles affected by scroll
         }
 
-        reset() {
+        reset(fromEdge = false) {
             const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            this.x = Math.random() * width;
-            this.y = Math.random() * height;
-            this.vx = (Math.random() - 0.5) * 1; // Random horizontal speed
-            this.vy = (Math.random() - 0.5) * 1; // Random vertical speed
+            
+            if (fromEdge) {
+                // Spawn from a random edge
+                const edge = Math.floor(Math.random() * 4);
+                if (edge === 0) { // Top
+                    this.x = Math.random() * width;
+                    this.y = -10;
+                    this.vy = Math.random() * 0.5 + 0.3;
+                    this.vx = (Math.random() - 0.5) * 1;
+                } else if (edge === 1) { // Right
+                    this.x = width + 10;
+                    this.y = Math.random() * height;
+                    this.vx = -(Math.random() * 0.5 + 0.3);
+                    this.vy = (Math.random() - 0.5) * 1;
+                } else if (edge === 2) { // Bottom
+                    this.x = Math.random() * width;
+                    this.y = height + 10;
+                    this.vy = -(Math.random() * 0.5 + 0.3);
+                    this.vx = (Math.random() - 0.5) * 1;
+                } else { // Left
+                    this.x = -10;
+                    this.y = Math.random() * height;
+                    this.vx = Math.random() * 0.5 + 0.3;
+                    this.vy = (Math.random() - 0.5) * 1;
+                }
+            } else {
+                this.x = Math.random() * width;
+                this.y = Math.random() * height;
+                this.vx = (Math.random() - 0.5) * 1;
+                this.vy = (Math.random() - 0.5) * 1;
+            }
+            
             this.size = Math.random() * 3; // Random size
-            this.alpha = Math.random() * 0.2 + isDark ? 0.5 : 0.7;
+            this.alpha = Math.random() * 0.2 + (isDark ? 0.5 : 0.7);
         }
 
         update() {
@@ -777,9 +806,13 @@ function initBackgroundAnimation() {
             this.x += this.vx;
             this.y += this.vy;
 
-            // Bounce off edges
-            if (this.x < 0 || this.x > width) this.vx *= -1;
-            if (this.y < 0 || this.y > height) this.vy *= -1;
+            // Check if particle is off screen (with margin)
+            const margin = 20;
+            if (this.x < -margin || this.x > width + margin || 
+                this.y < -margin || this.y > height + margin) {
+                return false; // Mark for deletion
+            }
+            return true; // Still alive
         }
 
         draw() {
@@ -812,30 +845,43 @@ function initBackgroundAnimation() {
             const centerY = height / 2;
             const dx = mouseX - centerX;
             const dy = mouseY - centerY;
-            baseOffsetX = dx * -0.05;
-            baseOffsetY = dy * -0.05;
+            baseOffsetX = dx * -0.01;
+            baseOffsetY = dy * -0.01;
         }
 
         // Add scroll-based offset
-        const scrollOffsetY = scrollY * -0.4;
+        const scrollOffsetY = scrollY * -0.1;
 
-        particles.forEach(p => {
-            p.update();
+        // Update and filter particles
+        particles = particles.filter(p => {
+            const alive = p.update();
+            
+            if (alive) {
+                // Larger dots get more offset (based on size)
+                const sizeMultiplier = Math.pow(p.size / 2, 3);
+                let particleOffsetX = baseOffsetX * (0.1 + sizeMultiplier * 1);
+                let particleOffsetY = baseOffsetY * (0.1 + sizeMultiplier * 1);
 
-            // Larger dots get more offset (based on size)
-            const sizeMultiplier = Math.pow(p.size / 2, 3);
-            let particleOffsetX = baseOffsetX * (0.1 + sizeMultiplier * 1);
-            let particleOffsetY = baseOffsetY * (0.1 + sizeMultiplier * 1);
+                // Add parallax scroll effect based on size (only for initial particles)
+                if (p.affectedByScroll) {
+                    particleOffsetY += scrollOffsetY * (0.4 + sizeMultiplier * 1);
+                }
 
-            // Add parallax scroll effect based on size
-            particleOffsetY += scrollOffsetY * (0.1 + sizeMultiplier * 0.5);
-
-            // Save context and apply per-particle translation
-            ctx.save();
-            ctx.translate(particleOffsetX, particleOffsetY);
-            p.draw();
-            ctx.restore();
+                // Save context and apply per-particle translation
+                ctx.save();
+                ctx.translate(particleOffsetX, particleOffsetY);
+                p.draw();
+                ctx.restore();
+            }
+            
+            return alive;
         });
+
+        // Maintain particle count by spawning new ones from edges
+        const targetCount = 50;
+        while (particles.length < targetCount) {
+            particles.push(new Particle(true));
+        }
 
         requestAnimationFrame(animate);
     }
