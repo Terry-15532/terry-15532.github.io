@@ -496,9 +496,40 @@ class DotController {
             if (state.pointerX !== null) {
                 const currentScreenX = cx + p.x * effectiveScale + globalOffsetX;
                 const currentScreenY = cy + p.y * effectiveScale + globalOffsetY;
-                const dx = currentScreenX - state.pointerX;
-                const dy = currentScreenY - state.pointerY;
-                const dist = Math.hypot(dx, dy);
+                
+                let dist, dx, dy;
+                
+                // Use line segment distance when mouse is moving fast
+                if (state.prevPointerX !== null && state.prevPointerY !== null && pointerSpeed > 1) {
+                    const x1 = state.prevPointerX;
+                    const y1 = state.prevPointerY;
+                    const x2 = state.pointerX;
+                    const y2 = state.pointerY;
+                    
+                    const segX = x2 - x1;
+                    const segY = y2 - y1;
+                    const segLenSq = segX * segX + segY * segY;
+                    
+                    if (segLenSq > 1) {
+                        // Project point onto line segment
+                        const t = Math.max(0, Math.min(1, ((currentScreenX - x1) * segX + (currentScreenY - y1) * segY) / segLenSq));
+                        const closestX = x1 + t * segX;
+                        const closestY = y1 + t * segY;
+                        
+                        dx = currentScreenX - closestX;
+                        dy = currentScreenY - closestY;
+                        dist = Math.hypot(dx, dy);
+                    } else {
+                        dx = currentScreenX - state.pointerX;
+                        dy = currentScreenY - state.pointerY;
+                        dist = Math.hypot(dx, dy);
+                    }
+                } else {
+                    dx = currentScreenX - state.pointerX;
+                    dy = currentScreenY - state.pointerY;
+                    dist = Math.hypot(dx, dy);
+                }
+                
                 if (dist < config.repulsionRadius && dist > 0.01) {
                     inRepulseRange = true;
                     const norm = 1 - (dist / config.repulsionRadius);
