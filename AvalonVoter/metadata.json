@@ -1,0 +1,5 @@
+{
+  "name": "Avalon Voter",
+  "description": "A real-time, peer-to-peer anonymous voting tool for social deduction games like Avalon. Features custom avatars, mission history, and AI-generated mission narratives.",
+  "requestFramePermissions": []
+}
