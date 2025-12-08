@@ -1,65 +1,197 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Avalon Voter</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-            },
-            colors: {
-              gray: {
-                750: '#2d3748',
-                850: '#1a202c',
-                950: '#0d1117',
-              }
-            }
-          }
-        }
-      }
-    </script>
-    <style>
-      body {
-        background-color: #0f172a; /* Slate 950 */
-        color: #e2e8f0; /* Slate 200 */
-      }
-      /* Custom Scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: #1e293b;
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #475569;
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #64748b;
-      }
-    </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "react": "https://aistudiocdn.com/react@^19.2.1",
-    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.556.0",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
-    "peerjs": "https://aistudiocdn.com/peerjs@^1.5.5"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
+<html lang="en-US">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Avalon Voter</title>
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
-  <body>
-    <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
+<body>
+  <div id="app">
+    <!-- LOBBY VIEW -->
+    <div id="lobby-view" class="view active">
+      <div class="lobby-container">
+        <div class="lobby-header">
+          <h1 class="lobby-title">Avalon Voter</h1>
+          <p class="lobby-subtitle">Anonymous Peer-to-Peer Deduction</p>
+        </div>
+
+        <!-- Identity Section (hidden by default, shown when CREATE or JOIN mode) -->
+        <div id="identity-section" class="identity-section hidden">
+          <label class="identity-label">
+            <span class="icon-palette"></span> Identity
+          </label>
+          <div class="identity-content">
+            <div id="avatar-preview" class="avatar-large"></div>
+            <input type="text" id="player-name" class="input-field" placeholder="Enter Agent Name" maxlength="20">
+            <div class="color-picker-section">
+              <p class="color-picker-label">Select Color</p>
+              <div id="color-picker" class="color-picker"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Action Section -->
+        <div class="action-section">
+          <!-- Menu Mode -->
+          <div id="menu-mode" class="mode-content">
+            <button id="btn-create" class="btn btn-primary btn-large">
+              <span class="icon-plus"></span> Create New Room
+            </button>
+            <button id="btn-join" class="btn btn-secondary btn-large">
+              <span class="icon-key"></span> Join Existing Room
+            </button>
+          </div>
+
+          <!-- Create Mode -->
+          <div id="create-mode" class="mode-content hidden">
+            <div class="info-box info-blue">
+              You will be the Host. A Room QR Code will be generated for others to join.
+            </div>
+            <div class="btn-row">
+              <button id="btn-create-back" class="btn btn-secondary">Back</button>
+              <button id="btn-create-start" class="btn btn-primary btn-wide" disabled>
+                Start <span class="icon-arrow"></span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Join Mode -->
+          <div id="join-mode" class="mode-content hidden">
+            <div id="room-id-input-section">
+              <label class="input-label">Room ID</label>
+              <input type="text" id="room-id-input" class="input-field input-mono" placeholder="paste-room-id-here">
+            </div>
+            <div id="room-id-display" class="info-box info-green hidden">
+              Joining Room: <span id="room-id-preview"></span>
+            </div>
+            <div class="btn-row">
+              <button id="btn-join-back" class="btn btn-secondary">Back</button>
+              <button id="btn-join-connect" class="btn btn-primary btn-wide" disabled>
+                Connect <span class="icon-arrow"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROOM VIEW -->
+    <div id="room-view" class="view">
+      <!-- Header -->
+      <header class="room-header">
+        <div class="header-left">
+          <button id="btn-qr" class="btn btn-icon btn-primary-small">
+            <span class="icon-qr"></span>
+          </button>
+          <div class="header-info">
+            <h1 class="header-title">Avalon Voter</h1>
+            <p class="header-room-id">ID: <span id="display-room-id">...</span></p>
+          </div>
+        </div>
+        <div class="header-right">
+          <button id="btn-copy" class="btn btn-icon btn-ghost" title="Copy Link">
+            <span class="icon-copy"></span>
+          </button>
+          <button id="btn-leave" class="btn btn-icon btn-ghost btn-danger" title="Leave">
+            <span class="icon-x"></span>
+          </button>
+        </div>
+      </header>
+
+      <!-- Notification Toast -->
+      <div id="notification" class="notification hidden"></div>
+
+      <!-- Main Content -->
+      <main class="room-main">
+        <!-- Phase Indicator -->
+        <div class="phase-indicator">
+          <div id="phase-badge" class="phase-badge phase-selection">Phase: Team Selection</div>
+        </div>
+
+        <!-- Mission Card -->
+        <div class="mission-card">
+          <div class="mission-header">
+            <h2 class="mission-title">
+              <span class="icon-shield"></span>
+              Mission <span id="mission-number">1</span>
+            </h2>
+            <div id="leader-display" class="leader-display">
+              Leader: <span id="leader-name">Unknown</span>
+            </div>
+          </div>
+
+          <!-- Flavor Text -->
+          <div id="flavor-text" class="flavor-text hidden"></div>
+
+          <!-- Phase Content -->
+          <div id="phase-content" class="phase-content">
+            <!-- Content changes based on phase -->
+          </div>
+
+          <!-- Action Button -->
+          <div id="action-button-container" class="action-button-container"></div>
+        </div>
+
+        <!-- Players List -->
+        <div class="players-section">
+          <h3 class="section-title">Agents</h3>
+          <div id="players-grid" class="players-grid"></div>
+        </div>
+
+        <!-- Mission History -->
+        <div id="history-section" class="history-section hidden">
+          <h3 class="section-title">
+            <span class="icon-history"></span> Mission Logs
+          </h3>
+          <div id="history-list" class="history-list"></div>
+        </div>
+      </main>
+
+      <!-- Voting Overlay -->
+      <div id="voting-overlay" class="voting-overlay hidden">
+        <h3 class="voting-title">Cast Your Vote</h3>
+        <div class="voting-buttons">
+          <button id="btn-vote-approve" class="btn btn-vote btn-vote-approve">
+            <span class="icon-shield"></span>
+            Approve
+          </button>
+          <button id="btn-vote-disapprove" class="btn btn-vote btn-vote-disapprove">
+            <span class="icon-shield-alert"></span>
+            Disapprove
+          </button>
+        </div>
+        <p class="voting-note">
+          <span class="icon-shield-small"></span> This vote is anonymous.
+        </p>
+      </div>
+    </div>
+
+    <!-- QR Modal -->
+    <div id="qr-modal" class="modal hidden">
+      <div class="modal-backdrop"></div>
+      <div class="modal-content">
+        <button id="btn-close-qr" class="btn btn-icon btn-close">
+          <span class="icon-x"></span>
+        </button>
+        <h3 class="modal-title">Join Room</h3>
+        <p class="modal-subtitle">Scan to join automatically</p>
+        <div class="qr-container">
+          <img id="qr-image" src="" alt="Room QR Code" class="qr-image">
+        </div>
+        <div class="room-id-copy">
+          <span id="modal-room-id" class="room-id-text"></span>
+          <button id="btn-modal-copy" class="btn btn-primary-small btn-icon">
+            <span class="icon-copy"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="peer-manager.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
