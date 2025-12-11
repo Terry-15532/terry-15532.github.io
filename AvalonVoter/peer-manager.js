@@ -177,10 +177,37 @@ class PeerManager {
   }
 
   /**
-   * Get list of connected peer IDs
+   * Get list of connected peer IDs (only those with open connections)
    */
   getConnectedPeers() {
-    return Array.from(this.connections.keys());
+    const connected = [];
+    this.connections.forEach((conn, peerId) => {
+      if (conn.open) {
+        connected.push(peerId);
+      }
+    });
+    return connected;
+  }
+
+  /**
+   * Check if a specific peer is connected
+   */
+  isConnected(peerId) {
+    const conn = this.connections.get(peerId);
+    return conn && conn.open;
+  }
+
+  /**
+   * Disconnect a specific peer (host only)
+   */
+  disconnectPeer(peerId) {
+    const conn = this.connections.get(peerId);
+    if (conn) {
+      if (conn.open) {
+        conn.close();
+      }
+      this.connections.delete(peerId);
+    }
   }
 
   /**

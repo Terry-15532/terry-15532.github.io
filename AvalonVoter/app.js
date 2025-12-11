@@ -17,7 +17,8 @@ const COLORS = [
 const GamePhase = {
   LOBBY: 'LOBBY',
   TEAM_SELECTION: 'TEAM_SELECTION',
-  VOTING: 'VOTING',
+  TEAM_VOTE: 'TEAM_VOTE',
+  MISSION_VOTING: 'MISSION_VOTING',
   RESULT_REVEAL: 'RESULT_REVEAL'
 };
 
@@ -46,7 +47,6 @@ const App = {
   gameState: {
     phase: GamePhase.LOBBY,
     players: [],
-    currentLeaderId: '',
     currentTeam: [],
     votesReceived: 0,
     missionHistory: [],
@@ -54,7 +54,9 @@ const App = {
   },
   flavorText: '',
   hasVoted: false,
-  votesBuffer: [], // Host only
+  votesBuffer: [], // Host only - for mission votes
+  teamVotesBuffer: [], // Host only - for team approval votes {playerId, playerName, vote}
+  connectionCheckInterval: null, // Interval for checking connections
 
   // Peer manager reference
   peerManager: null
@@ -352,7 +354,6 @@ function handlePeerOpen(peerId) {
         isHost: true,
         isConnected: true
       }],
-      currentLeaderId: peerId,
       currentTeam: [],
       votesReceived: 0,
       missionHistory: [],
@@ -361,6 +362,7 @@ function handlePeerOpen(peerId) {
 
     showRoomView();
     showQrModal();
+    startConnectionCheck();
   } else {
     showNotification('Connecting to room...');
   }
@@ -383,11 +385,8 @@ function handlePlayerJoined(player) {
 
 function handlePlayerLeft(peerId) {
   if (App.isHost) {
-    const player = App.gameState.players.find(p => p.id === peerId);
-    if (player) {
-      player.isConnected = false;
-      broadcastState();
-    }
+    // Remove the player completely instead of marking as disconnected
+    removePlayer(peerId);
   }
   renderPlayers();
 }
@@ -399,6 +398,67 @@ function handlePeerError(error) {
 
 function handleDisconnect() {
   showNotification('Disconnected from room');
+}
+
+// Remove a player from the game (host only)
+function removePlayer(playerId) {
+  if (!App.isHost) return;
+  
+  const playerIndex = App.gameState.players.findIndex(p => p.id === playerId);
+  if (playerIndex === -1) return;
+  
+  const player = App.gameState.players[playerIndex];
+  
+  // Notify the player they're being kicked
+  App.peerManager.sendTo(playerId, { type: 'KICKED' });
+  
+  // Disconnect the peer connection
+  App.peerManager.disconnectPeer(playerId);
+  
+  // Remove from players array
+  App.gameState.players.splice(playerIndex, 1);
+  
+  // Remove from current team if selected
+  const teamIndex = App.gameState.currentTeam.indexOf(playerId);
+  if (teamIndex > -1) {
+    App.gameState.currentTeam.splice(teamIndex, 1);
+  }
+  
+  showNotification(`${player.name} was removed`);
+  broadcastState();
+  renderRoom();
+}
+
+// Start connection checking interval (host only)
+function startConnectionCheck() {
+  if (!App.isHost || App.connectionCheckInterval) return;
+  
+  App.connectionCheckInterval = setInterval(() => {
+    if (!App.peerManager) return;
+    
+    const connectedPeerIds = App.peerManager.getConnectedPeers();
+    
+    // Check each non-host player
+    App.gameState.players.forEach(player => {
+      if (player.isHost) return; // Skip host
+      
+      const isConnected = connectedPeerIds.includes(player.id);
+      
+      if (!isConnected && player.isConnected) {
+        // Player just disconnected - remove them
+        console.log('[ConnectionCheck] Player disconnected:', player.name);
+        removePlayer(player.id);
+      }
+    });
+  }, 1000);
+}
+
+// Stop connection checking interval
+function stopConnectionCheck() {
+  if (App.connectionCheckInterval) {
+    clearInterval(App.connectionCheckInterval);
+    App.connectionCheckInterval = null;
+  }
 }
 
 // ============================================
@@ -437,20 +497,46 @@ function handleHostMessage(msg, senderId) {
       break;
 
     case 'UPDATE_TEAM':
-      if (senderId === App.gameState.currentLeaderId || senderId === App.myPeerId) {
-        App.gameState.currentTeam = msg.payload;
-        broadcastState();
+      // Any player can update the team selection
+      App.gameState.currentTeam = msg.payload;
+      broadcastState();
+      break;
+
+    case 'REMOVE_PLAYER':
+      // Only host can remove players
+      if (App.isHost) {
+        removePlayer(msg.payload.playerId);
       }
       break;
 
     case 'START_VOTE':
-      if (senderId === App.gameState.currentLeaderId || senderId === App.myPeerId) {
-        startVoting();
+      // Allow any player to initiate team vote
+      startTeamVoting();
+      break;
+
+    case 'SUBMIT_TEAM_VOTE':
+      if (App.gameState.phase === GamePhase.TEAM_VOTE) {
+        const voter = App.gameState.players.find(p => p.id === senderId);
+        if (voter && !App.teamVotesBuffer.find(v => v.playerId === senderId)) {
+          App.teamVotesBuffer.push({
+            playerId: senderId,
+            playerName: voter.name,
+            vote: msg.payload.vote
+          });
+          App.gameState.votesReceived = App.teamVotesBuffer.length;
+          
+          // Check if all votes are in
+          if (App.teamVotesBuffer.length >= App.gameState.players.length) {
+            resolveTeamVote();
+          } else {
+            broadcastState();
+          }
+        }
       }
       break;
 
     case 'SUBMIT_VOTE':
-      if (App.gameState.phase === GamePhase.VOTING && 
+      if (App.gameState.phase === GamePhase.MISSION_VOTING && 
           App.gameState.currentTeam.includes(senderId)) {
         App.votesBuffer.push(msg.payload.vote);
         App.gameState.votesReceived = App.votesBuffer.length;
@@ -467,6 +553,13 @@ function handleHostMessage(msg, senderId) {
     case 'RESET_ROUND':
       if (senderId === App.myPeerId) {
         nextRound();
+      }
+      break;
+
+    case 'RESTART_GAME':
+      // Only host can restart
+      if (App.isHost) {
+        restartGame();
       }
       break;
   }
@@ -488,10 +581,24 @@ function handleClientMessage(msg, senderId) {
       renderRoom();
       break;
 
-    case 'START_VOTE':
+    case 'START_TEAM_VOTE':
+      App.hasVoted = false;
+      renderRoom();
+      break;
+
+    case 'START_MISSION_VOTE':
       App.flavorText = msg.payload.flavorText;
       App.hasVoted = false;
       renderRoom();
+      break;
+
+    case 'KICKED':
+      showNotification('You have been removed from the room');
+      handleLeaveRoom();
+      break;
+
+    case 'GAME_RESTARTED':
+      showNotification('Game has been restarted');
       break;
   }
 }
@@ -501,7 +608,6 @@ function handleClientMessage(msg, senderId) {
 // ============================================
 function togglePlayerSelection(playerId) {
   if (App.gameState.phase !== GamePhase.TEAM_SELECTION) return;
-  if (App.gameState.currentLeaderId !== App.myPeerId) return;
 
   const team = App.gameState.currentTeam;
   const index = team.indexOf(playerId);
@@ -536,9 +642,102 @@ function startMission() {
   }
 }
 
-function startVoting() {
+// Phase 1: Team Approval Vote (all players vote on the proposed team)
+function startTeamVoting() {
+  App.teamVotesBuffer = [];
+  App.gameState.phase = GamePhase.TEAM_VOTE;
+  App.gameState.votesReceived = 0;
+  App.hasVoted = false;
+
+  // Broadcast to clients
+  App.peerManager.broadcast({
+    type: 'START_TEAM_VOTE',
+    payload: { team: App.gameState.currentTeam }
+  });
+
+  broadcastState();
+  renderRoom();
+}
+
+function submitTeamVote(vote) {
+  App.hasVoted = true;
+
+  if (App.isHost) {
+    // Process vote locally
+    const me = App.gameState.players.find(p => p.id === App.myPeerId);
+    App.teamVotesBuffer.push({
+      playerId: App.myPeerId,
+      playerName: me ? me.name : 'Host',
+      vote: vote
+    });
+    App.gameState.votesReceived = App.teamVotesBuffer.length;
+    
+    if (App.teamVotesBuffer.length >= App.gameState.players.length) {
+      resolveTeamVote();
+    } else {
+      broadcastState();
+    }
+  } else {
+    App.peerManager.sendToHost({
+      type: 'SUBMIT_TEAM_VOTE',
+      payload: { vote }
+    });
+  }
+
+  renderRoom();
+}
+
+function resolveTeamVote() {
+  const agreeVotes = App.teamVotesBuffer.filter(v => v.vote === 'AGREE').length;
+  const disagreeVotes = App.teamVotesBuffer.filter(v => v.vote === 'DISAGREE').length;
+  const totalPlayers = App.gameState.players.length;
+  
+  // Team is rejected if >= half disagree
+  const teamApproved = disagreeVotes < totalPlayers / 2;
+
+  // Store team vote result
+  App.gameState.lastTeamVote = {
+    team: [...App.gameState.currentTeam],
+    votes: [...App.teamVotesBuffer],
+    approved: teamApproved,
+    agreeCount: agreeVotes,
+    disagreeCount: disagreeVotes
+  };
+
+  if (teamApproved) {
+    // Team approved - proceed to mission voting
+    startMissionVoting();
+  } else {
+    // Team rejected - record in history and go to next round
+    recordRejectedTeam();
+  }
+}
+
+function recordRejectedTeam() {
+  const teamVote = App.gameState.lastTeamVote;
+  
+  const result = {
+    roundNumber: App.gameState.missionHistory.length + 1,
+    team: teamVote.team,
+    teamVotes: teamVote.votes,
+    teamApproved: false,
+    votes: { approve: 0, disapprove: 0 },
+    success: null, // null means team was rejected
+    flavorText: 'Team proposal was rejected.',
+    timestamp: Date.now()
+  };
+
+  App.gameState.missionHistory.unshift(result);
+  App.gameState.phase = GamePhase.RESULT_REVEAL;
+
+  broadcastState();
+  renderRoom();
+}
+
+// Phase 2: Mission Voting (only team members vote approve/disapprove)
+function startMissionVoting() {
   App.votesBuffer = [];
-  App.gameState.phase = GamePhase.VOTING;
+  App.gameState.phase = GamePhase.MISSION_VOTING;
   App.gameState.votesReceived = 0;
   App.hasVoted = false;
 
@@ -548,7 +747,7 @@ function startVoting() {
 
   // Broadcast to clients
   App.peerManager.broadcast({
-    type: 'START_VOTE',
+    type: 'START_MISSION_VOTE',
     payload: { flavorText: App.flavorText }
   });
 
@@ -583,10 +782,13 @@ function revealResults() {
   const disapproveVotes = App.votesBuffer.filter(v => v === 'DISAPPROVE').length;
   const approveVotes = App.votesBuffer.filter(v => v === 'APPROVE').length;
   const success = disapproveVotes === 0;
+  const teamVote = App.gameState.lastTeamVote;
 
   const result = {
     roundNumber: App.gameState.missionHistory.length + 1,
     team: [...App.gameState.currentTeam],
+    teamVotes: teamVote ? teamVote.votes : [],
+    teamApproved: true,
     votes: { approve: approveVotes, disapprove: disapproveVotes },
     success: success,
     flavorText: App.flavorText,
@@ -601,16 +803,12 @@ function revealResults() {
 }
 
 function nextRound() {
-  // Rotate leader
-  const players = App.gameState.players;
-  const currentIndex = players.findIndex(p => p.id === App.gameState.currentLeaderId);
-  const nextIndex = (currentIndex + 1) % players.length;
-  
-  App.gameState.currentLeaderId = players[nextIndex].id;
   App.gameState.phase = GamePhase.TEAM_SELECTION;
   App.gameState.currentTeam = [];
   App.gameState.votesReceived = 0;
+  App.gameState.lastTeamVote = null;
   App.votesBuffer = [];
+  App.teamVotesBuffer = [];
   App.hasVoted = false;
   App.flavorText = '';
 
@@ -621,6 +819,38 @@ function nextRound() {
 function handleNextRound() {
   if (App.isHost) {
     nextRound();
+  }
+}
+
+function restartGame() {
+  if (!App.isHost) return;
+  
+  // Clear mission history
+  App.gameState.missionHistory = [];
+  App.gameState.phase = GamePhase.TEAM_SELECTION;
+  App.gameState.currentTeam = [];
+  App.gameState.votesReceived = 0;
+  App.gameState.lastTeamVote = null;
+  App.votesBuffer = [];
+  App.teamVotesBuffer = [];
+  App.hasVoted = false;
+  App.flavorText = '';
+  
+  // Notify all players
+  App.peerManager.broadcast({
+    type: 'GAME_RESTARTED'
+  });
+  
+  showNotification('Game restarted');
+  broadcastState();
+  renderRoom();
+}
+
+function handleRestartGame() {
+  if (!App.isHost) return;
+  
+  if (confirm('Are you sure you want to restart the game? This will clear all mission history.')) {
+    restartGame();
   }
 }
 
@@ -655,10 +885,10 @@ function handleLeaveRoom() {
   }
 
   // Reset state
+  stopConnectionCheck();
   App.gameState = {
     phase: GamePhase.LOBBY,
     players: [],
-    currentLeaderId: '',
     currentTeam: [],
     votesReceived: 0,
     missionHistory: [],
@@ -668,6 +898,7 @@ function handleLeaveRoom() {
   App.hasVoted = false;
   App.votesBuffer = [];
   App.flavorText = '';
+  App.connectionCheckInterval = null;
 
   // Clear URL params
   window.history.replaceState({}, document.title, window.location.pathname);
@@ -703,8 +934,12 @@ function renderPhase() {
       badge.textContent = 'Phase: Team Selection';
       badge.classList.add('phase-selection');
       break;
-    case GamePhase.VOTING:
-      badge.textContent = 'Phase: Voting in Progress';
+    case GamePhase.TEAM_VOTE:
+      badge.textContent = 'Phase: Team Approval Vote';
+      badge.classList.add('phase-voting');
+      break;
+    case GamePhase.MISSION_VOTING:
+      badge.textContent = 'Phase: Mission Voting';
       badge.classList.add('phase-voting');
       break;
     case GamePhase.RESULT_REVEAL:
@@ -716,22 +951,15 @@ function renderPhase() {
 
 function renderMissionCard() {
   const state = App.gameState;
-  const isLeader = state.currentLeaderId === App.myPeerId;
 
   // Mission number
   DOM.missionNumber.textContent = state.missionHistory.length + 1;
 
-  // Leader display
-  if (state.phase === GamePhase.TEAM_SELECTION) {
-    DOM.leaderDisplay.style.display = 'block';
-    const leader = state.players.find(p => p.id === state.currentLeaderId);
-    DOM.leaderName.textContent = leader ? leader.name : 'Unknown';
-  } else {
-    DOM.leaderDisplay.style.display = 'none';
-  }
+  // Hide leader display (no leader concept)
+  DOM.leaderDisplay.style.display = 'none';
 
   // Flavor text
-  if ((state.phase === GamePhase.VOTING || state.phase === GamePhase.RESULT_REVEAL) && App.flavorText) {
+  if ((state.phase === GamePhase.MISSION_VOTING || state.phase === GamePhase.RESULT_REVEAL) && App.flavorText) {
     DOM.flavorText.textContent = `"${App.flavorText}"`;
     DOM.flavorText.classList.remove('hidden');
   } else {
@@ -739,31 +967,39 @@ function renderMissionCard() {
   }
 
   // Phase content
-  renderPhaseContent(state, isLeader);
+  renderPhaseContent(state);
 
   // Action button
-  renderActionButton(state, isLeader);
+  renderActionButton(state);
 }
 
-function renderPhaseContent(state, isLeader) {
+function renderPhaseContent(state) {
   const container = DOM.phaseContent;
 
   switch (state.phase) {
     case GamePhase.TEAM_SELECTION:
       container.innerHTML = `
-        <p class="phase-message ${isLeader ? 'leader' : ''}">
-          ${isLeader 
-            ? 'Select agents for the mission, then confirm.' 
-            : 'Waiting for leader to select a team...'}
+        <p class="phase-message">
+          Any player can select agents for the mission.
         </p>
       `;
       break;
 
-    case GamePhase.VOTING:
+    case GamePhase.TEAM_VOTE:
+      container.innerHTML = `
+        <p class="phase-message">All players vote to approve or reject this team.</p>
+        <div class="vote-counter">
+          <div class="vote-count">${state.votesReceived} / ${state.players.length}</div>
+          <div class="vote-label">Votes Cast</div>
+        </div>
+      `;
+      break;
+
+    case GamePhase.MISSION_VOTING:
       container.innerHTML = `
         <div class="vote-counter">
           <div class="vote-count">${state.votesReceived} / ${state.currentTeam.length}</div>
-          <div class="vote-label">Votes Cast</div>
+          <div class="vote-label">Mission Votes Cast</div>
         </div>
       `;
       break;
@@ -771,60 +1007,111 @@ function renderPhaseContent(state, isLeader) {
     case GamePhase.RESULT_REVEAL:
       if (state.missionHistory.length > 0) {
         const result = state.missionHistory[0];
-        const successBadge = result.success 
-          ? '<div class="mission-outcome mission-success">✓ MISSION SUCCESS</div>'
-          : '<div class="mission-outcome mission-failed">✕ MISSION FAILED</div>';
+        let outcomeHtml = '';
+        let teamVoteHtml = '';
+        
+        // Check if team was rejected
+        if (result.success === null) {
+          outcomeHtml = '<div class="mission-outcome mission-rejected">✕ TEAM REJECTED</div>';
+        } else {
+          outcomeHtml = result.success 
+            ? '<div class="mission-outcome mission-success">✓ MISSION SUCCESS</div>'
+            : '<div class="mission-outcome mission-failed">✕ MISSION FAILED</div>';
+        }
+        
+        // Show team approval votes if available
+        if (result.teamVotes && result.teamVotes.length > 0) {
+          const agreeVoters = result.teamVotes.filter(v => v.vote === 'AGREE').map(v => v.playerName);
+          const disagreeVoters = result.teamVotes.filter(v => v.vote === 'DISAGREE').map(v => v.playerName);
+          
+          teamVoteHtml = `
+            <div class="team-vote-results">
+              <div class="team-vote-section">
+                <span class="team-vote-label agree-label">Agreed (${agreeVoters.length}):</span>
+                <span class="team-vote-names">${agreeVoters.length > 0 ? agreeVoters.join(', ') : 'None'}</span>
+              </div>
+              <div class="team-vote-section">
+                <span class="team-vote-label disagree-label">Disagreed (${disagreeVoters.length}):</span>
+                <span class="team-vote-names">${disagreeVoters.length > 0 ? disagreeVoters.join(', ') : 'None'}</span>
+              </div>
+            </div>
+          `;
+        }
+        
+        // Only show mission votes if team was approved and mission happened
+        let missionVotesHtml = '';
+        if (result.success !== null) {
+          const approveClass = result.votes.approve === 0 ? 'approve zero-votes' : 'approve';
+          const disapproveClass = result.votes.disapprove === 0 ? 'disapprove zero-votes' : 'disapprove';
+          missionVotesHtml = `
+            <div class="result-display">
+              <div class="result-item">
+                <div class="result-circle result-approve ${result.votes.approve === 0 ? 'zero-votes' : ''}">${result.votes.approve}</div>
+                <div class="result-label ${approveClass}">Approve</div>
+              </div>
+              <div class="result-item">
+                <div class="result-circle result-disapprove ${result.votes.disapprove === 0 ? 'zero-votes' : ''}">${result.votes.disapprove}</div>
+                <div class="result-label ${disapproveClass}">Disapprove</div>
+              </div>
+            </div>
+          `;
+        }
+        
         container.innerHTML = `
-          ${successBadge}
-          <div class="result-display">
-            <div class="result-item">
-              <div class="result-circle result-approve">${result.votes.approve}</div>
-              <div class="result-label approve">Approve</div>
-            </div>
-            <div class="result-item">
-              <div class="result-circle result-disapprove">${result.votes.disapprove}</div>
-              <div class="result-label disapprove">Disapprove</div>
-            </div>
-          </div>
+          ${outcomeHtml}
+          ${teamVoteHtml}
+          ${missionVotesHtml}
         `;
       }
       break;
   }
 }
 
-function renderActionButton(state, isLeader) {
+function renderActionButton(state) {
   const container = DOM.actionButtonContainer;
   container.innerHTML = '';
 
-  if (state.phase === GamePhase.TEAM_SELECTION && isLeader) {
+  // Any player can start the team vote when team is selected
+  if (state.phase === GamePhase.TEAM_SELECTION && state.currentTeam.length > 0) {
     const btn = document.createElement('button');
     btn.className = 'btn btn-primary';
-    btn.disabled = state.currentTeam.length === 0;
-    btn.innerHTML = '<span class="icon-shield"></span> Start Mission';
+    btn.innerHTML = '<span class="icon-shield"></span> Start Team Vote';
     btn.addEventListener('click', startMission);
     container.appendChild(btn);
   }
 
   if (state.phase === GamePhase.RESULT_REVEAL && App.isHost) {
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-secondary';
-    btn.innerHTML = '↻ Next Round';
-    btn.addEventListener('click', handleNextRound);
-    container.appendChild(btn);
+    const btnContainer = document.createElement('div');
+    btnContainer.style.display = 'flex';
+    btnContainer.style.gap = '12px';
+    btnContainer.style.justifyContent = 'center';
+    
+    const nextBtn = document.createElement('button');
+    nextBtn.className = 'btn btn-secondary';
+    nextBtn.innerHTML = '↻ Next Round';
+    nextBtn.addEventListener('click', handleNextRound);
+    btnContainer.appendChild(nextBtn);
+    
+    const restartBtn = document.createElement('button');
+    restartBtn.className = 'btn btn-danger';
+    restartBtn.innerHTML = '⟳ Restart Game';
+    restartBtn.addEventListener('click', handleRestartGame);
+    btnContainer.appendChild(restartBtn);
+    
+    container.appendChild(btnContainer);
   }
 }
 
 function renderPlayers() {
   const container = DOM.playersGrid;
   const state = App.gameState;
-  const isLeader = state.currentLeaderId === App.myPeerId;
-  const canSelect = state.phase === GamePhase.TEAM_SELECTION && isLeader;
+  const canSelect = state.phase === GamePhase.TEAM_SELECTION; // Any player can select in team selection phase
 
   container.innerHTML = '';
 
   state.players.forEach(player => {
     const isSelected = state.currentTeam.includes(player.id);
-    const isTheLeader = state.currentLeaderId === player.id;
+    const canRemove = App.isHost && !player.isHost; // Host can remove non-host players
 
     const card = document.createElement('div');
     card.className = 'player-card';
@@ -835,15 +1122,31 @@ function renderPlayers() {
       <div class="player-avatar" style="background: linear-gradient(145deg, ${player.avatarSeed}, ${player.avatarSeed}aa)"></div>
       <div class="player-info">
         <div class="player-name">${escapeHtml(player.name)}</div>
-        <div class="player-role ${isTheLeader ? 'leader' : ''}">
-          ${isTheLeader ? '★ Leader' : (player.isHost ? 'Host' : '')}
+        <div class="player-role">
+          ${player.isHost ? 'Host' : ''}
         </div>
       </div>
       ${isSelected ? '<div class="player-selected-dot"></div>' : ''}
+      ${canRemove ? '<button class="btn-remove-player" title="Remove player">✕</button>' : ''}
     `;
 
     if (canSelect) {
-      card.addEventListener('click', () => togglePlayerSelection(player.id));
+      card.addEventListener('click', (e) => {
+        // Don't toggle selection if clicking the remove button
+        if (e.target.classList.contains('btn-remove-player')) return;
+        togglePlayerSelection(player.id);
+      });
+    }
+    
+    // Add remove button handler
+    if (canRemove) {
+      const removeBtn = card.querySelector('.btn-remove-player');
+      removeBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm(`Remove ${player.name} from the room?`)) {
+          removePlayer(player.id);
+        }
+      });
     }
 
     container.appendChild(card);
@@ -864,7 +1167,11 @@ function renderHistory() {
   history.forEach(mission => {
     const item = document.createElement('div');
     item.className = 'history-item';
-    if (mission.success) {
+    
+    // Color based on outcome
+    if (mission.success === null) {
+      item.classList.add('history-rejected');
+    } else if (mission.success) {
       item.classList.add('history-success');
     } else {
       item.classList.add('history-failed');
@@ -875,19 +1182,49 @@ function renderHistory() {
       return player ? escapeHtml(player.name) : 'Unknown';
     });
 
-    const statusBadge = mission.success 
-      ? '<span class="history-status status-success">✓ Success</span>'
-      : '<span class="history-status status-failed">✕ Failed</span>';
+    // Status badge based on outcome
+    let statusBadge = '';
+    if (mission.success === null) {
+      statusBadge = '<span class="history-status status-rejected">✕ Rejected</span>';
+    } else {
+      statusBadge = mission.success 
+        ? '<span class="history-status status-success">✓ Success</span>'
+        : '<span class="history-status status-failed">✕ Failed</span>';
+    }
+    
+    // Team vote info
+    let teamVoteHtml = '';
+    if (mission.teamVotes && mission.teamVotes.length > 0) {
+      const agreeVoters = mission.teamVotes.filter(v => v.vote === 'AGREE').map(v => v.playerName);
+      const disagreeVoters = mission.teamVotes.filter(v => v.vote === 'DISAGREE').map(v => v.playerName);
+      teamVoteHtml = `
+        <div class="history-team-votes">
+          <span class="history-agree">${agreeVoters.length} Agree: ${agreeVoters.join(', ') || 'None'}</span>
+          <span class="history-disagree">${disagreeVoters.length} Disagree: ${disagreeVoters.join(', ') || 'None'}</span>
+        </div>
+      `;
+    }
+    
+    // Mission votes (only if team was approved)
+    let missionVotesHtml = '';
+    if (mission.success !== null) {
+      const approveClass = mission.votes.approve === 0 ? 'history-approve zero-votes' : 'history-approve';
+      const disapproveClass = mission.votes.disapprove === 0 ? 'history-disapprove zero-votes' : 'history-disapprove';
+      missionVotesHtml = `
+        <div class="history-votes">
+          <span class="${approveClass}">${mission.votes.approve} Approve</span>
+          <span class="${disapproveClass}">${mission.votes.disapprove} Disapprove</span>
+        </div>
+      `;
+    }
 
     item.innerHTML = `
       <div class="history-header">
         <span class="history-round">Mission ${mission.roundNumber}</span>
         ${statusBadge}
       </div>
-      <div class="history-votes">
-        <span class="history-approve">${mission.votes.approve} Approve</span>
-        <span class="history-disapprove">${mission.votes.disapprove} Disapprove</span>
-      </div>
+      ${teamVoteHtml}
+      ${missionVotesHtml}
       <div class="history-team">
         ${teamNames.map(name => `<span class="history-agent">${name}</span>`).join('')}
       </div>
@@ -901,10 +1238,57 @@ function renderHistory() {
 function renderVotingOverlay() {
   const state = App.gameState;
   const amInTeam = state.currentTeam.includes(App.myPeerId);
-  const showVoting = state.phase === GamePhase.VOTING && amInTeam && !App.hasVoted;
+  
+  // Team vote - all players vote
+  const showTeamVote = state.phase === GamePhase.TEAM_VOTE && !App.hasVoted;
+  // Mission vote - only team members vote
+  const showMissionVote = state.phase === GamePhase.MISSION_VOTING && amInTeam && !App.hasVoted;
 
-  if (showVoting) {
+  if (showTeamVote) {
     DOM.votingOverlay.classList.remove('hidden');
+    // Update overlay content for team voting
+    DOM.votingOverlay.innerHTML = `
+      <h3 class="voting-title">Vote on Team Proposal</h3>
+      <p class="voting-subtitle">Do you approve this team for the mission?</p>
+      <div class="voting-buttons">
+        <button id="btn-team-agree" class="btn btn-vote btn-vote-approve">
+          <span class="icon-shield"></span>
+          Agree
+        </button>
+        <button id="btn-team-disagree" class="btn btn-vote btn-vote-disapprove">
+          <span class="icon-shield-alert"></span>
+          Disagree
+        </button>
+      </div>
+      <p class="voting-note">
+        <span class="icon-shield-small"></span> Your vote will be revealed after voting.
+      </p>
+    `;
+    // Bind events
+    document.getElementById('btn-team-agree').addEventListener('click', () => submitTeamVote('AGREE'));
+    document.getElementById('btn-team-disagree').addEventListener('click', () => submitTeamVote('DISAGREE'));
+  } else if (showMissionVote) {
+    DOM.votingOverlay.classList.remove('hidden');
+    // Update overlay content for mission voting
+    DOM.votingOverlay.innerHTML = `
+      <h3 class="voting-title">Cast Your Mission Vote</h3>
+      <div class="voting-buttons">
+        <button id="btn-vote-approve-dyn" class="btn btn-vote btn-vote-approve">
+          <span class="icon-shield"></span>
+          Approve
+        </button>
+        <button id="btn-vote-disapprove-dyn" class="btn btn-vote btn-vote-disapprove">
+          <span class="icon-shield-alert"></span>
+          Disapprove
+        </button>
+      </div>
+      <p class="voting-note">
+        <span class="icon-shield-small"></span> This vote is anonymous.
+      </p>
+    `;
+    // Bind events
+    document.getElementById('btn-vote-approve-dyn').addEventListener('click', () => submitVote('APPROVE'));
+    document.getElementById('btn-vote-disapprove-dyn').addEventListener('click', () => submitVote('DISAPPROVE'));
   } else {
     DOM.votingOverlay.classList.add('hidden');
   }

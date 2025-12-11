@@ -329,6 +329,15 @@ html, body {
   background: var(--color-secondary-hover);
 }
 
+.btn-danger {
+  background: var(--color-danger);
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--color-danger-hover);
+}
+
 .btn-ghost {
   background: transparent;
   color: var(--color-text-muted);
@@ -642,6 +651,17 @@ html, body {
   color: var(--color-danger);
 }
 
+.result-label.zero-votes {
+  color: var(--color-text-dim) !important;
+}
+
+.result-circle.zero-votes {
+  color: var(--color-text-dim) !important;
+  border-color: var(--color-border) !important;
+  background: var(--color-bg-card) !important;
+  box-shadow: none !important;
+}
+
 .mission-outcome {
   font-size: 16px;
   font-weight: 700;
@@ -664,6 +684,49 @@ html, body {
   border: 2px solid var(--color-danger);
   color: var(--color-danger);
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+}
+
+.mission-rejected {
+  background: rgba(100, 116, 139, 0.15);
+  border: 2px solid var(--color-text-muted);
+  color: var(--color-text-muted);
+  box-shadow: 0 0 20px rgba(100, 116, 139, 0.2);
+}
+
+.team-vote-results {
+  margin-bottom: 16px;
+  padding: 12px;
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: var(--radius-md);
+}
+
+.team-vote-section {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.team-vote-section:last-child {
+  margin-bottom: 0;
+}
+
+.team-vote-label {
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.agree-label {
+  color: var(--color-success);
+}
+
+.disagree-label {
+  color: var(--color-danger);
+}
+
+.team-vote-names {
+  font-size: 13px;
+  color: var(--color-text-muted);
 }
 
 .action-button-container {
@@ -772,6 +835,35 @@ html, body {
   box-shadow: 0 0 8px var(--color-primary);
 }
 
+.btn-remove-player {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--color-danger);
+  font-size: 12px;
+  cursor: pointer;
+  opacity: 0;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.player-card:hover .btn-remove-player {
+  opacity: 1;
+}
+
+.btn-remove-player:hover {
+  background: var(--color-danger);
+  color: white;
+}
+
 /* History Section */
 .history-section {
   padding-top: 16px;
@@ -802,6 +894,37 @@ html, body {
 .history-item.history-failed {
   border-left: 4px solid var(--color-danger);
   background: rgba(239, 68, 68, 0.05);
+}
+
+.history-item.history-rejected {
+  border-left: 4px solid var(--color-text-muted);
+  background: rgba(100, 116, 139, 0.05);
+}
+
+.status-rejected {
+  background: rgba(100, 116, 139, 0.15);
+  color: var(--color-text-muted);
+}
+
+.history-team-votes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.history-agree {
+  color: var(--color-success);
+}
+
+.history-disagree {
+  color: var(--color-danger);
+}
+
+.history-approve.zero-votes,
+.history-disapprove.zero-votes {
+  color: var(--color-text-dim) !important;
 }
 
 .history-header {
@@ -895,7 +1018,14 @@ html, body {
   font-size: 18px;
   font-weight: 700;
   color: white;
+  margin-bottom: 8px;
+}
+
+.voting-subtitle {
+  font-size: 14px;
+  color: var(--color-text-muted);
   margin-bottom: 16px;
+  text-align: center;
 }
 
 .voting-buttons {
