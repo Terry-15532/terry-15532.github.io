@@ -1758,6 +1758,21 @@ header.hero::before {
     width: 400px;
 }
 
+.profile-image-right {
+    flex-shrink: 0;
+    width: 30vw;
+    position: relative;
+    margin-left: 0rem;
+}
+
+.about-self-image {
+    width: 100%;
+    height: auto;
+    border: 2px solid var(--accent-cyan);
+    padding: 8px;
+    background: var(--bg-color);
+}
+
 .profile-image-large {
     width: 100%;
     height: 500px;
@@ -2231,14 +2246,37 @@ img, picture img, svg, canvas, video,
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
+    background-color: rgba(255, 255, 255, 0.3);
     transition: background-color 0.3s ease, backdrop-filter 0.3s ease;
 }
 
 .youtube-lazy:hover::before {
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: rgba(255, 255, 255, 0.3);
     backdrop-filter: blur(10px);
 }
+
+[data-theme="dark"] .youtube-lazy::before {
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+[data-theme="dark"] .youtube-lazy:hover::before {
+    background-color: rgba(0, 0, 0, 0.4);
+}
+
+/* .youtube-lazy::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(100, 180, 255, 0.2);
+    transition: background-color 0.3s ease;
+} */
+
+/* [data-theme="dark"] .youtube-lazy::after {
+    background-color: rgba(0, 0, 0, 0.5);
+} */
 
 .youtube-overlay {
     position: absolute;
@@ -2270,6 +2308,18 @@ img, picture img, svg, canvas, video,
 
 /* Make YouTube cover blur when the whole card is hovered, not only the media area */
 .card:hover .youtube-lazy::before {
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: rgba(255, 255, 255, 0.3);
     backdrop-filter: blur(10px);
+}
+
+/* .card:hover .youtube-lazy::after {
+    background-color: rgba(100, 180, 255, 0.2);
+} */
+
+/* [data-theme="dark"] .card:hover .youtube-lazy::after {
+    background-color: rgba(0, 0, 0, 0.3);
+} */
+
+[data-theme="dark"] .card:hover .youtube-lazy::before {
+    background-color: rgba(0, 0, 0, 0.4);
 }
