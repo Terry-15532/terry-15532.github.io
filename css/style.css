@@ -2059,18 +2059,6 @@ header.hero::before {
     padding-bottom: 37.5%;
 }
 
-/* Portrait artworks (tall) - single column but much taller */
-.art-card.portrait {
-    padding-bottom: 133%;
-    grid-row: span 2;
-}
-
-/* Wider landscape variants that span two columns with moderate height */
-.art-card.landscape-wide {
-    grid-column: span 2;
-    padding-bottom: 50%;
-}
-
 /* Allow a featured-grid card to span two columns */
 .grid-container.featured-grid .card.double-col {
     grid-column: span 2;
