@@ -1,3 +1,7 @@
+// Global registry for DotControllers (for performance optimization)
+window._dotControllers = {};
+let _dotControllerIdCounter = 0;
+
 document.addEventListener('DOMContentLoaded', () => {
     console.log('System Online. Welcome to PRTS Design.');
 
@@ -27,6 +31,24 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('popstate', () => {
         const path = window.location.hash.slice(1) || 'index.html';
         loadPage(path, false);
+    });
+    
+    // Performance: Resume animations when user leaves game page
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            // Page became visible - resume animations if they were paused
+            console.log('[Performance] Page visible - resuming animations if needed');
+            if (window._bgAnimationControl) {
+                window._bgAnimationControl.resume();
+            }
+            if (window._dotControllers) {
+                Object.values(window._dotControllers).forEach(ctrl => {
+                    if (ctrl && ctrl.isPaused !== undefined) {
+                        ctrl.isPaused = false;
+                    }
+                });
+            }
+        }
     });
 
     // Check for file protocol
@@ -186,6 +208,11 @@ class DotController {
         this.ro = null;
         this.dpr = window.devicePixelRatio || 1;
         this.scale = 1;
+        this.isPaused = false; // Performance control
+        
+        // Register in global registry
+        this._id = `dotctrl_${_dotControllerIdCounter++}`;
+        window._dotControllers[this._id] = this;
 
         this.state = {
             pointerX: null, pointerY: null,
@@ -196,7 +223,9 @@ class DotController {
             lastScrollY: window.scrollY,
             lastScrollTime: performance.now(),
             focusLevel: 0, // 0 = scattered, 1 = assembled
-            targetFocusLevel: 1
+            targetFocusLevel: 1,
+            lastFrameTime: performance.now(),
+            frameHistory: []
         };
 
         this.CONSTANTS = {
@@ -407,6 +436,12 @@ class DotController {
     }
 
     draw() {
+        // Check if paused (performance optimization)
+        if (this.isPaused) {
+            this.rafId = requestAnimationFrame(this.draw);
+            return;
+        }
+        
         const { ctx, canvas, dpr, scale, points, state, config, CONSTANTS } = this;
         ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
@@ -415,26 +450,37 @@ class DotController {
 
         const cx = canvas.clientWidth / 2;
         const now = performance.now();
+        
+        // Calculate deltaTime for frame-rate independent animation
+        const rawDelta = (now - state.lastFrameTime);
+        // Normalize to 60fps (16.67ms), but cap at 2x to prevent large jumps on lag spikes
+        const deltaTime = Math.min(rawDelta / 16.67, 2);
+        state.lastFrameTime = now;
+        
+        // Track performance - if consistently low FPS, we might need optimizations
+        if (!state.frameHistory) state.frameHistory = [];
+        state.frameHistory.push(rawDelta);
+        if (state.frameHistory.length > 60) state.frameHistory.shift();
 
-        // Smoothly transition focus level
-        state.focusLevel += (state.targetFocusLevel - state.focusLevel) * 0.05;
+        // Smoothly transition focus level (frame-rate independent)
+        state.focusLevel += (state.targetFocusLevel - state.focusLevel) * 0.05 * deltaTime;
         const focusEase = 1 - Math.pow(1 - state.focusLevel, 3); // Cubic ease
 
-        state.scrollSqueeze += (state.targetScrollSqueeze - state.scrollSqueeze) * 0.12;
-        state.targetScrollSqueeze *= 0.92;
+        state.scrollSqueeze += (state.targetScrollSqueeze - state.scrollSqueeze) * 0.12 * deltaTime;
+        state.targetScrollSqueeze *= Math.pow(0.92, deltaTime);
         if (Math.abs(state.targetScrollSqueeze) < 0.001) state.targetScrollSqueeze = 0;
 
-        state.squeezeAnchor += (state.targetSqueezeAnchor - state.squeezeAnchor) * 0.12;
-        state.targetSqueezeAnchor *= 0.92;
+        state.squeezeAnchor += (state.targetSqueezeAnchor - state.squeezeAnchor) * 0.12 * deltaTime;
+        state.targetSqueezeAnchor *= Math.pow(0.92, deltaTime);
         if (Math.abs(state.targetSqueezeAnchor) < 0.5) state.targetSqueezeAnchor = 0;
 
-        state.screenOffsetY += (state.targetScreenOffsetY - state.screenOffsetY) * CONSTANTS.SCREEN_DAMPING;
-        state.targetScreenOffsetY *= CONSTANTS.SCREEN_DECAY;
+        state.screenOffsetY += (state.targetScreenOffsetY - state.screenOffsetY) * CONSTANTS.SCREEN_DAMPING * deltaTime;
+        state.targetScreenOffsetY *= Math.pow(CONSTANTS.SCREEN_DECAY, deltaTime);
         if (Math.abs(state.targetScreenOffsetY) < 0.5) state.targetScreenOffsetY = 0;
 
         const anchorPx = state.squeezeAnchor * scale * CONSTANTS.SCREEN_ANCHOR_INFLUENCE * 0.3;
         const desiredCenter = state.screenOffsetY + anchorPx;
-        state.centerOffsetY += (desiredCenter - state.centerOffsetY) * CONSTANTS.CENTER_EASE;
+        state.centerOffsetY += (desiredCenter - state.centerOffsetY) * CONSTANTS.CENTER_EASE * deltaTime;
 
         const cy = canvas.clientHeight / 2 + state.centerOffsetY;
 
@@ -557,16 +603,18 @@ class DotController {
             // When repulsing, we want the point to move freely, so we keep the return spring weak (or same as normal).
             // We do NOT use repulsionDamping for the spring, as high damping would pin the point to the target.
             const rtn = config.returnDamping !== undefined ? config.returnDamping : 0.05;
-            p.x += (targetX - p.x) * rtn;
-            p.y += (targetY - p.y) * rtn;
+            const rtFactor = 1 - Math.pow(1 - rtn, deltaTime);
+            p.x += (targetX - p.x) * rtFactor;
+            p.y += (targetY - p.y) * rtFactor;
 
             // Apply velocity impulses
             // When repulsing, we allow higher velocity influence (repulsionDamping) to let the point fly away.
             const velFactor = inRepulseRange ? (config.repulsionDamping !== undefined ? config.repulsionDamping : 0.1) : (config.returnDamping !== undefined ? config.returnDamping : 0.05);
-            p.x += p.vx * velFactor;
-            p.y += p.vy * velFactor;
-            p.vx *= (config.velocityDecay !== undefined ? config.velocityDecay : 0.92);
-            p.vy *= (config.velocityDecay !== undefined ? config.velocityDecay : 0.92);
+            p.x += p.vx * velFactor * deltaTime;
+            p.y += p.vy * velFactor * deltaTime;
+            const decay = (config.velocityDecay !== undefined ? config.velocityDecay : 0.92);
+            p.vx *= Math.pow(decay, deltaTime);
+            p.vy *= Math.pow(decay, deltaTime);
 
             const sx = cx + p.x * effectiveScale + globalOffsetX;
             const sy = cy + p.y * effectiveScale + globalOffsetY;
@@ -629,8 +677,10 @@ class DotController {
         window.removeEventListener('focus', this.onFocus);
         // no blur listener used for scatter anymore
         if (this.ro) this.ro.disconnect();
-        // Remove runtime reference
-        if (window._dotControllers && window._dotControllers[this.canvas.id]) delete window._dotControllers[this.canvas.id];
+        // Remove from global registry
+        if (window._dotControllers && this._id) {
+            delete window._dotControllers[this._id];
+        }
     }
 }
 
@@ -764,6 +814,13 @@ function initBackgroundAnimation() {
     let scrollY = 0;
     let lastScrollY = 0;
     let scrollVelocity = 0;
+    let isPaused = false; // Control variable for pausing animation
+    
+    // Expose pause/resume globally for performance optimization
+    window._bgAnimationControl = {
+        pause: () => { isPaused = true; },
+        resume: () => { isPaused = false; }
+    };
 
     function resize() {
         width = canvas.width = window.innerWidth;
@@ -867,6 +924,12 @@ function initBackgroundAnimation() {
     }
 
     function animate() {
+        // Skip animation frame if paused
+        if (isPaused) {
+            requestAnimationFrame(animate);
+            return;
+        }
+        
         ctx.clearRect(0, 0, width, height);
 
         // Calculate base offset based on mouse position
@@ -1075,6 +1138,20 @@ function initLightbox() {
 
             // Hide the overlay
             overlay.classList.add('hidden');
+            
+            // PERFORMANCE OPTIMIZATION: Pause background animations when game starts
+            console.log('[Performance] Pausing background animations for game');
+            if (window._bgAnimationControl) {
+                window._bgAnimationControl.pause();
+            }
+            // Pause all dot controllers
+            if (window._dotControllers) {
+                Object.values(window._dotControllers).forEach(ctrl => {
+                    if (ctrl && ctrl.isPaused !== undefined) {
+                        ctrl.isPaused = true;
+                    }
+                });
+            }
         });
     });
 }
