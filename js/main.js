@@ -166,12 +166,12 @@ class DotController {
             // Optional override for a fixed dot color (skips theme choice)
             dotColor: null,
             repulsionRadius: 30,
-            repulsionStrength: 5,
+            repulsionStrength: 15,
             // Velocity-based impulse repulsion: pointer movement applies an impulse to dot velocity
             repulsionImpulseScale: 0.03,
             // Decay factor applied to per-dot velocities each frame (0..1)
             velocityDecay: 0.9,
-            maxVelocity: 100,
+            maxVelocity: 500,
             // Multiplier to increase how far points scatter initially (1.0 = default radius)
             initialScatterMultiplier: 6.0,
             // Global transformation applied to all points when rendering (useful for tuning)
@@ -186,8 +186,8 @@ class DotController {
             edgeFadePower: 1,
             squeezeStrength: 0.1,
             // Damping (lerp) multipliers: how fast points move when repelled vs when returning to base
-            repulsionDamping: 0.9, // faster interpolation when being pushed by pointer
-            returnDamping: 0.02 // slower interpolation when returning to base position
+            repulsionDamping: 0.99, // faster interpolation when being pushed by pointer
+            returnDamping: 0.1 // slower interpolation when returning to base position
             // Idle animation config
             , idleSpeed: 1.0 // multiplier for idle motion speed (1.0 = default)
             , idleAmplitude: 1.0 // multiplier for idle motion amplitude (1.0 = default)
