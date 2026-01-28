@@ -923,17 +923,65 @@ function initScrollAnimations() {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.classList.add('visible');
-                observer.unobserve(entry.target);
+                return;
+            }
+
+            const rect = entry.boundingClientRect;
+            const rootBounds = entry.rootBounds;
+            const viewportBottom = rootBounds ? rootBounds.bottom : window.innerHeight;
+            if (rect.top > viewportBottom) {
+                entry.target.classList.remove('visible');
             }
         });
     }, observerOptions);
 
-    // Select elements to animate (exclude .card and .project-gallery img)
-    const elementsToAnimate = document.querySelectorAll('.hero h1, .hero p, .section-title, .project-header, .project-content, .webgl-container');
+    // Select elements to animate (exclude .project-gallery img)
+    const elementsToAnimate = document.querySelectorAll(
+        [
+            '.hero h1',
+            '.hero p',
+            '.section-title',
+            '.section-title-text',
+            '.project-header',
+            '.project-content',
+            '.webgl-container',
+            '.grid-container .card',
+            '.timeline-container .timeline-item',
+            '.about-container .profile-name-large',
+            '.about-container .profile-bio-box',
+            '.about-container .profile-tags-row',
+            '.about-container .contact-info-grid',
+            '.about-container .profile-content-right',
+            '.about-container .profile-image-right',
+            '.about-container .deco-line',
+            '.about-container .featured-projects-scroll-wrapper',
+            '.about-container .featured-artworks-scroll-wrapper',
+            '.about-container .scroll-card',
+            '.about-container .featured-cta-btn',
+            '.about-container .art-scroll-card'
+        ].join(', ')
+    );
     elementsToAnimate.forEach(el => {
         el.classList.add('fade-in-up');
         observer.observe(el);
     });
+
+    let resetRafId = null;
+    const resetBelowViewport = () => {
+        if (resetRafId !== null) return;
+        resetRafId = requestAnimationFrame(() => {
+            resetRafId = null;
+            const viewportBottom = window.innerHeight;
+            elementsToAnimate.forEach(el => {
+                const rect = el.getBoundingClientRect();
+                if (rect.top > viewportBottom) {
+                    el.classList.remove('visible');
+                }
+            });
+        });
+    };
+
+    window.addEventListener('scroll', resetBelowViewport, { passive: true });
 }
 
 function initLightbox() {
