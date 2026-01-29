@@ -2634,11 +2634,14 @@ img, picture img, svg, canvas, video,
     background-image: inherit;
     background-size: 101%;
     background-position: center;
-    transition: background-size 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.3s ease, backdrop-filter 0.3s ease;
+    background-repeat: no-repeat;
+    transform: scale(1);
+    background-size: cover;
+    transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.3s ease, backdrop-filter 0.3s ease;
 }
 
 .youtube-lazy:hover::before {
-    background-size: 110%;
+    transform: scale(1.1);
     background-color: rgba(255, 255, 255, 0.3);
     backdrop-filter: blur(10px);
 }
@@ -2700,7 +2703,7 @@ img, picture img, svg, canvas, video,
 }
 
 .card:hover .youtube-lazy::before {
-    background-size: 110%;
+    transform: scale(1.1);
     background-color: rgba(255, 255, 255, 0.3);
     backdrop-filter: blur(10px);
 }
