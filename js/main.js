@@ -923,6 +923,15 @@ function initScrollAnimations() {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.classList.add('visible');
+                
+                // If the element is a scroll wrapper, also trigger all child cards immediately
+                if (entry.target.classList.contains('featured-projects-scroll-wrapper') || 
+                    entry.target.classList.contains('featured-artworks-scroll-wrapper')) {
+                    const childCards = entry.target.querySelectorAll('.scroll-card, .art-scroll-card');
+                    childCards.forEach(card => {
+                        card.classList.add('visible');
+                    });
+                }
                 return;
             }
 
@@ -931,6 +940,15 @@ function initScrollAnimations() {
             const viewportBottom = rootBounds ? rootBounds.bottom : window.innerHeight;
             if (rect.top > viewportBottom) {
                 entry.target.classList.remove('visible');
+                
+                // If the element is a scroll wrapper, also reset all child cards
+                if (entry.target.classList.contains('featured-projects-scroll-wrapper') || 
+                    entry.target.classList.contains('featured-artworks-scroll-wrapper')) {
+                    const childCards = entry.target.querySelectorAll('.scroll-card, .art-scroll-card');
+                    childCards.forEach(card => {
+                        card.classList.remove('visible');
+                    });
+                }
             }
         });
     }, observerOptions);
@@ -956,14 +974,19 @@ function initScrollAnimations() {
             '.about-container .deco-line',
             '.about-container .featured-projects-scroll-wrapper',
             '.about-container .featured-artworks-scroll-wrapper',
-            '.about-container .scroll-card',
             '.about-container .featured-cta-btn',
-            '.about-container .art-scroll-card'
+            '.skills-section .skill-card'
         ].join(', ')
     );
     elementsToAnimate.forEach(el => {
         el.classList.add('fade-in-up');
         observer.observe(el);
+    });
+    
+    // Manually add fade-in-up to cards but don't observe them individually
+    const cards = document.querySelectorAll('.about-container .scroll-card, .about-container .art-scroll-card');
+    cards.forEach(card => {
+        card.classList.add('fade-in-up');
     });
 
     let resetRafId = null;

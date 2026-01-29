@@ -2995,7 +2995,7 @@ img, picture img, svg, canvas, video,
     background: rgba(212, 175, 55, 0.1);
     border-color: #d4af37;
 }
-1
+
 .honor-awards.gold-color::before {
     content: '★';
     color: #d4af37;
@@ -3105,9 +3105,11 @@ img, picture img, svg, canvas, video,
     content: '▹';
     position: absolute;
     left: 0;
+    top: 6px;
     color: var(--accent-cyan);
     font-size: 1.4rem;
     font-weight: 700;
+    line-height: 1.6;
 }
 /* Removed li hover animation */
 
@@ -3115,8 +3117,8 @@ img, picture img, svg, canvas, video,
     color: var(--accent-cyan);
     font-weight: 600;
     padding: 2px 6px;
-    background: rgba(90, 180, 255, 0.1);
-    border-radius: 3px;
+    background: rgba(90, 180, 255, 0.2);
+    border-radius: 5px;
 }
 
 /* --- Responsive Design --- */
