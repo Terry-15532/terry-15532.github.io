@@ -633,7 +633,7 @@ function startMission() {
   if (App.gameState.currentTeam.length === 0) return;
 
   if (App.isHost) {
-    startVoting();
+    startTeamVoting();
   } else {
     App.peerManager.sendToHost({
       type: 'START_VOTE',
@@ -1019,20 +1019,20 @@ function renderPhaseContent(state) {
             : '<div class="mission-outcome mission-failed">✕ MISSION FAILED</div>';
         }
         
-        // Show team approval votes if available
+        // Show team approval votes if available (anonymous - counts only)
         if (result.teamVotes && result.teamVotes.length > 0) {
-          const agreeVoters = result.teamVotes.filter(v => v.vote === 'AGREE').map(v => v.playerName);
-          const disagreeVoters = result.teamVotes.filter(v => v.vote === 'DISAGREE').map(v => v.playerName);
+          const agreeCount = result.teamVotes.filter(v => v.vote === 'AGREE').length;
+          const disagreeCount = result.teamVotes.filter(v => v.vote === 'DISAGREE').length;
           
           teamVoteHtml = `
             <div class="team-vote-results">
               <div class="team-vote-section">
-                <span class="team-vote-label agree-label">Agreed (${agreeVoters.length}):</span>
-                <span class="team-vote-names">${agreeVoters.length > 0 ? agreeVoters.join(', ') : 'None'}</span>
+                <span class="team-vote-label agree-label">Agreed:</span>
+                <span class="team-vote-count">${agreeCount}</span>
               </div>
               <div class="team-vote-section">
-                <span class="team-vote-label disagree-label">Disagreed (${disagreeVoters.length}):</span>
-                <span class="team-vote-names">${disagreeVoters.length > 0 ? disagreeVoters.join(', ') : 'None'}</span>
+                <span class="team-vote-label disagree-label">Disagreed:</span>
+                <span class="team-vote-count">${disagreeCount}</span>
               </div>
             </div>
           `;
@@ -1177,10 +1177,7 @@ function renderHistory() {
       item.classList.add('history-failed');
     }
 
-    const teamNames = mission.team.map(id => {
-      const player = App.gameState.players.find(p => p.id === id);
-      return player ? escapeHtml(player.name) : 'Unknown';
-    });
+    const teamSize = mission.team.length;
 
     // Status badge based on outcome
     let statusBadge = '';
@@ -1192,15 +1189,15 @@ function renderHistory() {
         : '<span class="history-status status-failed">✕ Failed</span>';
     }
     
-    // Team vote info
+    // Team vote info (anonymous - counts only)
     let teamVoteHtml = '';
     if (mission.teamVotes && mission.teamVotes.length > 0) {
-      const agreeVoters = mission.teamVotes.filter(v => v.vote === 'AGREE').map(v => v.playerName);
-      const disagreeVoters = mission.teamVotes.filter(v => v.vote === 'DISAGREE').map(v => v.playerName);
+      const agreeCount = mission.teamVotes.filter(v => v.vote === 'AGREE').length;
+      const disagreeCount = mission.teamVotes.filter(v => v.vote === 'DISAGREE').length;
       teamVoteHtml = `
         <div class="history-team-votes">
-          <span class="history-agree">${agreeVoters.length} Agree: ${agreeVoters.join(', ') || 'None'}</span>
-          <span class="history-disagree">${disagreeVoters.length} Disagree: ${disagreeVoters.join(', ') || 'None'}</span>
+          <span class="history-agree">${agreeCount} Agreed</span>
+          <span class="history-disagree">${disagreeCount} Disagreed</span>
         </div>
       `;
     }
@@ -1226,7 +1223,7 @@ function renderHistory() {
       ${teamVoteHtml}
       ${missionVotesHtml}
       <div class="history-team">
-        ${teamNames.map(name => `<span class="history-agent">${name}</span>`).join('')}
+        <span class="history-team-size">Team Size: ${teamSize}</span>
       </div>
       ${mission.flavorText ? `<div class="history-flavor">"${escapeHtml(mission.flavorText)}"</div>` : ''}
     `;

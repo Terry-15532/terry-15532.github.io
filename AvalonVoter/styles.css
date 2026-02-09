@@ -724,9 +724,11 @@ html, body {
   color: var(--color-danger);
 }
 
-.team-vote-names {
+.team-vote-names,
+.team-vote-count {
   font-size: 13px;
   color: var(--color-text-muted);
+  font-weight: 600;
 }
 
 .action-button-container {
@@ -981,12 +983,17 @@ html, body {
   margin-bottom: 8px;
 }
 
-.history-agent {
+.history-agent,
+.history-team-size {
   font-size: 12px;
   background: var(--color-secondary);
   color: var(--color-text);
   padding: 2px 8px;
   border-radius: var(--radius-sm);
+}
+
+.history-team-size {
+  font-weight: 500;
 }
 
 .history-flavor {
