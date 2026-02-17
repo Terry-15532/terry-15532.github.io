@@ -910,9 +910,9 @@ function initHoverEffects() {
 }
 function initScrollAnimations() {
     // Skip fade-in animations on project detail pages
-    if (document.querySelector('.project-detail-container')) {
-        return;
-    }
+    // if (document.querySelector('.project-detail-container')) {
+    //     return;
+    // }
 
     const observerOptions = {
         threshold: 0.1,
@@ -961,7 +961,6 @@ function initScrollAnimations() {
             '.section-title',
             '.section-title-text',
             '.project-header',
-            '.project-content',
             '.webgl-container',
             '.grid-container .card',
             '.timeline-container .timeline-item',
@@ -975,7 +974,8 @@ function initScrollAnimations() {
             '.about-container .featured-projects-scroll-wrapper',
             '.about-container .featured-artworks-scroll-wrapper',
             '.about-container .featured-cta-btn',
-            '.skills-section .skill-card'
+            '.skills-section .skill-card',
+            '.project-gallery img'
         ].join(', ')
     );
     elementsToAnimate.forEach(el => {

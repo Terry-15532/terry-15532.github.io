@@ -199,6 +199,105 @@ body::before {
     background-image: linear-gradient(45deg, rgba(255,255,255,0.03) 25%, transparent 25%, transparent 50%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.03) 75%, transparent 75%, transparent);
 }
 
+/* Language display defaults: show English, hide Chinese. */
+.en { display: inline; }
+.cn { display: none; }
+/* When document has lang-zh class, show Chinese and hide English */
+.lang-zh .en { display: none !important; }
+.lang-zh .cn { display: inline !important; }
+
+/* Exception: Navigation links always show both languages */
+nav .nav-item .en,
+nav .nav-item .cn {
+    display: inline !important;
+}
+
+nav .nav-item .en::after {
+    content: ' ';
+    white-space: pre;
+}
+
+/* Language Switcher Styles - Merged Button */
+.lang-switcher-btn {
+    width: 40px;
+    height: 40px;
+    border: 2px solid var(--text-primary);
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 16px;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 700;
+    transition: all 0.3s ease;
+    clip-path: polygon(
+        5px 0, 
+        100% 0, 
+        100% calc(100% - 5px), 
+        calc(100% - 5px) 100%, 
+        0 100%, 
+        0 5px
+    );
+    position: relative;
+    overflow: hidden;
+}
+
+.lang-switcher-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--text-primary);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
+
+.lang-switcher-btn:hover {
+    background: var(--text-primary);
+    transform: scale(1.1);
+}
+
+.lang-switcher-btn:hover::before {
+    opacity: 1;
+}
+
+.lang-switcher-btn:active {
+    transform: scale(1.05);
+}
+
+.lang-option {
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+    z-index: 1;
+    position: relative;
+}
+
+.lang-switcher-btn:hover .lang-option {
+    color: var(--bg-color);
+}
+
+.lang-divider {
+    display: none;
+}
+
+/* Show only target language: EN in Chinese mode, 中 in English mode */
+.lang-en .lang-option.lang-en {
+    display: none;
+}
+
+.lang-zh .lang-option.lang-zh {
+    display: none;
+}
+
+[data-theme="dark"] .lang-option {
+    color: var(--text-primary);
+}
+
 #bg-canvas {
     position: fixed;
     top: 0;

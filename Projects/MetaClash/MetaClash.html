@@ -41,7 +41,7 @@
                 allowfullscreen></iframe>
             <div class="game-start-overlay" id="start-overlay-metaclash"
                 style="background-image: url('Projects/MetaClash/Cover.png');">
-                <button class="game-start-btn">START GAME</button>
+                <button class="game-start-btn" onclick="event.preventDefault(); event.stopImmediatePropagation(); window.open('https://flandrescarlet-15532.itch.io/meta-clash','_blank');">Play on Itch.io</button>
             </div>
         </div>
 
@@ -68,6 +68,7 @@
         </div>
     </div>
 
+    <script src="../../js/i18n.js"></script>
     <script src="../../js/main.js"></script>
 </body>
 
