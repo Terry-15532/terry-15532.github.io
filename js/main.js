@@ -1228,10 +1228,14 @@ async function loadPage(url, pushHistory = true) {
             const newScripts = doc.querySelectorAll('script');
             newScripts.forEach(script => {
                 if (script.src) {
-                    // External script - reload it
-                    const newScript = document.createElement('script');
-                    newScript.src = script.src;
-                    document.body.appendChild(newScript);
+                    // Check if script is already loaded (avoid duplicates)
+                    const existingScript = document.querySelector(`script[src="${script.src}"]`);
+                    if (!existingScript) {
+                        // External script - reload it only if not already present
+                        const newScript = document.createElement('script');
+                        newScript.src = script.src;
+                        document.body.appendChild(newScript);
+                    }
                 } else if (script.textContent) {
                     // Inline script - execute it
                     try {

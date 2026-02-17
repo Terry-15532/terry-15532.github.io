@@ -57,12 +57,12 @@
       }
 
       var buildUrl = "Build";
-      var loaderUrl = buildUrl + "/WebGL.loader.js";
+      var loaderUrl = buildUrl + "/WebGLWithFallBack.loader.js";
       var config = {
         arguments: [],
-        dataUrl: buildUrl + "/WebGL.data.gz",
-        frameworkUrl: buildUrl + "/WebGL.framework.js.gz",
-        codeUrl: buildUrl + "/WebGL.wasm.gz",
+        dataUrl: buildUrl + "/WebGLWithFallBack.data.unityweb",
+        frameworkUrl: buildUrl + "/WebGLWithFallBack.framework.js.unityweb",
+        codeUrl: buildUrl + "/WebGLWithFallBack.wasm.unityweb",
         streamingAssetsUrl: "StreamingAssets",
         companyName: "DefaultCompany",
         productName: "My project",
