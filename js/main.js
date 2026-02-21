@@ -1292,7 +1292,8 @@ async function loadPage(url, pushHistory = true) {
                                 window.scrollTo({ top: Math.max(0, scrollY), behavior: 'smooth' });
                                 // temporary highlight for clarity
                                 target.classList.add('scroll-return-highlight');
-                                setTimeout(() => { target.classList.remove('scroll-return-highlight'); }, 2200);
+                                // Keep highlight visible slightly longer to emphasize the target
+                                setTimeout(() => { target.classList.remove('scroll-return-highlight'); }, 4000);
                             } else {
                                 console.log('[ScrollBack] No matching card found for:', lastProj);
                             }
@@ -1332,16 +1333,12 @@ function updateActiveNav() {
 }
 
 function initThemeToggle() {
-    // Check for saved theme preference or default to browser preference
+    // Check for saved theme preference or default to dark mode
     let currentTheme = localStorage.getItem('theme');
 
     if (!currentTheme) {
-        // Detect browser/system preference
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            currentTheme = 'dark';
-        } else {
-            currentTheme = 'light';
-        }
+        // Default to dark mode
+        currentTheme = 'dark';
     }
 
     document.documentElement.setAttribute('data-theme', currentTheme);
