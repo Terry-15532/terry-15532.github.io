@@ -1440,12 +1440,13 @@ function tryLoadYoutube(container, videoId) {
         if (container.querySelector('.youtube-error-msg')) return;
         const errorMsg = document.createElement('div');
         errorMsg.className = 'youtube-error-msg';
+        const isChinese = document.documentElement.classList.contains('lang-zh');
         errorMsg.innerHTML = useFallback && fallbackUrl ? `
-            <span>Unable to connect to YouTube.</span>
-            <span>Loading from fallback source...</span>
+            <span>${isChinese ? '无法连接至YouTube' : 'Unable to connect to YouTube.'}</span>
+            <span>${isChinese ? '正在从备用源加载' : 'Loading from fallback source...'}</span>
         ` : `
-            <span>Unable to connect to YouTube.</span>
-            <span>Opening in a new tab...</span>
+            <span>${isChinese ? '无法连接至YouTube' : 'Unable to connect to YouTube.'}</span>
+            <span>${isChinese ? '将在新标签页中打开...' : 'Opening in a new tab...'}</span>
         `;
         errorMsg.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;background:rgba(0,0,0,0.8);padding:16px 24px;border-radius:8px;text-align:center;z-index:10;display:flex;flex-direction:column;gap:4px;font-size:0.95rem;';
         container.appendChild(errorMsg);
