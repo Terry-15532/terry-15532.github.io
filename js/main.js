@@ -1434,6 +1434,19 @@ function checkYoutubeConnectivity() {
 function tryLoadYoutube(container, videoId) {
     const fallbackUrl = container.getAttribute('data-fallback-url');
 
+    // Immediately hide the red play icon and show a spinner while loading
+    const overlay = container.querySelector('.youtube-overlay');
+    if (overlay) {
+        const icon = overlay.querySelector('.youtube-icon');
+        if (icon) icon.style.display = 'none';
+        let ytSpinner = overlay.querySelector('.yt-spinner');
+        if (!ytSpinner) {
+            ytSpinner = document.createElement('div');
+            ytSpinner.className = 'yt-spinner spinner';
+            overlay.appendChild(ytSpinner);
+        }
+    }
+
     // Helper to show error message on the container
     function showErrorMessage(useFallback) {
         // Check if error message already exists
@@ -1448,7 +1461,8 @@ function tryLoadYoutube(container, videoId) {
             <span>${isChinese ? '无法连接至YouTube' : 'Unable to connect to YouTube.'}</span>
             <span>${isChinese ? '将在新标签页中打开...' : 'Opening in a new tab...'}</span>
         `;
-        errorMsg.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#fff;background:rgba(0,0,0,0.8);padding:16px 24px;border-radius:8px;text-align:center;z-index:10;display:flex;flex-direction:column;gap:4px;font-size:0.95rem;';
+        // Position the message further below center, make it a single line and ~80% width so it doesn't cover the spinner
+        errorMsg.style.cssText = 'position:absolute;top:72%;left:50%;transform:translate(-50%,0);color:#fff;background:rgba(0,0,0,0.8);padding:12px 18px;border-radius:8px;text-align:center;width:80%;z-index:0;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:8px;font-size:0.95rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
         container.appendChild(errorMsg);
         // Remove message after a few seconds
         setTimeout(() => {
@@ -1474,6 +1488,9 @@ function tryLoadYoutube(container, videoId) {
                 container.style.backgroundImage = 'none';
                 const overlay = container.querySelector('.youtube-overlay');
                 if (overlay) overlay.style.display = 'none';
+                // Remove spinner if present
+                const s = container.querySelector('.yt-spinner');
+                if (s && s.parentNode) s.parentNode.removeChild(s);
             };
             container.appendChild(iframe);
         } else {
@@ -1501,6 +1518,9 @@ function tryLoadYoutube(container, videoId) {
         if (overlay) {
             overlay.style.display = 'none';
         }
+        // Remove spinner if present
+        const s = container.querySelector('.yt-spinner');
+        if (s && s.parentNode) s.parentNode.removeChild(s);
     };
 
     // On error (network failure, etc.)
@@ -1510,6 +1530,9 @@ function tryLoadYoutube(container, videoId) {
         if (iframe.parentNode) {
             iframe.parentNode.removeChild(iframe);
         }
+        // Remove spinner if present
+        const s = container.querySelector('.yt-spinner');
+        if (s && s.parentNode) s.parentNode.removeChild(s);
     };
 
     // Append iframe to container
