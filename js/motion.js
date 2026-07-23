@@ -203,6 +203,16 @@
         let elRect = null;
         let maxScale = 3;
         let inkDur = 300;
+        let cursorGlow = null;
+
+        function ensureCursorGlow() {
+            if (!cursorGlow || !document.contains(cursorGlow)) {
+                cursorGlow = document.createElement('div');
+                cursorGlow.className = 'cursor-glow';
+                el.appendChild(cursorGlow);
+            }
+            return cursorGlow;
+        }
 
         /* Exit: shrink + fade from the element's bottom-centre */
         function exitInks() {
@@ -266,6 +276,12 @@
             inkDur = solid ? 300 : 450;
             el.dataset.maxScale = maxScale;
 
+            // Show the cursor glow (per-element, relative coords)
+            const glow = ensureCursorGlow();
+            glow.style.left = (e.clientX - elRect.left) + 'px';
+            glow.style.top = (e.clientY - elRect.top) + 'px';
+            glow.classList.add('active');
+
             const x = e.clientX - elRect.left;
             const y = e.clientY - elRect.top;
             const sub = spawnInk(el, x, y);
@@ -294,6 +310,7 @@
             growAnim.onfinish = () => {
                 growAnim = null;
                 if (!isHovering) {
+                    if (cursorGlow) cursorGlow.classList.remove('active');
                     exitInks();
                     el.classList.remove('ripple-filled');
                     if (solid) el.classList.remove('rippling');
@@ -305,10 +322,16 @@
             if (!finePointer || !isHovering || !liveInks.length) return;
             elRect = el.getBoundingClientRect();
             moveInks(e.clientX - elRect.left, e.clientY - elRect.top);
+            // move cursor glow to follow
+            if (cursorGlow) {
+                cursorGlow.style.left = (e.clientX - elRect.left) + 'px';
+                cursorGlow.style.top = (e.clientY - elRect.top) + 'px';
+            }
         });
 
         el.addEventListener('pointerleave', () => {
             isHovering = false;
+            if (cursorGlow) cursorGlow.classList.remove('active');
             // If already finished, exit now. Otherwise let onfinish handle it.
             if (!growAnim) {
                 exitInks();
@@ -357,8 +380,8 @@
         document.body.appendChild(brand);
         const showFn = () => {
             brand.classList.add('show');
-            // Auto-hide after 2 blinks + margin (0.35s × 2 + buffer ≈ 1000ms)
-            setTimeout(() => brand.classList.remove('show'), 1000);
+            // Auto-hide backup — hideBrand will normally fire before this
+            setTimeout(() => brand.classList.remove('show'), 3000);
         };
         if (delay) {
             setTimeout(() => requestAnimationFrame(() => requestAnimationFrame(showFn)), delay);
@@ -379,11 +402,13 @@
        covers the screen, content swaps, then it shrinks into the far edge. */
     let sweepEl = null;
     let sweepBrand = null;
-    let sweepBusy = false;  // true while sweepIn→sweepOut is in flight
+    let sweepBusy = false;
+    let __sweepLock = 0;    // atomic counter — only one sweep can be running
 
     /* Force-clean internal state after an external cancel */
     function abortSweep() {
         sweepBusy = false;
+        __sweepLock = Math.max(0, __sweepLock - 1);
         if (sweepEl) {
             try { sweepEl.getAnimations().forEach(a => a.cancel()); } catch (_) {}
             if (document.body.contains(sweepEl)) sweepEl.remove();
@@ -400,7 +425,10 @@
 
     /* Enter from the click point (or the directional edge as fallback) */
     async function sweepIn(direction, pos) {
-        // If another sweep is already running, abort it first
+        // GLOBAL LOCK: refuse to start if another sweep is in flight
+        if (__sweepLock > 0) return;
+        __sweepLock++;
+        try {
         if (sweepBusy) abortSweep();
         sweepBusy = true;
 
@@ -426,20 +454,30 @@
         );
         sweepBrand = makeBrand('P . R . T . S .', 220);
         try { await grow.finished; } catch (e) { /* interrupted */ }
+        } finally { /* lock released in sweepOut */ }
     }
 
-    /* Exit: simple fade-out */
-    async function sweepOut(direction) {
+    /* Exit: WAAPI-driven fade-out (no cancel+transition race) */
+    async function sweepOut(_direction) {
         const el = sweepEl;
-        if (!el) { sweepBusy = false; return; }
-        await hideBrand(sweepBrand);
-        sweepBrand = null;
-        el.style.transition = 'opacity 0.4s ease';
-        el.style.opacity = '0';
-        await new Promise(r => setTimeout(r, 420));
-        if (el.parentNode) el.remove();
-        sweepEl = null;
-        sweepBusy = false;
+        if (!el) { sweepBusy = false; __sweepLock = Math.max(0, __sweepLock - 1); return; }
+        try {
+            await hideBrand(sweepBrand);
+            sweepBrand = null;
+            // read current opacity then animate to 0 via WAAPI
+            const cur = getComputedStyle(el).opacity;
+            el.style.opacity = cur;  // lock inline so WAAPI has a start point
+            el.animate(
+                [{ opacity: cur }, { opacity: 0 }],
+                { duration: 400, easing: 'ease-in', fill: 'forwards' }
+            );
+            await new Promise(r => setTimeout(r, 420));
+        } finally {
+            if (el.parentNode) el.remove();
+            sweepEl = null;
+            sweepBusy = false;
+            __sweepLock = Math.max(0, __sweepLock - 1);
+        }
     }
 
     /* Circular sweep for theme / language switching:
@@ -473,9 +511,12 @@
         // switch language AFTER the mask fully covers the screen
         if (typeof midpoint === 'function') midpoint();
         await hideBrand(brand);
-        // exit: simple fade-out
-        c.style.transition = 'opacity 0.4s ease';
-        c.style.opacity = '0';
+        const cur = getComputedStyle(c).opacity;
+        c.style.opacity = cur;
+        c.animate(
+            [{ opacity: cur }, { opacity: 0 }],
+            { duration: 400, easing: 'ease-in', fill: 'forwards' }
+        );
         await new Promise(r => setTimeout(r, 420));
         c.remove();
     }
@@ -496,7 +537,7 @@
         if (!gl) { canvas.remove(); return; }
         glStarted = true;
 
-        const hasDeriv = gl.getExtension('OES_standard_derivatives');
+        gl.getExtension('OES_standard_derivatives');
 
         const vsrc = 'attribute vec2 aPos; void main(){ gl_Position = vec4(aPos, 0.0, 1.0); }';
         // Contour field ported from the same algorithm family landonorris.com
@@ -510,6 +551,7 @@ uniform vec2 uRes;
 uniform float uTime;
 uniform float uAlpha;
 uniform float uScroll;
+uniform float uGreen;
 
 // Ashima / Ian McEwan simplex noise (MIT) - same as <simplex> on landonorris.com
 vec3 mod289(vec3 x){ return x - floor(x * (1.0/289.0)) * 289.0; }
@@ -587,7 +629,7 @@ void main() {
     // uniform strength across the whole screen
     float mask = 1.0;
 
-    vec3 accent = vec3(0.0, 0.8, 0.24);
+    vec3 accent = vec3(0.0, uGreen, 0.24 * (0.8 / uGreen));
     float a = line * mask * uAlpha;
     gl_FragColor = vec4(accent, a);
 }`;
@@ -624,6 +666,7 @@ void main() {
         const uTime = gl.getUniformLocation(prog, 'uTime');
         const uAlpha = gl.getUniformLocation(prog, 'uAlpha');
         const uScroll = gl.getUniformLocation(prog, 'uScroll');
+        const uGreen = gl.getUniformLocation(prog, 'uGreen');
 
         let scrollY = 0;
         window.addEventListener('scroll', () => { scrollY = window.scrollY; }, { passive: true });
@@ -647,6 +690,7 @@ void main() {
             gl.uniform1f(uTime, now * 0.001);
             const dark = document.documentElement.getAttribute('data-theme') === 'dark';
             gl.uniform1f(uAlpha, dark ? 0.5 : 0.3);
+            gl.uniform1f(uGreen, dark ? 0.8 : 1.04);  // +30% green saturation for light mode
             gl.uniform1f(uScroll, scrollY);
             gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
             requestAnimationFrame(render);
@@ -654,40 +698,126 @@ void main() {
         requestAnimationFrame(render);
     }
 
-    /* ---------- Custom liquid cursor ---------- */
-    let cursorEl = null;
-    let cursorX = 0, cursorY = 0;
-    let curX = 0, curY = 0;
+    /* ---------- Soft-body SVG liquid cursor (18 anchors) ---------- */
+    let cursorEl = null, cursorPath = null, cursorGlowSvg = null;
+    let prevX = 0, prevY = 0, velX = 0, velY = 0;
+    let tIdle = 0;
+
+    const DISK_N = 18;
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const DISK_R = 10;                     // base radius
+    const DISK_K = 0.18;                   // bezier control scale for 20° segments
+    const SPRING_K = 0.45;                 // spring stiffness (↑ more wobble)
+    const DAMP_K   = 0.55;                 // damping (↓ more overshoot)
+    const IDLE_A   = 3.0;                  // idle motion amplitude
+    const GRAV_G   = 3.5;                  // gravity stretch
+    const VEL_F    = 1.2;                  // velocity deformation strength
+    const rNow  = Array(DISK_N).fill(DISK_R);  // current radii (soft-body state)
+    const rVel  = Array(DISK_N).fill(0);       // radial velocity
 
     function initCursor() {
         if (cursorEl || !finePointer) return;
-        cursorEl = document.createElement('div');
-        cursorEl.className = 'liquid-cursor';
+        const ns = 'http://www.w3.org/2000/svg';
+
+        cursorEl = document.createElementNS(ns, 'svg');
+        cursorEl.setAttribute('class', 'liquid-cursor');
+        cursorEl.setAttribute('viewBox', '-32 -32 64 64');
+        cursorEl.setAttribute('width', '64');
+        cursorEl.setAttribute('height', '64');
         document.body.appendChild(cursorEl);
         document.documentElement.classList.add('has-custom-cursor');
 
+        /* glow disc */
+        cursorGlowSvg = document.createElementNS(ns, 'circle');
+        cursorGlowSvg.setAttribute('cx', '0');
+        cursorGlowSvg.setAttribute('cy', '0');
+        cursorGlowSvg.setAttribute('r', '24');
+        cursorGlowSvg.setAttribute('fill', 'none');
+        cursorGlowSvg.setAttribute('opacity', '0');
+        cursorGlowSvg.style.transition = 'opacity 0.25s ease';
+        cursorEl.appendChild(cursorGlowSvg);
+
+        cursorPath = document.createElementNS(ns, 'path');
+        cursorPath.setAttribute('fill', 'var(--accent-cyan)');
+        cursorEl.appendChild(cursorPath);
+
+        /* --- path builder --- */
+        function build() {
+            const T = Math.PI * 2;
+            let d = '';
+            for (let i = 0; i < DISK_N; i++) {
+                const a0 = (T * i) / DISK_N;
+                const a1 = (T * (i + 1)) / DISK_N;
+                const r0 = rNow[i], r1 = rNow[(i + 1) % DISK_N];
+                const x0 = Math.cos(a0) * r0, y0 = Math.sin(a0) * r0;
+                const x1 = Math.cos(a1) * r1, y1 = Math.sin(a1) * r1;
+                const tx0 = -Math.sin(a0), ty0 = Math.cos(a0);
+                const tx1 = -Math.sin(a1), ty1 = Math.cos(a1);
+                const cx1 = x0 + tx0 * DISK_K * r0, cy1 = y0 + ty0 * DISK_K * r0;
+                const cx2 = x1 - tx1 * DISK_K * r1, cy2 = y1 - ty1 * DISK_K * r1;
+                if (i === 0) d += `M${x0.toFixed(1)},${y0.toFixed(1)}`;
+                d += ` C${cx1.toFixed(1)},${cy1.toFixed(1)} ${cx2.toFixed(1)},${cy2.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`;
+            }
+            d += 'Z';
+            cursorPath.setAttribute('d', d);
+        }
+
+        /* --- physics integration --- */
+        let lastT = 0;
+        function tick(ts) {
+            if (!cursorEl) return;
+            const dt = lastT ? Math.min((ts - lastT) / 1000, 0.05) : 0.016;
+            lastT = ts;
+            tIdle = ts / 1000;
+            const T = Math.PI * 2;
+            const vx = velX / 10;
+            const vy = velY / 10;
+            const spd = Math.hypot(velX, velY) / 14;
+            for (let i = 0; i < DISK_N; i++) {
+                const a = (T * i) / DISK_N;
+                const idle = Math.sin(tIdle * 3.4 + i * 1.6) * IDLE_A * 0.7 +
+                             Math.cos(tIdle * 2.0 + i * 2.3) * IDLE_A * 0.5;
+                const dot = Math.cos(a) * vx + Math.sin(a) * vy;
+                const grav = (Math.sin(a) + 1) * GRAV_G * 0.55;
+                const target = DISK_R + idle + dot * DISK_R * VEL_F * (1 + spd * 0.4) + grav + spd * 3;
+                const accel = SPRING_K * (target - rNow[i]) - DAMP_K * rVel[i];
+                rVel[i] += accel * dt;
+                rNow[i] += rVel[i] * dt;
+                rNow[i] = clamp(rNow[i], 2, 30);
+            }
+            build();
+            requestAnimationFrame(tick);
+        }
+        requestAnimationFrame(tick);
+
+        /* --- pointer --- */
         const onMove = (e) => {
-            cursorX = e.clientX; cursorY = e.clientY;
-            // Check what's under the cursor to add state classes
-            const target = document.elementFromPoint(e.clientX, e.clientY);
-            if (target) {
-                const isNav = target.closest('.nav-item, .logo');
-                const isInteractive = target.closest('.ripple-host, a, button, .lang-switcher');
-                cursorEl.classList.toggle('on-nav', !!isNav);
-                cursorEl.classList.toggle('on-interactive', !!isInteractive && !isNav);
+            const dx = e.clientX - prevX, dy = e.clientY - prevY;
+            velX = clamp(velX * 0.2 + dx * 0.8, -20, 20);
+            velY = clamp(velY * 0.2 + dy * 0.8, -20, 20);
+            prevX = e.clientX; prevY = e.clientY;
+            cursorEl.style.left = (e.clientX + velX * 0.55) + 'px';
+            cursorEl.style.top  = (e.clientY + velY * 0.55) + 'px';
+            updateCursorState(e.clientX, e.clientY);
+        };
+        const updateCursorState = (x, y) => {
+            const t = document.elementFromPoint(x, y);
+            if (t) {
+                const nav = t.closest('.nav-item, .logo');
+                const rip = t.closest('.ripple-host, a, button, .lang-switcher');
+                cursorEl.classList.toggle('on-nav', !!nav && !rip);
+                cursorEl.classList.toggle('on-ripple', !!rip);
+                const glowOn = !!nav || (!rip && t.closest('a, button, .ripple-host'));
+                if (cursorGlowSvg) cursorGlowSvg.setAttribute('opacity', glowOn ? '1' : '0');
             }
         };
         window.addEventListener('pointermove', onMove, { passive: true });
-
-        // Smooth follow loop
-        const loop = () => {
-            if (!cursorEl) return;
-            curX = lerp(curX, cursorX, 0.18);
-            curY = lerp(curY, cursorY, 0.18);
-            cursorEl.style.transform = `translate(${curX}px, ${curY}px)`;
-            requestAnimationFrame(loop);
-        };
-        requestAnimationFrame(loop);
+        window.addEventListener('scroll', () => {
+            if (cursorEl) updateCursorState(
+                parseFloat(cursorEl.style.left) || 0,
+                parseFloat(cursorEl.style.top) || 0
+            );
+        }, { passive: true });
     }
 
     /* ---------- Public init (idempotent, called per page) ---------- */

@@ -30,6 +30,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle Browser Back/Forward
     window.addEventListener('popstate', () => {
+        // Suppress popstate triggered by our own pushHistory hash update
+        if (window.__suppressPopstate) {
+            window.__suppressPopstate = false;
+            return;
+        }
         const path = window.location.hash.slice(1) || 'index.html';
         // Don't animate if a sweep is already in progress — just cancel & load
         if (__navToken) {
@@ -1269,9 +1274,10 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null) 
 
             window.scrollTo(0, 0);
 
-            // Update hash (suppress the self-triggered hashchange)
+            // Update hash (suppress the self-triggered hashchange AND popstate)
             if (pushHistory) {
                 window.__suppressHashNav = true;
+                window.__suppressPopstate = true;
                 window.location.hash = url;
             }
 

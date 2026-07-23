@@ -274,10 +274,6 @@ nav .nav-item .en::after {
     content: none;
 }
 
-.lang-switcher-btn:hover {
-    /* hover handled by ripple sweep */
-}
-
 .lang-switcher-btn:active {
     transform: scale(1.05);
 }
@@ -2035,7 +2031,10 @@ header.hero::before {
 }
 .nav-hint-dark * { transition: color 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important; }
 .nav-hint-dark .nav-item { color: #f2f7f2 !important; }
+.nav-hint-dark .nav-item .en { color: #f2f7f2 !important; }
+.nav-hint-dark .nav-item .cn { color: rgba(242, 247, 242, 0.65) !important; }
 .nav-hint-dark .logo { border-color: #f2f7f2; color: #f2f7f2 !important; }
+.nav-hint-dark .logo .sub { color: rgba(242, 247, 242, 0.6) !important; }
 .nav-hint-dark .theme-toggle,
 .nav-hint-dark .lang-switcher-btn { border-color: #f2f7f2 !important; }
 .nav-hint-dark .lang-option { color: #f2f7f2 !important; }
@@ -2048,7 +2047,10 @@ header.hero::before {
 }
 .nav-hint-light * { transition: color 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important; }
 .nav-hint-light .nav-item { color: #101511 !important; }
+.nav-hint-light .nav-item .en { color: #101511 !important; }
+.nav-hint-light .nav-item .cn { color: rgba(16, 21, 17, 0.55) !important; }
 .nav-hint-light .logo { border-color: #101511; color: #101511 !important; }
+.nav-hint-light .logo .sub { color: rgba(16, 21, 17, 0.55) !important; }
 .nav-hint-light .theme-toggle,
 .nav-hint-light .lang-switcher-btn { border-color: #101511 !important; }
 .nav-hint-light .lang-option { color: #101511 !important; }
@@ -2901,6 +2903,8 @@ img, picture img, svg, canvas, video,
     left: 0;
     width: 100%;
     height: 100%;
+    border: none;
+    border-radius: inherit;
 }
 
 /* Make YouTube cover blur and scale when the whole card is hovered, not only the media area */
@@ -3679,6 +3683,62 @@ img, picture img, svg, canvas, video,
     z-index: 4;
 }
 
+/* Per-element cursor aura — inside ripple host, above ink so it's always visible */
+.cursor-glow {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 5;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    background: radial-gradient(circle,
+        rgba(var(--accent-cyan-rgb), 0.4) 0%,
+        rgba(var(--accent-cyan-rgb), 0.2) 25%,
+        rgba(var(--accent-cyan-rgb), 0.07) 50%,
+        transparent 70%);
+}
+[data-theme="dark"] .cursor-glow {
+    background: radial-gradient(circle,
+        rgba(255, 255, 255, 0.25) 0%,
+        rgba(255, 255, 255, 0.12) 25%,
+        rgba(255, 255, 255, 0.04) 50%,
+        transparent 70%);
+}
+.cursor-glow.active {
+    opacity: 1;
+}
+
+/* Smaller version for nav items */
+.nav-glow {
+    position: absolute;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    background: radial-gradient(circle,
+        rgba(var(--accent-cyan-rgb), 0.2) 0%,
+        rgba(var(--accent-cyan-rgb), 0.08) 30%,
+        rgba(var(--accent-cyan-rgb), 0.02) 55%,
+        transparent 70%);
+}
+[data-theme="dark"] .nav-glow {
+    background: radial-gradient(circle,
+        rgba(255, 255, 255, 0.12) 0%,
+        rgba(255, 255, 255, 0.05) 30%,
+        rgba(255, 255, 255, 0.01) 55%,
+        transparent 70%);
+}
+.nav-glow.active {
+    opacity: 1;
+}
+
 /* cards: tint sweep covers ONLY the card background, never the media */
 .ripple-tint .ripple-ink {
     background: var(--mask-solid);
@@ -3922,9 +3982,9 @@ img, picture img, svg, canvas, video,
     opacity: 1;
 }
 
-/* only the inner text blinks — plays exactly 2 pulses then stays hidden */
+/* Brand text: appears, blinks OFF completely once, stays visible until hideBrand fades it */
 .fx-brand-text {
-    animation: brand-blink 0.35s ease-in-out 2;
+    animation: brand-blink 1.2s ease-in-out 1;
     animation-fill-mode: forwards;
 }
 
@@ -3936,13 +3996,16 @@ img, picture img, svg, canvas, video,
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
-    animation: brand-blink 0.35s ease-in-out 2;
+    animation: brand-blink 1.2s ease-in-out 1;
     animation-fill-mode: forwards;
 }
 
 @keyframes brand-blink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.08; }
+    0%   { opacity: 0; }
+    5%   { opacity: 1; }
+    20%  { opacity: 0; }
+    25%  { opacity: 1; }
+    100% { opacity: 1; }
 }
 
 /* Solid accent sweep for buttons: content wrapped above the circle */
@@ -3972,7 +4035,7 @@ img, picture img, svg, canvas, video,
     color: #000000 !important;
 }
 
-/* ---------- Custom Liquid Cursor ---------- */
+/* ---------- Custom SVG Liquid Cursor ---------- */
 .has-custom-cursor,
 .has-custom-cursor * {
     cursor: none !important;
@@ -3982,39 +4045,54 @@ img, picture img, svg, canvas, video,
     position: fixed;
     top: 0;
     left: 0;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: radial-gradient(circle at 30% 30%,
-        rgba(var(--accent-opposite-rgb), 0.55),
-        rgba(var(--accent-opposite-rgb), 0.15) 70%);
-    box-shadow: 0 0 14px 3px rgba(var(--accent-opposite-rgb), 0.35);
+    width: 48px;
+    height: 48px;
     pointer-events: none;
     z-index: 99999;
     transform: translate(-50%, -50%);
-    will-change: transform;
-    transition: width 0.18s ease, height 0.18s ease, opacity 0.18s ease;
+    will-change: left, top;
+    overflow: visible;
+    transition: width 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                height 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.18s ease;
 }
 
-[data-theme="dark"] .liquid-cursor {
-    background: radial-gradient(circle at 30% 30%,
-        rgba(var(--accent-opposite-rgb), 0.65),
-        rgba(var(--accent-opposite-rgb), 0.2) 70%);
-    box-shadow: 0 0 18px 4px rgba(var(--accent-opposite-rgb), 0.45);
+.liquid-cursor path {
+    fill: var(--accent-cyan);
+    transition: fill 0.2s ease;
 }
 
-/* cursor grows when over interactive elements (class toggled by JS) */
-.liquid-cursor.on-interactive {
-    width: 34px;
-    height: 34px;
-    opacity: 0.5;
-    box-shadow: 0 0 22px 5px rgba(var(--accent-opposite-rgb), 0.55);
+.liquid-cursor.on-ripple {
+    opacity: 0 !important;
+    transition: opacity 0.1s ease !important;
 }
 
 .liquid-cursor.on-nav {
-    width: 48px;
-    height: 48px;
-    opacity: 0.35;
-    border-radius: 50%;
-    box-shadow: 0 0 28px 8px rgba(var(--accent-opposite-rgb), 0.5);
+    width: 90px;
+    height: 90px;
+    opacity: 0.3;
+}
+.liquid-cursor.on-nav path {
+    fill: rgba(var(--accent-cyan-rgb), 0.5);
+}
+
+/* glow circle inside the cursor SVG */
+.liquid-cursor circle {
+    stroke: rgba(var(--accent-cyan-rgb), 0.3);
+    stroke-width: 1.5;
+    fill: rgba(var(--accent-cyan-rgb), 0.08);
+    filter: blur(2px);
+}
+[data-theme="dark"] .liquid-cursor circle {
+    stroke: rgba(255, 255, 255, 0.25);
+    fill: rgba(255, 255, 255, 0.06);
+}
+
+.liquid-cursor.on-nav circle {
+    stroke: rgba(var(--accent-cyan-rgb), 0.4);
+    fill: rgba(var(--accent-cyan-rgb), 0.12);
+}
+[data-theme="dark"] .liquid-cursor.on-nav circle {
+    stroke: rgba(255, 255, 255, 0.35);
+    fill: rgba(255, 255, 255, 0.1);
 }
