@@ -31,13 +31,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // Handle Browser Back/Forward
     window.addEventListener('popstate', () => {
         const path = window.location.hash.slice(1) || 'index.html';
-        loadPage(path, false);
+        // Don't animate if a sweep is already in progress — just cancel & load
+        if (__navToken) {
+            __navToken.cancelled = true;
+            if (window.MotionUX && MotionUX.abortSweep) MotionUX.abortSweep();
+            const token = { cancelled: false };
+            __navToken = token;
+            loadPage(path, false, null, token);
+            return;
+        }
+        navigateTo(path, false);
     });
     
     // Performance: Resume animations when user leaves game page
     document.addEventListener('visibilitychange', () => {
         if (!document.hidden) {
-            console.log('[Performance] Page visible - resuming animations if needed');
             window._bgAnimationControl?.resume();
             if (window._dotControllers) {
                 Object.values(window._dotControllers).forEach(ctrl => {
@@ -46,6 +54,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
             }
+            // Never leave an entrance animation untriggered after refocus
+            window.__recheckReveals && window.__recheckReveals();
         }
     });
 
@@ -64,12 +74,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            // Immediately highlight the clicked nav item (don't wait for page load)
+            if (link.classList.contains('nav-item')) {
+                document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                link.classList.add('active');
+            }
+
             const href = link.getAttribute('href');
 
             // Check if it's an internal link and not an anchor link or external
             if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('mailto:') && !link.hasAttribute('target')) {
                 e.preventDefault();
-                loadPage(href, true);
+                navigateTo(href, true, { x: e.clientX, y: e.clientY });
             }
         }
     });
@@ -84,14 +100,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle hash changes for browser back/forward
     window.addEventListener('hashchange', () => {
+        // Ignore the hashchange fired by our own programmatic hash update
+        if (window.__suppressHashNav) {
+            window.__suppressHashNav = false;
+            return;
+        }
         const path = window.location.hash.slice(1) || 'index.html';
-        loadPage(path, false);
+        navigateTo(path, false);
     });
 
     // Load initial page from hash if present
     if (window.location.hash) {
         const initialPath = window.location.hash.slice(1);
-        loadPage(initialPath, false);
+        navigateTo(initialPath, false);
     }
 
     // Initialize YouTube lazy loading
@@ -107,9 +128,10 @@ function initPage() {
         initArtworksDot,
         initLightbox,
         initYoutubeLazyLoad,
-        initDragScroll
+        initDragScroll,
+        () => { if (window.MotionUX) window.MotionUX.init(); }
     ];
-    
+
     initializers.forEach(fn => fn());
 }
 
@@ -914,22 +936,34 @@ function initScrollAnimations() {
     //     return;
     // }
 
+    // Trigger the moment any part of an element enters the viewport
     const observerOptions = {
-        threshold: 0.1,
-        rootMargin: "0px 0px -50px 0px"
+        threshold: 0,
+        rootMargin: "20% 0px 20% 0px"
+    };
+
+    // After the entrance completes, strip the entrance classes so elements
+    // regain their natural (delay-free) hover/focus transitions.
+    const cleanupEntrance = (el) => {
+        setTimeout(() => {
+            el.classList.remove('fade-in-up', 'reveal-mask');
+            el.style.removeProperty('--i');
+        }, 750);
     };
 
     const observer = new IntersectionObserver((entries) => {
         entries.forEach(entry => {
             if (entry.isIntersecting) {
                 entry.target.classList.add('visible');
-                
+                cleanupEntrance(entry.target);
+
                 // If the element is a scroll wrapper, also trigger all child cards immediately
-                if (entry.target.classList.contains('featured-projects-scroll-wrapper') || 
+                if (entry.target.classList.contains('featured-projects-scroll-wrapper') ||
                     entry.target.classList.contains('featured-artworks-scroll-wrapper')) {
                     const childCards = entry.target.querySelectorAll('.scroll-card, .art-scroll-card');
                     childCards.forEach(card => {
                         card.classList.add('visible');
+                        cleanupEntrance(card);
                     });
                 }
                 return;
@@ -953,6 +987,9 @@ function initScrollAnimations() {
         });
     }, observerOptions);
 
+    // Elements revealed with a designed mask wipe instead of a plain fade
+    const MASK_REVEAL_SELECTOR = ['.section-title-text', '.hero h1', '.hero p', '.about-container .profile-name-large'].join(', ');
+
     // Select elements to animate (exclude .project-gallery img)
     const elementsToAnimate = document.querySelectorAll(
         [
@@ -962,7 +999,7 @@ function initScrollAnimations() {
             '.section-title-text',
             '.project-header',
             '.webgl-container',
-            '.grid-container .card',
+            '.grid-container .card:not(.art-card, .double-width)',
             '.timeline-container .timeline-item',
             '.about-container .profile-name-large',
             '.about-container .profile-bio-box',
@@ -979,10 +1016,42 @@ function initScrollAnimations() {
         ].join(', ')
     );
     elementsToAnimate.forEach(el => {
-        el.classList.add('fade-in-up');
+        el.classList.add(el.matches(MASK_REVEAL_SELECTOR) ? 'reveal-mask' : 'fade-in-up');
         observer.observe(el);
     });
-    
+
+    // Reveal anything already in view right away (initial load), and expose a
+    // re-check so window refocus never leaves an entrance untriggered
+    const recheckInView = () => {
+        document.querySelectorAll('.fade-in-up:not(.visible), .reveal-mask:not(.visible)').forEach(el => {
+            const r = el.getBoundingClientRect();
+            if (r.top < window.innerHeight && r.bottom > 0) {
+                el.classList.add('visible');
+                cleanupEntrance(el);
+            }
+        });
+    };
+    window.__recheckReveals = recheckInView;
+    // reveal elements that scroll into view — IO alone is rate-limited during flings
+    window.addEventListener('scroll', () => { window.__recheckReveals && window.__recheckReveals(); }, { passive: true });
+    requestAnimationFrame(recheckInView);
+    window.addEventListener('load', recheckInView, { once: true });
+
+    // Stagger indices: siblings inside a group cascade in sequence
+    document.querySelectorAll(
+        '.grid-container:not(.art-grid), .skills-container, .timeline-container, .featured-projects-scroll, .featured-artworks-scroll'
+    ).forEach(group => {
+        Array.from(group.children).forEach((child, idx) => {
+            child.style.setProperty('--i', Math.min(idx, 10));
+        });
+    });
+    // Art grid uses independent columns: stagger cards in visual order
+    document.querySelectorAll('.art-grid').forEach(grid => {
+        grid.querySelectorAll('.art-card').forEach((card, idx) => {
+            card.style.setProperty('--i', Math.min(idx, 10));
+        });
+    });
+
     // Manually add fade-in-up to cards but don't observe them individually
     const cards = document.querySelectorAll('.about-container .scroll-card, .about-container .art-scroll-card');
     cards.forEach(card => {
@@ -1104,7 +1173,22 @@ function initLightbox() {
     });
 }
 
-async function loadPage(url, pushHistory = true) {
+// Re-entrancy + cancellation: fast nav clicks cancel the previous navigation
+// (including its full-screen sweep), keeping nav active state in sync.
+let __navToken = null;  // non-null while a navigation is in-flight
+
+function navigateTo(url, pushHistory = true, clickPos = null) {
+    // Cancel the previous navigation (its sweep, its fetch, everything)
+    if (__navToken) {
+        __navToken.cancelled = true;
+        if (window.MotionUX && MotionUX.abortSweep) MotionUX.abortSweep();
+    }
+    const token = { cancelled: false };
+    __navToken = token;
+    loadPage(url, pushHistory, clickPos, token);
+}
+
+async function loadPage(url, pushHistory = true, clickPos = null, token = null) {
     // Select the current content container
     const contentSelector = '.container, .project-detail-container, .about-container';
     const container = document.querySelector(contentSelector);
@@ -1146,23 +1230,19 @@ async function loadPage(url, pushHistory = true) {
         direction = 'fade'; // Same page or sub-page
     }
 
-    // 1. Exit animation
-    if (direction === 'left') {
-        container.classList.add('exit-right');
-    } else if (direction === 'right') {
-        container.classList.add('exit-left');
-    } else {
-        container.classList.add('exit-fade');
-    }
-
-    const loaderTimeout = setTimeout(() => loader.classList.add('active'), 800);
+    // 1. Old content exits OPPOSITE to the navigation direction while the sweep grows
+    container.classList.add('page-exit');
+    container.classList.add(
+        direction === 'left' ? 'page-exit-right' :
+        direction === 'right' ? 'page-exit-left' : 'page-exit-down'
+    );
+    const wipePromise = window.MotionUX ? MotionUX.sweepIn(direction, clickPos) : Promise.resolve();
+    const minCover = new Promise(r => setTimeout(r, 300));
 
     try {
-        // 2. Wait for exit animation
-        await new Promise(r => setTimeout(r, 200));
-
-        // 3. Fetch new content
+        // 2. Fetch new content (parallel with the wipe)
         const response = await fetch(url);
+        if (token && token.cancelled) return;
         if (!response.ok) throw new Error('Page not found');
         const text = await response.text();
 
@@ -1173,9 +1253,13 @@ async function loadPage(url, pushHistory = true) {
         const newTitle = doc.querySelector('title') ? doc.querySelector('title').innerText : document.title;
         const newControls = doc.querySelector('.project-controls');
 
-        // 5. Swap content
+        // 5. Wait until the wipe fully covers the screen, then swap content
+        await Promise.all([wipePromise, minCover]);
+        if (token && token.cancelled) return;
+
         if (newContainer) {
             container.innerHTML = newContainer.innerHTML;
+            container.classList.remove('page-exit', 'page-exit-left', 'page-exit-right', 'page-exit-down');
             document.title = newTitle;
 
             // Handle controls
@@ -1185,34 +1269,17 @@ async function loadPage(url, pushHistory = true) {
 
             window.scrollTo(0, 0);
 
-            // Update hash
+            // Update hash (suppress the self-triggered hashchange)
             if (pushHistory) {
+                window.__suppressHashNav = true;
                 window.location.hash = url;
             }
 
-            // Clear exit classes
-            container.classList.remove('exit-left', 'exit-right', 'exit-fade');
-
-            // Set enter state
-            if (direction === 'left') {
-                container.classList.add('enter-left');
-            } else if (direction === 'right') {
-                container.classList.add('enter-right');
-            } else {
-                container.classList.add('enter-fade');
-            }
-
-            // Force reflow and trigger enter animation
-            void container.offsetWidth;
-
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    container.classList.remove('enter-left', 'enter-right', 'enter-fade');
-                });
-            });
-
-            // 6. Re-initialize
+            // 6. Re-initialize (behind the sweep)
             initPage();
+
+            // 7. Sweep shrinks into the far edge, revealing the new page
+            if (window.MotionUX) await MotionUX.sweepOut(direction);
 
             // If this was a project detail page, remember it so we can scroll back on projects.html
             try {
@@ -1292,8 +1359,19 @@ async function loadPage(url, pushHistory = true) {
                                 window.scrollTo({ top: Math.max(0, scrollY), behavior: 'smooth' });
                                 // temporary highlight for clarity
                                 target.classList.add('scroll-return-highlight');
-                                // Keep highlight visible slightly longer to emphasize the target
-                                setTimeout(() => { target.classList.remove('scroll-return-highlight'); }, 4000);
+                                // Fade out the highlight instead of instantly removing it
+                                setTimeout(() => {
+                                    target.style.transition = 'outline-color 0.5s ease, outline-width 0.5s ease, transform 0.35s ease';
+                                    target.style.outlineColor = 'transparent';
+                                    target.style.outlineWidth = '0px';
+                                    target.style.transform = '';
+                                    setTimeout(() => {
+                                        target.classList.remove('scroll-return-highlight');
+                                        target.style.outlineColor = '';
+                                        target.style.outlineWidth = '';
+                                        target.style.transition = '';
+                                    }, 550);
+                                }, 3500);
                             } else {
                                 console.log('[ScrollBack] No matching card found for:', lastProj);
                             }
@@ -1310,7 +1388,6 @@ async function loadPage(url, pushHistory = true) {
         console.error('Error loading page:', error);
         window.location.href = url;
     } finally {
-        clearTimeout(loaderTimeout);
         loader.classList.remove('active');
     }
 }
@@ -1360,14 +1437,41 @@ function initThemeToggle() {
 
     themeToggle.innerHTML = currentTheme === 'dark' ? sunIcon : moonIcon;
 
-    themeToggle.addEventListener('click', () => {
+    // Ensure the freshly created button picks up ripple bindings
+    if (window.MotionUX) window.MotionUX.init();
+
+    themeToggle.addEventListener('click', (e) => {
         const theme = document.documentElement.getAttribute('data-theme');
         const newTheme = theme === 'dark' ? 'light' : 'dark';
 
-        document.documentElement.setAttribute('data-theme', newTheme);
+        // nav changes instantly via a temporary class; the rest of the page
+        // stays in the old theme until the full-screen mask covers everything
+        const nav = document.querySelector('nav');
+        if (nav) nav.classList.add(newTheme === 'dark' ? 'nav-hint-dark' : 'nav-hint-light');
         localStorage.setItem('theme', newTheme);
+        const wrap = themeToggle.querySelector('.ripple-content');
+        if (wrap) wrap.innerHTML = newTheme === 'dark' ? sunIcon : moonIcon;
+        else themeToggle.innerHTML = newTheme === 'dark' ? sunIcon : moonIcon;
 
-        themeToggle.innerHTML = newTheme === 'dark' ? sunIcon : moonIcon;
+        if (window.MotionUX && MotionUX.fxCircle) {
+            const rect = themeToggle.getBoundingClientRect();
+            const cx = e.clientX || rect.left + rect.width / 2;
+            const cy = e.clientY || rect.top + rect.height / 2;
+            const iconWrap = document.createElement('span');
+            iconWrap.style.color = newTheme === 'dark' ? '#ffffff' : '#000000';
+            iconWrap.style.display = 'flex';
+            iconWrap.innerHTML = newTheme === 'dark' ? moonIcon : sunIcon;
+            const targetColor = newTheme === 'dark' ? '#0a0d0a' : '#f6faf6';
+            const accent = newTheme === 'dark' ? '#00CC33' : '#008A22';
+            MotionUX.fxCircle(cx, cy, targetColor, () => {
+                // the rest of the page switches once the mask fully covers
+                document.documentElement.setAttribute('data-theme', newTheme);
+                if (nav) nav.classList.remove('nav-hint-dark', 'nav-hint-light');
+            }, iconWrap, accent);
+        } else {
+            document.documentElement.setAttribute('data-theme', newTheme);
+            if (nav) nav.classList.remove('nav-hint-dark', 'nav-hint-light');
+        }
     });
 
     // Listen for browser theme changes

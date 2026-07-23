@@ -35,7 +35,48 @@
         
         btn.onclick = () => {
             const currentLang = document.documentElement.classList.contains('lang-zh') ? 'zh' : 'en';
-            setLanguage(currentLang === 'zh' ? 'en' : 'zh');
+            const newLang = currentLang === 'zh' ? 'en' : 'zh';
+
+            // Immediately switch only the button label visibility
+            const enOpt = btn.querySelector('.lang-option.lang-en');
+            const zhOpt = btn.querySelector('.lang-option.lang-zh');
+            if (newLang === 'zh') {
+                enOpt.style.display = 'none';
+                zhOpt.style.display = '';
+            } else {
+                zhOpt.style.display = 'none';
+                enOpt.style.display = '';
+            }
+
+            // Trigger Q-bouncy pop animation on the now-visible label
+            const visibleLabel = btn.querySelector(
+                newLang === 'zh' ? '.lang-option.lang-zh' : '.lang-option.lang-en'
+            );
+            if (visibleLabel) {
+                visibleLabel.classList.remove('lang-pop');
+                void visibleLabel.offsetWidth;
+                visibleLabel.classList.add('lang-pop');
+                visibleLabel.addEventListener('animationend', function h() {
+                    visibleLabel.removeEventListener('animationend', h);
+                    visibleLabel.classList.remove('lang-pop');
+                });
+            }
+
+            if (window.MotionUX && MotionUX.fxCircle) {
+                const rect = btn.getBoundingClientRect();
+                const dark = document.documentElement.getAttribute('data-theme') === 'dark';
+                const color = dark ? 'rgba(13, 16, 13, 0.85)' : 'rgba(255, 255, 255, 0.85)';
+                const label = newLang === 'zh' ? '加载中文模块' : 'Loading English Module';
+                MotionUX.fxCircle(rect.left + rect.width / 2, rect.top + rect.height / 2, color, () => {
+                    // Switch page content AFTER mask fully covers screen
+                    applyLang(newLang);
+                    // Clean up inline display overrides — CSS classes now handle visibility
+                    enOpt.style.display = '';
+                    zhOpt.style.display = '';
+                }, label);
+            } else {
+                applyLang(newLang);
+            }
         };
         
         // try to append to nav .nav-links or to nav directly

@@ -27,6 +27,15 @@
 
     <canvas id="bg-canvas"></canvas>
 
+    <!-- Ambient gradient orbs -->
+    <div class="bg-orbs" aria-hidden="true">
+        <div class="orb-wrap orb-wrap-1"><div class="orb orb-1"></div></div>
+        <div class="orb-wrap orb-wrap-2"><div class="orb orb-2"></div></div>
+        <div class="orb-wrap orb-wrap-3"><div class="orb orb-3"></div></div>
+    </div>
+    <!-- Global voronoi contour field (WebGL) -->
+    <canvas id="contour-gl" aria-hidden="true"></canvas>
+
     <!-- UI Decoration Layer -->
     <div class="ui-layer">
         <div class="deco-bar-left"></div>
@@ -72,7 +81,7 @@
     <div class="container about-container">
         <!-- New Profile Layout -->
         <div id="profile-section" class="profile-section-new">
-            <div class="profile-content-left" style="margin-left: 50px;">
+            <div class="profile-content-left">
                 <div style="height: 30px;"></div>
                 <h1 class="glitch-text profile-name-large" data-text="TERRY LI">TERRY <span class="highlight">LI</span>
                 </h1>
@@ -127,8 +136,7 @@
                 </div>
             </div>
 
-            <div class="profile-content-right"
-                style="margin-right: calc(-10vw - 220px); width: calc(55vw); height:auto;">
+            <div class="profile-content-right">
                 <!-- <div class="hero-widget">
                     <div class="about-wrap">
                         <canvas id="about-canvas"></canvas>
@@ -256,32 +264,32 @@
                     <a href="OtherWorks/Hatsune Miku.png" target="_blank" class="art-scroll-card art-scroll-card-double">
                         <div class="art-scroll-card-media">
                             <img src="OtherWorks/Hatsune Miku.png" alt="Hatsune Miku">
-                            <div class="art-overlay">
-                                <h3><span class="en">Hatsune Miku</span><span class="cn">初音未来</span></h3>
-                                <p><span class="en">Digital Illustration</span><span class="cn">数字插画</span></p>
-                            </div>
+                        </div>
+                        <div class="art-label">
+                            <h3><span class="en">Hatsune Miku</span><span class="cn">初音未来</span></h3>
+                            <span class="art-cat"><span class="en">ILLUSTRATION</span><span class="cn">数字插画</span></span>
                         </div>
                     </a>
-                    
-                                        <!-- Sun Wukong -->
-                                        <a href="OtherWorks/SunWukong.jpg" target="_blank" class="art-scroll-card">
-                                            <div class="art-scroll-card-media">
-                                                <img src="OtherWorks/SunWukong.jpg" alt="Sun Wukong">
-                                                <div class="art-overlay">
-                                                    <h3><span class="en">Sun Wukong</span><span class="cn">孙悟空</span></h3>
-                                                    <p><span class="en">Sculpture</span><span class="cn">雕塑</span></p>
-                                                </div>
-                                            </div>
-                                        </a>
+
+                    <!-- Sun Wukong -->
+                    <a href="OtherWorks/SunWukong.jpg" target="_blank" class="art-scroll-card">
+                        <div class="art-scroll-card-media">
+                            <img src="OtherWorks/SunWukong.jpg" alt="Sun Wukong">
+                        </div>
+                        <div class="art-label">
+                            <h3><span class="en">Sun Wukong</span><span class="cn">孙悟空</span></h3>
+                            <span class="art-cat"><span class="en">SCULPTURE</span><span class="cn">雕塑</span></span>
+                        </div>
+                    </a>
 
                     <!-- Skull -->
                     <a href="OtherWorks/Skull.jpg" target="_blank" class="art-scroll-card">
                         <div class="art-scroll-card-media">
                             <img src="OtherWorks/Skull.jpg" alt="Skull">
-                            <div class="art-overlay">
-                                <h3><span class="en">Skull</span><span class="cn">骷髅</span></h3>
-                                <p><span class="en">Sketch</span><span class="cn">素描</span></p>
-                            </div>
+                        </div>
+                        <div class="art-label">
+                            <h3><span class="en">Skull</span><span class="cn">骷髅</span></h3>
+                            <span class="art-cat"><span class="en">SKETCH</span><span class="cn">素描</span></span>
                         </div>
                     </a>
 
@@ -289,10 +297,10 @@
                     <a href="OtherWorks/Kirisame Marisa.png" target="_blank" class="art-scroll-card">
                         <div class="art-scroll-card-media">
                             <img src="OtherWorks/Kirisame Marisa.png" alt="Kirisame Marisa">
-                            <div class="art-overlay">
-                                <h3><span class="en">Kirisame Marisa</span><span class="cn">雾雨魔理沙</span></h3>
-                                <p><span class="en">Digital Illustration</span><span class="cn">数字插画</span></p>
-                            </div>
+                        </div>
+                        <div class="art-label">
+                            <h3><span class="en">Kirisame Marisa</span><span class="cn">雾雨魔理沙</span></h3>
+                            <span class="art-cat"><span class="en">ILLUSTRATION</span><span class="cn">数字插画</span></span>
                         </div>
                     </a>
 
@@ -300,10 +308,10 @@
                     <a href="OtherWorks/MInakami Yuki.png" target="_blank" class="art-scroll-card">
                         <div class="art-scroll-card-media">
                             <img src="OtherWorks/MInakami Yuki.png" alt="Minakami Yuki">
-                            <div class="art-overlay">
-                                <h3><span class="en">Minakami Yuki</span><span class="cn">水上由岐</span></h3>
-                                <p><span class="en">Digital Illustration</span><span class="cn">数字插画</span></p>
-                            </div>
+                        </div>
+                        <div class="art-label">
+                            <h3><span class="en">Minakami Yuki</span><span class="cn">水上由岐</span></h3>
+                            <span class="art-cat"><span class="en">ILLUSTRATION</span><span class="cn">数字插画</span></span>
                         </div>
                     </a>
 
@@ -462,7 +470,8 @@
                 <div class="timeline-item">
                     <span class="timeline-date-left">2024</span>
                     <div class="timeline-marker award-marker"></div>
-                    <div class="timeline-content">
+                    <a href="https://bowseat.org/gallery/?gallery-year=2024&gallery-type=interactive-multimedia"
+                       target="_blank" class="timeline-content link-content">
                         <div class="honor-layout">
                             <h3 class="honor-title"><span class="en">Bow Seat Ocean Awareness Contest</span><span
                                     class="cn">Bow Seat 海洋意识竞赛</span></h3>
@@ -471,7 +480,7 @@
                         </div>
                         <p class="timeline-subtitle"><span class="en">Interactive Media - Advanced Group</span><span
                                 class="cn">互动媒体 - 高级组</span></p>
-                    </div>
+                    </a>
                 </div>
                 <div class="timeline-item">
                     <span class="timeline-date-left">2024</span>
@@ -575,6 +584,7 @@
 
     <script src="js/i18n.js"></script>
     <script src="js/main.js"></script>
+    <script src="js/motion.js"></script>
 </body>
 
 </html>

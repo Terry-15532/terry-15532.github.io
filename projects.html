@@ -18,6 +18,15 @@
 
     <canvas id="bg-canvas"></canvas>
 
+    <!-- Ambient gradient orbs -->
+    <div class="bg-orbs" aria-hidden="true">
+        <div class="orb-wrap orb-wrap-1"><div class="orb orb-1"></div></div>
+        <div class="orb-wrap orb-wrap-2"><div class="orb orb-2"></div></div>
+        <div class="orb-wrap orb-wrap-3"><div class="orb orb-3"></div></div>
+    </div>
+    <!-- Global voronoi contour field (WebGL) -->
+    <canvas id="contour-gl" aria-hidden="true"></canvas>
+
     <!-- UI Decoration Layer -->
     <div class="ui-layer">
         <div class="deco-bar-left"></div>
@@ -165,14 +174,10 @@
                         </div>
                         <p><b><span class="en">Made By Myself</span><span class="cn">独立制作</span></b></p>
                         <p><span class="en">A city simulation game.<br>
-                                Won the Gold Award in <span
-                                    style="text-decoration: none; color: var(--accent-cyan); text-shadow: 0 0 3px rgb(100,255,255,0.3);">
-                                    2024 Ocean Awareness Contest.</span>
+                                    Won the Gold Award in <span class="card-link">2024 Ocean Awareness Contest.</span>
                                 <br>
                                 This game primarily talks about global warming.</span><span class="cn">一款城市模拟游戏。<br>
-                                在 <span
-                                    style="text-decoration: none; color: var(--accent-cyan); text-shadow: 0 0 3px rgb(100,255,255,0.3);">
-                                    2024 年海洋意识竞赛</span>中获得金奖。
+                                    在 <span class="card-link">2024 年海洋意识竞赛</span>中获得金奖。
                                 <br>
                                 该游戏主要探讨全球变暖的问题。</span>
                         </p>
@@ -306,10 +311,11 @@
     </div>
 
     <footer class="site-footer">
+    </footer>
 
-
-        <script src="js/i18n.js"></script>
-        <script src="js/main.js"></script>
+    <script src="js/i18n.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/motion.js"></script>
 </body>
 
 </html>
