@@ -90,6 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Check if it's an internal link and not an anchor link or external
             if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('mailto:') && !link.hasAttribute('target')) {
                 e.preventDefault();
+                console.log('[SPA] Intercepted click:', href, 'currentHash:', window.location.hash.slice(1));
                 navigateTo(href, true, { x: e.clientX, y: e.clientY });
             }
         }
@@ -194,7 +195,7 @@ class DotController {
             dotColorLight: '#000000',
             dotColorDark: '#ffffff',
             dotColor: null,
-            repulsionRadius: 30,
+            repulsionRadius: 15,
             repulsionStrength: 15,
             repulsionImpulseScale: 0.03,
             velocityDecay: 0.9,

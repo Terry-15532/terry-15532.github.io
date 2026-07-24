@@ -252,13 +252,18 @@
             // Detect text side and exit from the OPPOSITE side
             let exitX = rect.width / 2;
             let exitY = rect.height + 10;
-            const textEl = el.querySelector('.card-content, .card-info, .project-card-info, .art-info, .card-body, .card-text, .card-overlay-content');
-            if (textEl) {
-                const tr = textEl.getBoundingClientRect();
-                const textCenterX = tr.left - rect.left + tr.width / 2;
-                // If text is on the left, exit from right; if on right, exit from left
-                exitX = textCenterX > rect.width / 2 ? rect.width + 10 : -10;
+            // Bow Seat 奖项卡片始终从左侧退出
+            if (el.matches('.timeline-content.link-content')) {
+                exitX = -10;
                 exitY = rect.height / 2;
+            } else {
+                const textEl = el.querySelector('.card-content, .card-info, .project-card-info, .art-info, .card-body, .card-text, .card-overlay-content');
+                if (textEl) {
+                    const tr = textEl.getBoundingClientRect();
+                    const textCenterX = tr.left - rect.left + tr.width / 2;
+                    exitX = textCenterX > rect.width / 2 ? rect.width + 10 : -10;
+                    exitY = rect.height / 2;
+                }
             }
             frozen.forEach(ink => {
                 const cs = getComputedStyle(ink);
@@ -357,13 +362,10 @@
 
             const x = e.clientX - elRect.left;
             const y = e.clientY - elRect.top;
-            const sub = spawnInk(el, x, y);
-            sub.classList.add('sub');
             const ink1 = spawnInk(el, x, y);
-            liveInks = [sub, ink1];
+            liveInks = [ink1];
 
             ink1.style.opacity = '0';
-            sub.style.opacity = '0';
             growAnim = ink1.animate(
                 [{ transform: 'translate(-50%, -50%) scale(0)' },
                  { transform: `translate(-50%, -50%) scale(${maxScale.toFixed(2)})` }],
@@ -371,13 +373,6 @@
             );
             ink1.animate([{ opacity: 0 }, { opacity: 1 }],
                 { duration: 200, easing: 'ease-out', fill: 'forwards' });
-            sub.animate(
-                [{ transform: 'translate(-50%, -50%) scale(0)' },
-                 { transform: `translate(-50%, -50%) scale(${maxScale.toFixed(2)})` }],
-                { duration: inkDur, easing: 'linear', fill: 'forwards' }
-            );
-            sub.animate([{ opacity: 0 }, { opacity: 0.55 }],
-                { duration: 230, easing: 'ease-out', fill: 'forwards' });
 
             growAnim.onfinish = () => {
                 growAnim = null;
@@ -431,9 +426,10 @@
         };
 
         el.addEventListener('pointerleave', () => {
-            // 不立即做任何视觉变更！仅标记离开意图
+            // 辉光立即消失，不等入场动画结束
+            if (cursorGlow) cursorGlow.classList.remove('active');
+            // 仅标记离开意图，视觉变更由 startExit 统一处理
             isHovering = false;
-            // 如果入场动画已结束，直接退场；否则等 growAnim.onfinish 调用 startExit
             if (!growAnim && !isExiting) {
                 startExit();
             }
@@ -450,7 +446,6 @@
 
         function startExit() {
             isExiting = true;
-            if (cursorGlow) cursorGlow.classList.remove('active');
             exitInks();
 
             if (isMagnetic) {
@@ -831,17 +826,19 @@ void main() {
     let tailY = mouseY;
 
     let spawnTimer = 0;
-    let spawnThreshold = 5; // 动态随机间隔，不规律生成小水珠
+    let spawnThreshold = 5;
     let idleTime = 0;
     let lastBurstTime = 0;
     let clickSplitTime = 0;
     let isHoveringInteract = false;
+    let tickFrame = 0; // 帧计数器，用于 30fps 衰减操作
     let morphAmp = 0.0; // 控制静止蠕动幅度的平滑过渡值
 
     const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
 
     // 动态分离水珠粒子池与离开粘连锚点
     const tempDrops = []; // { el, x, y, vx, vy, size, life, maxLife }
+    const MAX_TEMP_DROPS = 60; // 严格上限，超出时移除最旧的粒子
     let stickyAnchor = null; // { el, x, y }
 
     function buildGooeyFilter() {
@@ -899,6 +896,11 @@ void main() {
 
     function spawnDrop(x, y, size, life, vx, vy, isBurst = false) {
         if (!cursorEl) return;
+        // 粒子总数上限：超出时直接移除最旧的
+        while (tempDrops.length >= MAX_TEMP_DROPS) {
+            const old = tempDrops.shift();
+            if (old && old.el) old.el.remove();
+        }
         const el = document.createElement('div');
         el.className = 'drop-node temp-drop' + (isBurst ? ' burst-drop' : '');
         el.style.width = size + 'px';
@@ -1237,7 +1239,7 @@ void main() {
 
             // 6.5. 加速爆发特效 —— 猛加速时爆开一圈水珠 (不在交互元素内)
             // 6.5. 加速爆发特效 —— 和按钮进入时的爆发完全一致，0.3s 冷却
-            if (!isHoveringInteract && accel > 10 && (now - lastBurstTime) > 200) {
+            if (!isHoveringInteract && accel > 8 && (now - lastBurstTime) > 200) {
                 lastBurstTime = now;
                 const burstCount = 8 + Math.floor(Math.random() * 3);
                 for (let j = 0; j < burstCount; j++) {
@@ -1393,9 +1395,14 @@ void main() {
             }
 
             // 为所有磁吸元素执行弹性弹簧插值（每帧一次，平滑渐入跟随）
-            _rippleHosts.forEach(el => {
-                if (el._magneticSpring) el._magneticSpring();
-            });
+            // 仅在 tick 数可被 2 整除时运行 = 30fps 更新频率（不可见差异，减少 50% 负载）
+            if (tickFrame % 2 === 0) {
+                for (const el of _rippleHosts) {
+                    if (el._magneticSpring) el._magneticSpring();
+                }
+            }
+
+            tickFrame++;
 
             requestAnimationFrame(tick);
         }

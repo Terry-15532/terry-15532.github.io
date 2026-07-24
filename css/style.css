@@ -3746,9 +3746,6 @@ img, picture img, svg, canvas, video,
 .ripple-tint .ripple-ink {
     z-index: -1;
 }
-.ripple-tint .ripple-ink.sub {
-    z-index: -2;
-}
 
 /* buttons / solid host: content layer sits above the ink */
 .ripple-content {
@@ -3766,7 +3763,6 @@ img, picture img, svg, canvas, video,
     pointer-events: none;
     z-index: 990;
     opacity: 0;
-    transition: opacity 0.4s ease;
     mix-blend-mode: lighten;
     /* 稍高透明度、低饱和度的精致辉光 */
     background:
@@ -3842,18 +3838,7 @@ img, picture img, svg, canvas, video,
 /* bottom layer: same size as the top, different colour & contour so it
    peeks out only through the wavy edge; opacity falls with progress */
 .ripple-ink.sub {
-    z-index: 1;
-    animation: ripple-morph-b 0.9s ease-in-out infinite;
-}
-
-/* sub layer: complementary accent colour so the two layers are clearly distinct */
-.ripple-solid .ripple-ink.sub {
-    background: var(--accent-opposite);
-}
-
-.ripple-tint .ripple-ink.sub {
-    background: rgba(var(--accent-opposite-rgb), 0.3);
-    z-index: -2;
+    display: none;
 }
 
 @keyframes ripple-morph-b {
