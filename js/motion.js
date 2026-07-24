@@ -2551,7 +2551,7 @@ void main() {
 
             if (
                 !isHoveringInteract &&
-                acceleration > 8 &&
+                acceleration > 10 &&
                 now - lastBurstTime > 200
             ) {
                 lastBurstTime = now;
