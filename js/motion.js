@@ -302,8 +302,8 @@
                 const len = Math.hypot(enterDx, enterDy) || 1;
                 
                 const isNavBtn = el.matches('.theme-toggle, .lang-switcher-btn, .icon-link, .footer-social-link');
-                const amp = isNavBtn ? 5.5 : (w < 80 || h < 80) ? 3.5 : 2.0;
-                const maxMove = isNavBtn ? 5.0 : (w < 80 || h < 80) ? 3.0 : 2.0;
+                const amp = isNavBtn ? 4.5 : (w < 80 || h < 80) ? 3.5 : 2.0;
+                const maxMove = isNavBtn ? 4.0 : (w < 80 || h < 80) ? 3.0 : 2.0;
                 
                 targetTransX = clamp((enterDx / len) * amp, -maxMove, maxMove);
                 targetTransY = clamp((enterDy / len) * amp, -maxMove, maxMove);
