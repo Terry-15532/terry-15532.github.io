@@ -791,14 +791,14 @@ nav {
 /* P.R.T.S. green blinking indicator dot — no glow, irregular subtle blink */
 .status-dot {
     position: absolute;
-    width: 5px;
-    height: 5px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     background: var(--accent-cyan);
     right: 0;
     top: 0;
     transform: translate(50%, -30%);
-    animation: statusBlink 5s steps(3) infinite;
+    animation: statusBlink 2.8s steps(3) infinite;
     z-index: 10;
 }
 
@@ -1039,7 +1039,7 @@ header.hero::before {
     font-size: clamp(1.5rem, 1.2vw + 0.5rem, 2rem);
     text-transform: uppercase;
     font-weight: 700;
-    margin-bottom: 1.2rem;
+    margin-bottom: 0;
     display: flex;
     align-items: center;
     gap: 1rem;
@@ -1257,7 +1257,6 @@ header.hero::before {
 
 .featured-cta-btn:hover .cta-arrow {
     transform: translateX(5px);
-    color: var(--text-primary);
 }
 
 /* Featured Artworks Scroll Wrapper */
@@ -1350,8 +1349,8 @@ header.hero::before {
 }
 
 .art-scroll-card:hover .art-overlay {
-    opacity: 0 !important;
-    transform: translateY(20px);
+    transform: translateY(0);
+    opacity: 1;
 }
 
 .art-scroll-card .art-overlay h3 {
@@ -1623,7 +1622,7 @@ header.hero::before {
 }
 
 .card:hover .card-media::after {
-    opacity: 0 !important;
+    opacity: 1;
 }
 
 .card-content {
@@ -1965,7 +1964,6 @@ header.hero::before {
     display: flex;
     gap: 20px;
     align-items: center;
-    flex-wrap: wrap; /* 允许自动折行/换行 */
 }
 
 .icon-link {
@@ -2210,7 +2208,7 @@ header.hero::before {
 }
 
 .art-card:hover .art-overlay {
-    opacity: 0 !important;
+    opacity: 1;
 }
 
 .art-overlay h3 {
@@ -2343,7 +2341,7 @@ header.hero::before {
 }
 
 .profile-image-right {
-    width: 100%;
+    width: 130%;
     flex-shrink: 0;
     position: relative;
     margin-top: 0;
@@ -2604,6 +2602,30 @@ img, picture img, svg, canvas, video,
     transition: var(--transition-base);
     border-radius: 999px;
     position: relative;
+    overflow: hidden;
+    z-index: 1;
+}
+
+.game-start-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: #ffffff;
+    transition: left 0.3s ease;
+    z-index: -1;
+}
+
+.game-start-btn:hover::before {
+    left: 0;
+}
+
+.game-start-btn:hover {
+    color: #000000;
+    border-color: #ffffff;
+    transform: scale(1.05);
 }
 
 /* Footer Styles */
@@ -3280,15 +3302,13 @@ img, picture img, svg, canvas, video,
     padding: 25px 30px;
     border-radius: var(--radius-md);
     position: relative;
-    overflow: hidden;
-    isolation: isolate;
 }
 
 .timeline-content.link-content::after {
     content: '↗';
     position: absolute;
-    top: 0px;
-    right: 10px;
+    top: 12px;
+    right: 16px;
     font-size: 1.3rem;
     opacity: 0.55;
     color: var(--accent-cyan);
@@ -3312,13 +3332,6 @@ img, picture img, svg, canvas, video,
 .timeline-content.link-content:hover::after {
     opacity: 1;
     transform: translate(2px, -2px);
-    color: var(--accent-opposite);
-}
-
-/* Bow Seat gold award tag: white background + gold text on hover */
-.timeline-content.link-content:hover .honor-awards.gold-color {
-    color: #d4af37;
-    background: #ffffff;
 }
 
 /* Island City detail: green award link */
@@ -3340,18 +3353,6 @@ img, picture img, svg, canvas, video,
     font-weight: 700;
     color: var(--accent-cyan);
     flex-shrink: 0;
-}
-
-/* Prevent text selection on all interactive elements, buttons, nav items, and tags */
-.rhombus-btn, .featured-cta-btn, .featured-arts-btn, .game-start-btn,
-.icon-link, .footer-social-link, .theme-toggle, .lang-switcher-btn,
-.nav-item, .nav-item *, .logo, .logo *,
-.scroll-card, .art-scroll-card, .card,
-.timeline-content.link-content, .honor-awards, .honor-title, .timeline-subtitle {
-    user-select: none !important;
-    -webkit-user-select: none !important;
-    -moz-user-select: none !important;
-    -ms-user-select: none !important;
 }
 
 /* Award Badges - Keep for backward compatibility but hide */
@@ -3456,7 +3457,7 @@ img, picture img, svg, canvas, video,
 }
 
 /* --- Responsive Design --- */
-@media (max-width: 1382px) {
+@media (max-width: 768px) {
     .timeline-section,
     .skills-section {
         padding: 0;
@@ -3518,22 +3519,6 @@ img, picture img, svg, canvas, video,
     
     .timeline-item {
         padding: 0 0 50px 70px;
-    }
-    
-    /* 窄屏下时间轴日期移入内容卡片内部上方，不再占据大片左侧空间 */
-    .timeline-date-left {
-        position: relative;
-        left: auto;
-        top: auto;
-        width: auto;
-        text-align: left;
-        padding-right: 0;
-        padding-bottom: 6px;
-        margin-bottom: 8px;
-        border-bottom: 1px solid var(--border-color);
-        display: block;
-        font-size: 0.85rem;
-        color: var(--accent-cyan);
     }
     
     .timeline-content::before,
@@ -3767,31 +3752,31 @@ img, picture img, svg, canvas, video,
     z-index: 990;
     opacity: 0;
     transition: opacity 0.4s ease;
-    mix-blend-mode: lighten;
-    /* 稍高透明度、低饱和度的精致辉光 */
+    /* Multi-layer gradient: warm white core → soft accent tint → smooth fade */
     background:
         radial-gradient(circle at 50% 50%,
-            rgba(var(--accent-rgb), 0.30) 0%,
-            rgba(var(--accent-rgb), 0.15) 15%,
-            rgba(var(--accent-rgb), 0.05) 35%,
-            rgba(var(--accent-rgb), 0.01) 60%,
-            transparent 80%),
+            rgba(255, 255, 255, 0.4) 0%,
+            rgba(255, 255, 255, 0.25) 12%,
+            rgba(255, 255, 255, 0.12) 28%,
+            rgba(255, 255, 255, 0.04) 50%,
+            rgba(255, 255, 255, 0.01) 70%,
+            transparent 85%),
         radial-gradient(circle at 50% 50%,
-            rgba(255, 255, 255, 0.22) 0%,
-            transparent 28%);
+            rgba(var(--accent-cyan-rgb), 0.08) 0%,
+            transparent 40%);
     filter: blur(0.5px);
 }
 [data-theme="dark"] .cursor-glow {
     background:
         radial-gradient(circle at 50% 50%,
-            rgba(var(--accent-rgb), 0.30) 0%,
-            rgba(var(--accent-rgb), 0.15) 15%,
-            rgba(var(--accent-rgb), 0.05) 35%,
-            rgba(var(--accent-rgb), 0.01) 60%,
-            transparent 80%),
+            rgba(255, 255, 255, 0.3) 0%,
+            rgba(255, 255, 255, 0.18) 12%,
+            rgba(255, 255, 255, 0.08) 28%,
+            rgba(255, 255, 255, 0.02) 50%,
+            transparent 85%),
         radial-gradient(circle at 50% 50%,
-            rgba(255, 255, 255, 0.26) 0%,
-            transparent 28%);
+            rgba(var(--accent-cyan-rgb), 0.06) 0%,
+            transparent 40%);
 }
 .cursor-glow.active {
     opacity: 1;
@@ -3926,14 +3911,6 @@ img, picture img, svg, canvas, video,
     color: inherit;
 }
 
-/* CTA text/icon/arrow inherit the rippling colour (white in light, black in dark) */
-.ripple-solid.rippling .cta-arrow,
-.ripple-solid.rippling .cta-icon,
-.ripple-solid.rippling .cta-main,
-.ripple-solid.rippling .cta-sub {
-    color: inherit !important;
-}
-
 /* smooth colour transitions for every element inside cards */
 .card h3, .card p, .card .tag,
 .scroll-card-content h3, .scroll-card-content p, .scroll-card-content .tag,
@@ -4006,14 +3983,8 @@ img, picture img, svg, canvas, video,
     transform-origin: 50% 50%;
 }
 
-/* Language switch text rotation animation — only plays when .lang-pop class is added by JS on click */
-.lang-option.lang-pop {
-    animation: icon-pop 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-    transform-origin: 50% 50%;
-}
-
 @keyframes icon-pop {
-    from { transform: rotate(-130deg) scale(0.2); opacity: 1; }
+    from { transform: rotate(-130deg) scale(0.2); opacity: 0; }
     60%  { transform: rotate(12deg) scale(1.08); opacity: 1; }
     to   { transform: rotate(0deg) scale(1); opacity: 1; }
 }
@@ -4134,25 +4105,22 @@ img, picture img, svg, canvas, video,
 }
 
 /* ---------- Dither noise overlay to eliminate gradient banding ---------- */
-.dither-noise-overlay {
+body::after {
+    content: '';
     position: fixed;
     top: 0; left: 0;
-    width: 100vw; height: 100vh;
+    width: 100%; height: 100%;
     pointer-events: none;
     z-index: 99998;
-    opacity: 0.04;
+    opacity: 0.025;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
     mix-blend-mode: overlay;
 }
 
 /* ---------- Gooey-filter liquid cursor ---------- */
-/* System cursor visible alongside custom cursor only in double cursor mode */
-html.has-custom-cursor:not(.show-system-cursor),
-html.has-custom-cursor:not(.show-system-cursor) * {
-    cursor: none !important;
-}
-html.has-custom-cursor.show-system-cursor,
-html.has-custom-cursor.show-system-cursor * {
+/* System cursor visible alongside custom cursor */
+.has-custom-cursor,
+.has-custom-cursor * {
     cursor: auto !important;
 }
 
@@ -4168,133 +4136,10 @@ html.has-custom-cursor.show-system-cursor * {
     transition: opacity 0.18s ease;
 }
 
-/* permanent nodes hidden by JS, temp drops live on */
 .liquid-cursor.on-ripple {
-    opacity: 1;
+    /* permanent nodes hidden by JS, temp drops live on */
 }
 
 .liquid-cursor.on-nav {
     opacity: 0.4;
-}
-
-/* Responsive adjustments for personal profile section */
-@media (max-width: 1080px) {
-    .profile-section-new {
-        gap: 2.5rem !important;
-    }
-}
-
-@media (max-width: 960px) {
-    .profile-section-new {
-        flex-direction: column-reverse !important;
-        gap: 3.5rem !important;
-        align-items: center !important;
-    }
-    .profile-content-left {
-        width: 100% !important;
-        text-align: left !important;
-    }
-    .profile-content-right {
-        width: 100% !important;
-        max-width: 320px !important;
-        justify-content: center !important;
-    }
-    .profile-image-right {
-        width: 100% !important;
-    }
-    /* 竖屏下移除向右的 margin 偏置，保持精美居中 */
-    .social-icons-row {
-        margin-left: 0 !important;
-        justify-content: flex-start !important;
-    }
-}
-
-/* ---------- .is-hovered mirrors for scroll-sync hover ---------- */
-/* These rules EXACTLY mirror :hover states so JS can trigger them during page scroll */
-
-.theme-toggle.is-hovered {
-    background: var(--text-primary);
-}
-.theme-toggle.is-hovered svg {
-    stroke: var(--bg-color);
-    fill: var(--bg-color);
-}
-
-.lang-switcher-btn.is-hovered .lang-option {
-    color: inherit;
-}
-
-.rhombus-btn.is-hovered {
-    background: transparent;
-    border-color: transparent;
-}
-
-.nav-item.is-hovered .en,
-.nav-item.is-hovered .cn {
-    transform: translateX(4px);
-}
-.nav-item.is-hovered:not(.active)::after {
-    transform: translate(-50%, -50%) scale(1);
-    opacity: 0.35;
-}
-.nav-item.is-hovered:not(.active)::before {
-    transform: translateY(-50%) scaleY(1);
-    transform-origin: top;
-}
-.nav-item.is-hovered:not(.active) .cn,
-.nav-item.is-hovered:not(.active) .en {
-    color: var(--accent-cyan);
-    opacity: 1;
-}
-
-.icon-link.is-hovered {
-    color: var(--accent-cyan);
-    background: rgba(var(--accent-rgb), 0.05);
-    border-color: transparent;
-}
-.icon-link.is-hovered .social-icon-img {
-    filter: brightness(0) saturate(100%) invert(35%) sepia(98%) saturate(2000%) hue-rotate(96deg) brightness(90%);
-    transition: filter 0.45s ease;
-}
-
-.footer-social-link.is-hovered {
-    border-color: transparent;
-}
-.footer-social-link.is-hovered img {
-    filter: brightness(0) invert(1);
-}
-[data-theme="dark"] .footer-social-link.is-hovered img {
-    filter: brightness(0);
-}
-
-.featured-cta-btn.is-hovered {
-    border-color: var(--accent-cyan);
-}
-.featured-cta-btn.is-hovered .cta-arrow {
-    transform: translateX(5px);
-    color: inherit;
-}
-
-.card.is-hovered {
-    border-color: rgba(var(--accent-rgb), 0.65);
-}
-.card.is-hovered .card-media img {
-    transform: none;
-}
-.card.is-hovered .card-media::after {
-    opacity: 0 !important;
-}
-.card.is-hovered .tag {
-    color: var(--accent-cyan);
-    border-color: var(--accent-cyan);
-    background: rgba(var(--accent-rgb), 0.06);
-}
-
-.timeline-content.link-content.is-hovered::after {
-    opacity: 1;
-    transform: translate(2px, -2px);
-}
-.timeline-content.link-content.is-hovered .honor-awards.gold-color {
-    color: #d4af37;
-    background: #ffffff;
 }

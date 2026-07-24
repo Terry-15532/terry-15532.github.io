@@ -37,29 +37,33 @@
             const currentLang = document.documentElement.classList.contains('lang-zh') ? 'zh' : 'en';
             const newLang = currentLang === 'zh' ? 'en' : 'zh';
 
-            // Immediately switch only the button label visibility
+            // Immediately switch only the button label to show the OPPOSITE of newLang
+            // (button always shows the language you can switch TO)
             const enOpt = btn.querySelector('.lang-option.lang-en');
             const zhOpt = btn.querySelector('.lang-option.lang-zh');
             if (newLang === 'zh') {
-                enOpt.style.display = 'none';
-                zhOpt.style.display = '';
-            } else {
+                // Now in Chinese mode → button should show EN (switch back to English)
                 zhOpt.style.display = 'none';
                 enOpt.style.display = '';
+            } else {
+                // Now in English mode → button should show 中 (switch back to Chinese)
+                enOpt.style.display = 'none';
+                zhOpt.style.display = '';
             }
 
             // Trigger Q-bouncy pop animation on the now-visible label
             const visibleLabel = btn.querySelector(
-                newLang === 'zh' ? '.lang-option.lang-zh' : '.lang-option.lang-en'
+                newLang === 'zh' ? '.lang-option.lang-en' : '.lang-option.lang-zh'
             );
             if (visibleLabel) {
                 visibleLabel.classList.remove('lang-pop');
                 void visibleLabel.offsetWidth;
                 visibleLabel.classList.add('lang-pop');
-                visibleLabel.addEventListener('animationend', function h() {
-                    visibleLabel.removeEventListener('animationend', h);
+                // 动画播完后自动清理，避免重复触发
+                clearTimeout(visibleLabel._popTimer);
+                visibleLabel._popTimer = setTimeout(() => {
                     visibleLabel.classList.remove('lang-pop');
-                });
+                }, 500);
             }
 
             if (window.MotionUX && MotionUX.fxCircle) {

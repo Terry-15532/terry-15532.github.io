@@ -30,21 +30,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Handle Browser Back/Forward
     window.addEventListener('popstate', () => {
-        if (__loadingLocked) return;
         // Suppress popstate triggered by our own pushHistory hash update
         if (window.__suppressPopstate) {
             window.__suppressPopstate = false;
             return;
         }
         const path = window.location.hash.slice(1) || 'index.html';
-        const prevHash = __lastNavSource || 'index.html';
+        // Don't animate if a sweep is already in progress — just cancel & load
         if (__navToken) {
             __navToken.cancelled = true;
             if (window.MotionUX && MotionUX.abortSweep) MotionUX.abortSweep();
+            const token = { cancelled: false };
+            __navToken = token;
+            loadPage(path, false, null, token);
+            return;
         }
-        const token = { cancelled: false };
-        __navToken = token;
-        loadPage(path, false, null, token, prevHash);
+        navigateTo(path, false);
     });
     
     // Performance: Resume animations when user leaves game page
@@ -70,7 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Intercept all clicks for SPA navigation
     document.addEventListener('click', (e) => {
-        if (__loadingLocked) { e.preventDefault(); return; }
         const link = e.target.closest('a');
         if (link) {
             // Prevent clicks on active nav items
@@ -1180,24 +1180,20 @@ function initLightbox() {
 
 // Re-entrancy + cancellation: fast nav clicks cancel the previous navigation
 // (including its full-screen sweep), keeping nav active state in sync.
-let __navToken = null;   // non-null while a navigation is in-flight
-let __loadingLocked = false; // blocks all clicks/nav during load
+let __navToken = null;  // non-null while a navigation is in-flight
 
 function navigateTo(url, pushHistory = true, clickPos = null) {
-    if (__loadingLocked) return;
+    // Cancel the previous navigation (its sweep, its fetch, everything)
     if (__navToken) {
         __navToken.cancelled = true;
         if (window.MotionUX && MotionUX.abortSweep) MotionUX.abortSweep();
     }
     const token = { cancelled: false };
     __navToken = token;
-    const sourceHash = window.location.hash.slice(1) || 'index.html';
-    __lastNavSource = sourceHash;
-    loadPage(url, pushHistory, clickPos, token, sourceHash);
+    loadPage(url, pushHistory, clickPos, token);
 }
 
-async function loadPage(url, pushHistory = true, clickPos = null, token = null, sourceHash = '') {
-    __loadingLocked = true;
+async function loadPage(url, pushHistory = true, clickPos = null, token = null) {
     // Select the current content container
     const contentSelector = '.container, .project-detail-container, .about-container';
     const container = document.querySelector(contentSelector);
@@ -1291,24 +1287,15 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
             // 7. Sweep shrinks into the far edge, revealing the new page
             if (window.MotionUX) await MotionUX.sweepOut(direction);
 
-            // If we are leaving a project detail page and returning DIRECTLY to projects.html, remember it.
-            // Otherwise, clear any stored record so other navigations don't trigger scroll back.
+            // If this was a project detail page, remember it so we can scroll back on projects.html
             try {
-                const fromPage = sourceHash || currentPath;
-                const curFile = getFileName(fromPage);
-                const nxtFile = getFileName(url);
-                
-                const lowerCur = fromPage.toLowerCase();
-                const isCurProject = (lowerCur.startsWith('projects/') || lowerCur.includes('/projects/')) && curFile !== 'projects.html';
-                const isNextProjects = nxtFile.toLowerCase() === 'projects.html';
-                
-                console.log('[ScrollBack] fromPage:', fromPage, 'curFile:', curFile, 'nxtFile:', nxtFile, 'isCurProject:', isCurProject, 'isNextProjects:', isNextProjects);
-                
-                if (isCurProject && isNextProjects) {
-                    console.log('[ScrollBack] Storing:', fromPage);
-                    sessionStorage.setItem('lastVisitedProject', fromPage);
+                const normalizedUrl = url.split('#')[0].split('?')[0];
+                const lower = normalizedUrl.toLowerCase();
+                if (lower.includes('project') && normalizedUrl.toLowerCase().endsWith('.html') && getFileName(normalizedUrl) !== 'projects.html') {
+                    console.log('[ScrollBack] Storing project:', normalizedUrl);
+                    sessionStorage.setItem('lastVisitedProject', normalizedUrl);
                 }
-            } catch (e) { console.error('[ScrollBack] Error:', e); }
+            } catch (e) { console.error('[ScrollBack] Error storing:', e); }
 
             // 7. Execute inline scripts from the new page
             const newScripts = doc.querySelectorAll('script');
@@ -1339,66 +1326,64 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
                     const lastProj = sessionStorage.getItem('lastVisitedProject');
                     console.log('[ScrollBack] Loading projects.html, lastProj:', lastProj);
                     if (lastProj) {
-                        // Retry with increasing delay: 0ms, 50ms, 100ms, 200ms, 400ms
-                        const delays = [0, 50, 100, 200, 400];
-                        const attemptScroll = (idx) => {
-                            if (idx >= delays.length) {
-                                console.log('[ScrollBack] All retries exhausted, grid never appeared');
-                                sessionStorage.removeItem('lastVisitedProject');
+                        // Wait for page transition animation to complete before scrolling
+                        setTimeout(() => {
+                            const grid = document.querySelector('.grid-container');
+                            if (!grid) {
+                                console.log('[ScrollBack] Grid not found');
                                 return;
                             }
-                            setTimeout(() => {
-                                const grid = document.querySelector('.grid-container');
-                                const cards = grid ? grid.querySelectorAll('a.card') : [];
-                                console.log(`[ScrollBack] Attempt ${idx}: grid=${!!grid}, cards=${cards.length}`);
-                                if (grid && cards.length > 0) {
-                                    const clean = (s) => (s || '').replace(/^#+/, '').toLowerCase();
-                                    const needle = clean(lastProj);
-                                    let target = null;
-                                    for (let card of cards) {
-                                        const href = card.getAttribute('href');
-                                        if (!href) continue;
-                                        const hrefLower = clean(href);
-                                        console.log('[ScrollBack]   card:', hrefLower, 'needle:', needle);
-                                        if (hrefLower === needle || hrefLower.endsWith(needle) || needle.endsWith(hrefLower)) {
-                                            target = card; break;
-                                        }
-                                        const aName = hrefLower.split('/').pop();
-                                        const bName = needle.split('/').pop();
-                                        if (aName && bName && aName === bName) {
-                                            target = card; break;
-                                        }
-                                    }
-                                    if (target) {
-                                        const rect = target.getBoundingClientRect();
-                                        const nav = document.querySelector('nav');
-                                        const navH = nav ? nav.offsetHeight : 0;
-                                        const sy = window.scrollY + rect.top - (window.innerHeight / 2) + (rect.height / 2) - navH;
-                                        window.scrollTo({ top: Math.max(0, sy), behavior: 'auto' });
-                                        target.classList.add('scroll-return-highlight');
-                                        setTimeout(() => {
-                                            target.style.transition = 'outline-color 0.5s ease, outline-width 0.5s ease, transform 0.35s ease';
-                                            target.style.outlineColor = 'transparent';
-                                            target.style.outlineWidth = '0px';
-                                            target.style.transform = '';
-                                            setTimeout(() => {
-                                                target.classList.remove('scroll-return-highlight');
-                                                target.style.outlineColor = '';
-                                                target.style.outlineWidth = '';
-                                                target.style.transition = '';
-                                            }, 550);
-                                        }, 500);
-                                        console.log('[ScrollBack] Scrolled to target');
-                                    } else {
-                                        console.log('[ScrollBack] No match for:', needle);
-                                    }
-                                    sessionStorage.removeItem('lastVisitedProject');
-                                } else {
-                                    attemptScroll(idx + 1);
+                            const cards = grid.querySelectorAll('a.card');
+                            console.log('[ScrollBack] Found', cards.length, 'cards');
+                            let target = null;
+                            for (let card of cards) {
+                                const href = card.getAttribute('href');
+                                if (!href) continue;
+                                // Case-insensitive comparison
+                                const hrefLower = href.toLowerCase();
+                                const lastProjLower = lastProj.toLowerCase();
+                                if (hrefLower === lastProjLower || hrefLower.endsWith(lastProjLower) || lastProjLower.endsWith(hrefLower)) {
+                                    target = card;
+                                    console.log('[ScrollBack] Found match (exact):', href);
+                                    break;
                                 }
-                            }, delays[idx]);
-                        };
-                        attemptScroll(0);
+                                const aName = href.split('/').pop();
+                                const bName = lastProj.split('/').pop();
+                                if (aName && bName && aName.toLowerCase() === bName.toLowerCase()) {
+                                    target = card;
+                                    console.log('[ScrollBack] Found match (filename):', href);
+                                    break;
+                                }
+                            }
+                            if (target) {
+                                console.log('[ScrollBack] Scrolling to target');
+                                // calculate scroll position aligning it to center of viewport and considering nav
+                                const rect = target.getBoundingClientRect();
+                                const nav = document.querySelector('nav');
+                                const navHeight = nav ? nav.offsetHeight : 0;
+                                const scrollY = window.scrollY + rect.top - (window.innerHeight / 2) + (rect.height / 2) - navHeight;
+                                window.scrollTo({ top: Math.max(0, scrollY), behavior: 'smooth' });
+                                // temporary highlight for clarity
+                                target.classList.add('scroll-return-highlight');
+                                // Fade out the highlight instead of instantly removing it
+                                setTimeout(() => {
+                                    target.style.transition = 'outline-color 0.5s ease, outline-width 0.5s ease, transform 0.35s ease';
+                                    target.style.outlineColor = 'transparent';
+                                    target.style.outlineWidth = '0px';
+                                    target.style.transform = '';
+                                    setTimeout(() => {
+                                        target.classList.remove('scroll-return-highlight');
+                                        target.style.outlineColor = '';
+                                        target.style.outlineWidth = '';
+                                        target.style.transition = '';
+                                    }, 550);
+                                }, 3500);
+                            } else {
+                                console.log('[ScrollBack] No matching card found for:', lastProj);
+                            }
+                        }, 400); // Wait for transition animation (200ms exit + 200ms enter + buffer)
+                        // Clear immediately so re-entering projects doesn't re-trigger
+                        sessionStorage.removeItem('lastVisitedProject');
                     }
                 }
             } catch (e) { console.error('[ScrollBack] Error:', e); }
@@ -1411,7 +1396,6 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
         window.location.href = url;
     } finally {
         loader.classList.remove('active');
-        __loadingLocked = false;
     }
 }
 

@@ -173,13 +173,16 @@
     const RIPPLE_SELECTOR = [
         '.rhombus-btn', '.featured-cta-btn', '.featured-arts-btn', '.game-start-btn',
         '.icon-link', '.footer-social-link', '.theme-toggle', '.lang-switcher-btn',
-        '.scroll-card', '.art-scroll-card', '.card'
+        '.scroll-card', '.art-scroll-card', '.card', '.timeline-content.link-content'
     ].join(', ');
 
     const SOLID_SELECTOR = [
-        '.featured-cta-btn', '.featured-arts-btn', '.game-start-btn',
-        '.icon-link', '.footer-social-link', '.theme-toggle', '.lang-switcher-btn'
+        '.rhombus-btn', '.featured-cta-btn', '.featured-arts-btn', '.game-start-btn',
+        '.icon-link', '.footer-social-link', '.theme-toggle', '.lang-switcher-btn', '.project-back-btn'
     ].join(', ');
+
+    // 全局注册表：记录所有绑定了 ripple 的宿主元素，用于滚动时实时同步辉光
+    const _rippleHosts = new Set();
 
     function spawnInk(el, x, y, startScale) {
         const ink = document.createElement('span');
@@ -195,9 +198,25 @@
         if (el.dataset.rippleBound) return;
         el.dataset.rippleBound = '1';
         el.classList.add('ripple-host');
+        _rippleHosts.add(el);
 
         const solid = el.matches(SOLID_SELECTOR);
         el.classList.add(solid ? 'ripple-solid' : 'ripple-tint');
+
+        // 所有卡片和按钮均启用磁吸、随动、弹性回弹，navbar 等元素除外
+        const isMagnetic = !el.matches('.nav-item, .logo, .lang-option');
+        let targetTransX = 0, targetTransY = 0;
+        let curTransX = 0, curTransY = 0;
+
+        // 磁吸弹簧插值函数：每帧由全局 tick 调用，保证平滑弹性
+        el._magneticSpring = () => {
+            if (!isHovering) return;
+            // 弹性弹簧：向目标位置插值，系数越低越 Q 弹
+            const spring = 0.18;
+            curTransX += (targetTransX - curTransX) * spring;
+            curTransY += (targetTransY - curTransY) * spring;
+            el.style.transform = `translate3d(${curTransX.toFixed(1)}px, ${curTransY.toFixed(1)}px, 0)`;
+        };
 
         if (solid) {
             const wrap = document.createElement('span');
@@ -238,7 +257,7 @@
                 const tr = textEl.getBoundingClientRect();
                 const textCenterX = tr.left - rect.left + tr.width / 2;
                 // If text is on the left, exit from right; if on right, exit from left
-                exitX = textCenterX < rect.width / 2 ? rect.width + 10 : -10;
+                exitX = textCenterX > rect.width / 2 ? rect.width + 10 : -10;
                 exitY = rect.height / 2;
             }
             frozen.forEach(ink => {
@@ -276,7 +295,34 @@
 
         el.addEventListener('pointerenter', (e) => {
             if (!finePointer) return;
+
+            // 如果退场动画正在进行，取消退场，平滑回到 hover 状态
+            if (isExiting) {
+                clearExitTimers();
+                isExiting = false;
+                el.style.transition = '';
+                el.style.transform = '';
+            }
+
             isHovering = true;
+
+            if (isMagnetic) {
+                const r = el.getBoundingClientRect();
+                const w = r.width, h = r.height;
+                const cx = r.left + w / 2;
+                const cy = r.top + h / 2;
+                const enterDx = e.clientX - cx;
+                const enterDy = e.clientY - cy;
+                const len = Math.hypot(enterDx, enterDy) || 1;
+                
+                // 进入时的磁吸偏移量（卡片/大按钮用较小幅度，小按钮用标准幅度）
+                const amp = (w < 80 || h < 80) ? 3.5 : 2.0;
+                const maxMove = (w < 80 || h < 80) ? 3.0 : 2.0;
+                
+                targetTransX = clamp((enterDx / len) * amp, -maxMove, maxMove);
+                targetTransY = clamp((enterDy / len) * amp, -maxMove, maxMove);
+                // 弹性弹簧在全局 tick 中每帧平滑插值，进入动画自动带有过渡效果
+            }
 
             const oldInks = el.querySelectorAll('.ripple-ink');
             oldInks.forEach(i => {
@@ -289,6 +335,7 @@
 
             el.classList.add('ripple-filled');
             if (solid) el.classList.add('rippling');
+            el.classList.add('is-hovered');
 
             elRect = el.getBoundingClientRect();
             maxScale = (Math.hypot(elRect.width, elRect.height) / 24) * 2;
@@ -300,7 +347,8 @@
                 !el.classList.contains('rhombus-btn') &&
                 !el.classList.contains('lang-switcher-btn') &&
                 !el.classList.contains('theme-toggle') &&
-                !el.classList.contains('footer-social-link')) {
+                !el.classList.contains('footer-social-link') &&
+                !el.classList.contains('icon-link')) {
                 const glow = ensureCursorGlow();
                 glow.style.left = (e.clientX - elRect.left) + 'px';
                 glow.style.top = (e.clientY - elRect.top) + 'px';
@@ -333,34 +381,97 @@
 
             growAnim.onfinish = () => {
                 growAnim = null;
+                // 如果鼠标已经离开，启动退场流程（不提前移除任何状态类）
                 if (!isHovering) {
-                    if (cursorGlow) cursorGlow.classList.remove('active');
-                    exitInks();
-                    el.classList.remove('ripple-filled');
-                    if (solid) el.classList.remove('rippling');
+                    startExit();
                 }
             };
         });
 
         el.addEventListener('pointermove', (e) => {
-            if (!finePointer || !isHovering || !liveInks.length) return;
+            if (!finePointer || !isHovering) return;
             elRect = el.getBoundingClientRect();
-            moveInks(e.clientX - elRect.left, e.clientY - elRect.top);
+
+            if (isMagnetic) {
+                const rw = elRect.width, rh = elRect.height;
+                const cx = elRect.left + rw / 2;
+                const cy = elRect.top + rh / 2;
+                const dx = e.clientX - cx;
+                const dy = e.clientY - cy;
+                
+                // 驱动轻微随动（卡片/大按钮用更小系数）
+                const ratio = (rw < 80 || rh < 80) ? 0.12 : 0.05;
+                const limit = (rw < 80 || rh < 80) ? 3.0 : 2.0;
+                targetTransX = clamp(dx * ratio, -limit, limit);
+                targetTransY = clamp(dy * ratio, -limit, limit);
+            }
+
+            if (liveInks.length) {
+                moveInks(e.clientX - elRect.left, e.clientY - elRect.top);
+            }
             if (cursorGlow) {
                 cursorGlow.style.left = (e.clientX - elRect.left) + 'px';
                 cursorGlow.style.top = (e.clientY - elRect.top) + 'px';
             }
         });
 
+        // 滚动时持续响应鼠标位置，不等待滚动结束
+        el._scrollTick = () => {
+            if (!isHovering) return;
+            const rect = el.getBoundingClientRect();
+            const x = mouseX - rect.left;
+            const y = mouseY - rect.top;
+            if (liveInks.length) {
+                moveInks(x, y);
+            }
+            if (cursorGlow) {
+                cursorGlow.style.left = x + 'px';
+                cursorGlow.style.top = y + 'px';
+            }
+        };
+
         el.addEventListener('pointerleave', () => {
+            // 不立即做任何视觉变更！仅标记离开意图
             isHovering = false;
-            if (cursorGlow) cursorGlow.classList.remove('active');
-            if (!growAnim) {
-                exitInks();
-                el.classList.remove('ripple-filled');
-                if (solid) el.classList.remove('rippling');
+            // 如果入场动画已结束，直接退场；否则等 growAnim.onfinish 调用 startExit
+            if (!growAnim && !isExiting) {
+                startExit();
             }
         });
+
+        // 统一退场函数：入场动画结束后才调用，保证不打断
+        let isExiting = false;
+        let exitTimers = [];
+
+        function clearExitTimers() {
+            exitTimers.forEach(t => clearTimeout(t));
+            exitTimers = [];
+        }
+
+        function startExit() {
+            isExiting = true;
+            if (cursorGlow) cursorGlow.classList.remove('active');
+            exitInks();
+
+            if (isMagnetic) {
+                targetTransX = 0;
+                targetTransY = 0;
+                el.style.transition = 'transform 0.55s cubic-bezier(0.175, 1.55, 0.35, 1.15)';
+                el.style.transform = 'translate3d(0, 0, 0)';
+                const t = setTimeout(() => { el.style.transition = ''; isExiting = false; }, 600);
+                exitTimers.push(t);
+            } else {
+                const t = setTimeout(() => { isExiting = false; }, 500);
+                exitTimers.push(t);
+            }
+
+            // 移除状态类，CSS transition 驱动颜色/背景平滑回退
+            el.classList.remove('ripple-filled');
+            if (solid) el.classList.remove('rippling');
+            el.classList.remove('is-hovered');
+            isHovering = false;
+        }
+
     }
 
     function initRipples() {
@@ -455,11 +566,11 @@
             const scale = coverScale(p.x, p.y);
             el.style.left = `${p.x}px`;
             el.style.top = `${p.y}px`;
-            el.style.opacity = '0';
+            el.style.opacity = '1';
             const grow = el.animate(
-                [{ transform: 'translate(-50%, -50%) scale(0)', opacity: 0 },
+                [{ transform: 'translate(-50%, -50%) scale(0)', opacity: 1 },
                  { transform: `translate(-50%, -50%) scale(${scale.toFixed(2)})`, opacity: 1 }],
-                { duration: 180, easing: EASE_INOUT, fill: 'forwards' }
+                { duration: 300, easing: 'cubic-bezier(0.34, 1.1, 0.9, 1)', fill: 'forwards' }
             );
             sweepBrand = makeBrand('P . R . T . S .', 90);
             try { await grow.finished; } catch (e) {}
@@ -495,13 +606,13 @@
         c.style.background = accent
             ? `radial-gradient(circle at 40% 40%, color-mix(in srgb, ${color} 88%, ${accent}), ${color} 30%)`
             : color;
-        c.style.opacity = '0';
+        c.style.opacity = '1';
         document.body.appendChild(c);
         const scale = coverScale(x, y);
         const grow = c.animate(
-            [{ transform: 'translate(-50%, -50%) scale(0)', opacity: 0 },
+            [{ transform: 'translate(-50%, -50%) scale(0)', opacity: 1 },
              { transform: `translate(-50%, -50%) scale(${scale.toFixed(2)})`, opacity: 1 }],
-            { duration: 180, easing: EASE_INOUT, fill: 'forwards' }
+            { duration: 360, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)', fill: 'forwards' }
         );
         let brand = null;
         if (brandContent) {
@@ -660,6 +771,11 @@ void main() {
         let scrollY = 0;
         window.addEventListener('scroll', () => { scrollY = window.scrollY; }, { passive: true });
 
+        // 允许用户在控制台切换: window.__useSystemCursor = true/false
+        if (typeof window.__useSystemCursor === 'undefined') {
+            window.__useSystemCursor = false;
+        }
+
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
         gl.clearColor(0, 0, 0, 0);
@@ -714,8 +830,8 @@ void main() {
     let tailX = mouseX;
     let tailY = mouseY;
 
-    let wasOnInteract = false;
     let spawnTimer = 0;
+    let spawnThreshold = 5; // 动态随机间隔，不规律生成小水珠
     let idleTime = 0;
     let lastBurstTime = 0;
     let clickSplitTime = 0;
@@ -753,38 +869,38 @@ void main() {
         style.id = 'liquid-cursor-styles';
         style.textContent = `
             .liquid-cursor {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100vw;
-                height: 100vh;
-                pointer-events: none;
-                z-index: 99999;
-                filter: url(#goo-filter);
-                transform: translate3d(0, 0, 0);
-                will-change: transform;
+                position: fixed !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100vw !important;
+                height: 100vh !important;
+                pointer-events: none !important;
+                z-index: 99999 !important;
+                filter: url(#goo-filter) !important;
+                transform: translate3d(0, 0, 0) !important;
+                will-change: transform !important;
             }
             .drop-node {
-                position: absolute;
-                background: var(--accent-cyan, #00f0ff); /* 纯色实心填充 */
+                position: absolute !important;
+                background: var(--accent-cyan, #00f0ff) !important; /* 纯色实心填充 */
                 border-radius: 50%;
-                transform-origin: center center;
-                pointer-events: none;
-                will-change: transform, width, height, border-radius;
+                transform-origin: center center !important;
+                pointer-events: none !important;
+                will-change: transform, width, height, border-radius !important;
             }
-            /* 隐藏原生光标 */
-            html.has-custom-cursor, 
-            html.has-custom-cursor * {
+            /* 隐藏原生光标（仅当未启用双光标模式时） */
+            html.has-custom-cursor:not(.show-system-cursor), 
+            html.has-custom-cursor:not(.show-system-cursor) * {
                 cursor: none !important;
             }
         `;
         document.head.appendChild(style);
     }
 
-    function spawnDrop(x, y, size, life, vx, vy) {
+    function spawnDrop(x, y, size, life, vx, vy, isBurst = false) {
         if (!cursorEl) return;
         const el = document.createElement('div');
-        el.className = 'drop-node temp-drop';
+        el.className = 'drop-node temp-drop' + (isBurst ? ' burst-drop' : '');
         el.style.width = size + 'px';
         el.style.height = size + 'px';
         el.style.position = 'absolute';
@@ -805,7 +921,8 @@ void main() {
             vy: vy || 0,
             size,
             life,
-            maxLife: life
+            maxLife: life,
+            isBurst
         });
     }
 
@@ -833,7 +950,10 @@ void main() {
         cursorEl = document.createElement('div');
         cursorEl.className = 'liquid-cursor';
         document.body.appendChild(cursorEl);
-        document.documentElement.classList.add('has-custom-cursor');
+        // 遵守 __useSystemCursor 切换：true 时显示系统光标
+        if (!window.__useSystemCursor) {
+            document.documentElement.classList.add('has-custom-cursor');
+        }
         // Initially hidden — only show when mouse enters the window
         cursorEl.style.opacity = '0';
 
@@ -859,64 +979,102 @@ void main() {
         initX = cx; initY = cy;
         lastMouseX = cx; lastMouseY = cy;
 
+        // 当前处于鼠标悬停状态的页面交互元素，用于在滚动时实时同步事件
+        let currentHoveredHost = null;
+
+        function updateElementHoverState(clientX, clientY) {
+            if (typeof document.elementFromPoint !== 'function' || !cursorEl) return;
+            const t = document.elementFromPoint(clientX, clientY);
+            const rip = t ? t.closest('.ripple-host, a, button, .lang-switcher-btn, .theme-toggle') : null;
+            
+            if (rip !== currentHoveredHost) {
+                const wasOnInteract = !!currentHoveredHost;
+                const isInteract = !!rip;
+                
+                // 1. 移出前一个交互元素 (模拟派发 pointerleave)
+                if (currentHoveredHost) {
+                    const leaveEvent = new PointerEvent('pointerleave', {
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: clientX,
+                        clientY: clientY
+                    });
+                    currentHoveredHost.dispatchEvent(leaveEvent);
+                }
+                
+                // 2. 触发离开时的"物理粘滞拉扯"与"离开爆开"
+                if (wasOnInteract && !isInteract) {
+                    if (stickyAnchor) {
+                        stickyAnchor.el.remove();
+                    }
+                    const anchorEl = document.createElement('div');
+                    anchorEl.className = 'drop-node sticky-anchor';
+                    anchorEl.style.width = '16px';
+                    anchorEl.style.height = '16px';
+                    anchorEl.style.position = 'absolute';
+                    anchorEl.style.borderRadius = '50%';
+                    anchorEl.style.background = 'var(--accent-cyan, #00f0ff)';
+                    anchorEl.style.pointerEvents = 'none';
+                    anchorEl.style.willChange = 'transform';
+                    cursorEl.appendChild(anchorEl);
+
+                    stickyAnchor = {
+                        el: anchorEl,
+                        x: headX,
+                        y: headY
+                    };
+
+                    const burstCount = 6 + Math.floor(Math.random() * 3);
+                    for (let j = 0; j < burstCount; j++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const speed = 1.5 + Math.random() * 2.0;
+                        const vx = Math.cos(angle) * speed;
+                        const vy = Math.sin(angle) * speed;
+                        const size = 6.0 + Math.random() * 3.0;
+                        const life = 0.35 + Math.random() * 0.20;
+                        spawnDrop(headX, headY, size, life, vx, vy, true);
+                    }
+                }
+                
+                // 3. 移入新宿主 (模拟派发 pointerenter)
+                currentHoveredHost = rip;
+                if (currentHoveredHost) {
+                    const enterEvent = new PointerEvent('pointerenter', {
+                        bubbles: true,
+                        cancelable: true,
+                        clientX: clientX,
+                        clientY: clientY
+                    });
+                    currentHoveredHost.dispatchEvent(enterEvent);
+                }
+                
+                // 4. 刚进入新宿主：触发"磁性吸附"与"进入爆开"
+                if (isInteract && !wasOnInteract) {
+                    const rect = rip.getBoundingClientRect();
+                    const btnCenterX = rect.left + rect.width / 2;
+                    const btnCenterY = rect.top + rect.height / 2;
+                    
+                    headX = lerp(headX, btnCenterX, 0.4);
+                    headY = lerp(headY, btnCenterY, 0.4);
+
+                    const burstCount = 8 + Math.floor(Math.random() * 3);
+                    for (let j = 0; j < burstCount; j++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const speed = 1.8 + Math.random() * 2.8;
+                        const vx = Math.cos(angle) * speed;
+                        const vy = Math.sin(angle) * speed;
+                        const size = 7.0 + Math.random() * 3.5;
+                        const life = 0.45 + Math.random() * 0.25;
+                        spawnDrop(clientX, clientY, size, life, vx, vy, true);
+                    }
+                }
+            }
+        }
+
         const onMove = (e) => {
             mouseX = e.clientX;
             mouseY = e.clientY;
-
-            // 交互元素检测
-            const t = document.elementFromPoint(e.clientX, e.clientY);
-            const isInteract = t && t.closest('.ripple-host, a, button, .lang-switcher-btn, .theme-toggle');
-            
-            // 刚进入交互元素时：触发“磁性吸附”与“向外爆开”
-            if (isInteract && !wasOnInteract) {
-                const rect = isInteract.getBoundingClientRect();
-                const btnCenterX = rect.left + rect.width / 2;
-                const btnCenterY = rect.top + rect.height / 2;
-                
-                // 磁性吸附：将头部坐标向按钮中心强力拉扯 40%
-                headX = lerp(headX, btnCenterX, 0.01);
-                headY = lerp(headY, btnCenterY, 0.4);
-
-                // 爆发式散射小水珠（增加到 8-10 颗，且不会随着主圆形消失而消失）
-                const burstCount = 8 + Math.floor(Math.random() * 3);
-                for (let j = 0; j < burstCount; j++) {
-                    const angle = Math.random() * Math.PI * 2;
-                    const speed = 1.8 + Math.random() * 2.8;
-                    const vx = Math.cos(angle) * speed;
-                    const vy = Math.sin(angle) * speed;
-                    const size = 7.0 + Math.random() * 3.5;
-                    const life = 0.45 + Math.random() * 0.25;
-                    spawnDrop(e.clientX, e.clientY, size, life, vx, vy);
-                }
-            }
-
-            // 离开交互元素时：触发“物理粘滞拉扯”
-            if (wasOnInteract && !isInteract) {
-                // 如果已有粘连锚点，先将其移除
-                if (stickyAnchor) {
-                    stickyAnchor.el.remove();
-                }
-
-                // 创建一个物理粘滞锚点，固定在离开时的边缘位置
-                const anchorEl = document.createElement('div');
-                anchorEl.className = 'drop-node sticky-anchor';
-                anchorEl.style.width = '16px';
-                anchorEl.style.height = '16px';
-                anchorEl.style.position = 'absolute';
-                anchorEl.style.borderRadius = '50%';
-                anchorEl.style.background = 'var(--accent-cyan, #00f0ff)';
-                anchorEl.style.pointerEvents = 'none';
-                anchorEl.style.willChange = 'transform';
-                cursorEl.appendChild(anchorEl);
-
-                stickyAnchor = {
-                    el: anchorEl,
-                    x: headX, // 锚定在当前的头部位置
-                    y: headY
-                };
-            }
-            wasOnInteract = !!isInteract;
-
+            updateElementHoverState(e.clientX, e.clientY);
             updateCursorState(e.clientX, e.clientY);
         };
 
@@ -935,11 +1093,26 @@ void main() {
         function tick() {
             if (!cursorEl) return;
 
+            // 运行时响应 __useSystemCursor 切换，用户可在控制台即时切换
+            // true = 双光标模式（自定义光标 + 系统指针同时显示）
+            // false = 仅自定义光标（隐藏系统指针）
+            const html = document.documentElement;
+            if (window.__useSystemCursor) {
+                html.classList.add('show-system-cursor');
+                if (!html.classList.contains('has-custom-cursor')) {
+                    html.classList.add('has-custom-cursor');
+                }
+            } else {
+                html.classList.remove('show-system-cursor');
+                if (!html.classList.contains('has-custom-cursor')) {
+                    html.classList.add('has-custom-cursor');
+                }
+            }
+
             const now = performance.now();
 
             // 0. Re-check hover state every frame to catch slow entries
             const ht = document.elementFromPoint(mouseX, mouseY);
-            const prevInteract = isHoveringInteract;
             if (ht) {
                 const rip = ht.closest('.ripple-host, a, button, .lang-switcher-btn, .theme-toggle');
                 const nav = ht.closest('.nav-item, .logo');
@@ -947,12 +1120,6 @@ void main() {
                 cursorEl.classList.toggle('on-nav', !!nav && !rip);
                 cursorEl.classList.toggle('on-ripple', !!rip);
             }
-            // Clear ALL stray droplets when entering an interactive element
-            if (isHoveringInteract && !prevInteract) {
-                for (const d of tempDrops) { if (d.el) d.el.remove(); }
-                tempDrops.length = 0;
-            }
-
             // 1. 计算鼠标瞬时速度
             const instantVx = mouseX - lastMouseX;
             const instantVy = mouseY - lastMouseY;
@@ -966,6 +1133,10 @@ void main() {
             const speed = Math.hypot(mouseVx, mouseVy);
             const accel = speed - Math.hypot(oldVx, oldVy);
 
+            // 鼠标运动方向的归一化单位向量（用于水珠惯性飞溅）
+            const mouseVxNorm = speed > 0.1 ? mouseVx / speed : 0;
+            const mouseVyNorm = speed > 0.1 ? mouseVy / speed : 0;
+
             // 2. 轨迹与速度预测算法 (Predictive Lookahead)
             const predFactor = speed < 1.0 ? 0 : 0.6;
             const predX = mouseX + mouseVx * predFactor;
@@ -978,22 +1149,22 @@ void main() {
             // 4. 状态判定
             const isIdle = speed < 0.25;
 
-            // 5. 永久节点的跟随物理与硬性距离约束 (拖尾效果极度明显，但绝不脱离)
+            // 5. 永久节点的跟随物理与硬性距离约束 (拖尾粘稠、拉伸明显)
             let targetBodyX = headX;
             let targetBodyY = headY;
             let targetTailX = headX;
             let targetTailY = headY;
 
             if (!isIdle) {
-                // 5.1 运动状态：身体跟随头部
-                bodyX += (headX - bodyX) * 0.40;
-                bodyY += (headY - bodyY) * 0.40;
+                // 5.1 运动状态：身体跟随头部（更粘稠的跟随）
+                bodyX += (headX - bodyX) * 0.4;
+                bodyY += (headY - bodyY) * 0.4;
 
                 const dx1 = bodyX - headX;
                 const dy1 = bodyY - headY;
                 const dist1 = Math.hypot(dx1, dy1);
-                // 允许最大拉伸距离为头部尺寸的 75% (约 16.5px)，拉出超长拖尾
-                const maxDist1 = currentHeadSize * 0.75; 
+                // 允许最大拉伸距离为头部尺寸的 100% (约 22px)，拉出明显拖尾
+                const maxDist1 = currentHeadSize * 0.6; 
 
                 if (dist1 > maxDist1 && dist1 > 0) {
                     bodyX = headX + (dx1 / dist1) * maxDist1;
@@ -1002,15 +1173,15 @@ void main() {
                 targetBodyX = bodyX;
                 targetBodyY = bodyY;
 
-                // 5.2 运动状态：尾部跟随身体
+                // 5.2 运动状态：尾部跟随身体（更粘稠）
                 tailX += (bodyX - tailX) * 0.35;
                 tailY += (bodyY - tailY) * 0.35;
 
                 const dx2 = tailX - bodyX;
                 const dy2 = tailY - bodyY;
                 const dist2 = Math.hypot(dx2, dy2);
-                // 允许尾部到身体的最大拉伸距离为身体尺寸的 85% (约 12px)
-                const maxDist2 = currentBodySize * 0.85;
+                // 允许尾部到身体的最大拉伸距离为身体尺寸的 110% (约 15px)
+                const maxDist2 = currentBodySize * 0.8;
 
                 if (dist2 > maxDist2 && dist2 > 0) {
                     tailX = bodyX + (dx2 / dist2) * maxDist2;
@@ -1031,7 +1202,7 @@ void main() {
                 const dx = headX - stickyAnchor.x;
                 const dy = headY - stickyAnchor.y;
                 const dist = Math.hypot(dx, dy);
-                const snapDist = 60.0; // 超过 60px 瞬间断开
+                const snapDist = 38.0; // 超过 38px 瞬间断开，拉断更清脆
 
                 if (dist < snapDist) {
                     // 锚点受到主光标的微弱弹性拉扯，模拟粘滞液体的拉伸形变
@@ -1055,7 +1226,7 @@ void main() {
                         const vy = Math.sin(angle) * speed;
                         const size = 7.5 + Math.random() * 3.5;
                         const life = 0.35 + Math.random() * 0.25;
-                        spawnDrop(snapX, snapY, size, life, vx, vy);
+                        spawnDrop(snapX, snapY, size, life, vx, vy, true);
                     }
                     
                     // 销毁锚点
@@ -1066,7 +1237,7 @@ void main() {
 
             // 6.5. 加速爆发特效 —— 猛加速时爆开一圈水珠 (不在交互元素内)
             // 6.5. 加速爆发特效 —— 和按钮进入时的爆发完全一致，0.3s 冷却
-            if (!isHoveringInteract && accel > 5 && (now - lastBurstTime) > 200) {
+            if (!isHoveringInteract && accel > 10 && (now - lastBurstTime) > 200) {
                 lastBurstTime = now;
                 const burstCount = 8 + Math.floor(Math.random() * 3);
                 for (let j = 0; j < burstCount; j++) {
@@ -1076,7 +1247,7 @@ void main() {
                     const vy = Math.sin(angle) * speed;
                     const size = 7.0 + Math.random() * 3.5;
                     const life = 0.45 + Math.random() * 0.25;
-                    spawnDrop(headX, headY, size, life, vx, vy);
+                    spawnDrop(headX, headY, size, life, vx, vy, true);
                 }
             }
 
@@ -1084,18 +1255,31 @@ void main() {
             if (!isHoveringInteract) {
             if (!isIdle && speed > 4.0) {
                 spawnTimer++;
-                if (spawnTimer > 5) { // 频率加倍 (10→5帧)
+                if (spawnTimer > spawnThreshold) {
                     spawnTimer = 0;
-                    const angle = Math.atan2(mouseVy, mouseVx) + Math.PI;
-                    const dist = currentTailSize * 0.5;
-                    const sx = tailX + Math.cos(angle) * dist;
-                    const sy = tailY + Math.sin(angle) * dist;
+                    spawnThreshold = 2 + Math.floor(Math.random() * 17);
 
-                    const vx = -mouseVx * 0.12 + (Math.random() - 0.5) * 1.5;
-                    const vy = -mouseVy * 0.12 + (Math.random() - 0.5) * 1.5;
-                    const size = 8.0 + Math.random() * 3.5;
-                    const life = 0.25 + Math.random() * 0.25;
-                    spawnDrop(sx, sy, size, life, vx, vy);
+                    // 随机生成 1~3 颗水滴，数量高度不规律
+                    const count = 1 + Math.floor(Math.random() * 3);
+                    for (let i = 0; i < count; i++) {
+                        // 水滴方向大致与鼠标移动相反，加上 ±0.4 弧度的随机散角
+                        const baseAngle = Math.atan2(mouseVy, mouseVx) + Math.PI;
+                        const spread = (Math.random() - 0.5) * 0.8;
+                        const a = baseAngle + spread;
+
+                        const dist = currentTailSize * (0.3 + Math.random() * 0.5);
+                        const sx = tailX + Math.cos(a) * dist;
+                        const sy = tailY + Math.sin(a) * dist;
+
+                        // 惯性初速度：与光标移动方向一致，大小为光标速度的 20%~60%（均值约 40%），附带少量随机扰动
+                        const inertia = speed * (0.20 + Math.random() * 0.40);
+                        const vx = mouseVxNorm * inertia + (Math.random() - 0.5) * 0.6;
+                        const vy = mouseVyNorm * inertia + (Math.random() - 0.5) * 0.6;
+
+                        const size = 7.0 + Math.random() * 4.5;
+                        const life = 0.25 + Math.random() * 0.25;
+                        spawnDrop(sx, sy, size, life, vx, vy);
+                    }
                 }
             } else if (isIdle) {
                 spawnTimer++;
@@ -1108,20 +1292,41 @@ void main() {
             }
             } // end if (!isHoveringInteract)
 
-            // 8. 交互吸附：主光标 3 节点即刻隐藏（零延迟），水珠和爆发不受影响
+            // 8. 交互吸附：主光标 3 节点即刻隐藏 + 清理非爆发粒子 + 清理粘滞锚点
             if (isHoveringInteract) {
-                currentHeadSize = 0;
-                currentBodySize = 0;
-                currentTailSize = 0;
-                cursorNodes[0].style.opacity = '0';
-                cursorNodes[1].style.opacity = '0';
-                cursorNodes[2].style.opacity = '0';
+                currentHeadSize = 0; currentBodySize = 0; currentTailSize = 0;
+                for (let k = 0; k < 3; k++) {
+                    cursorNodes[k].style.width = '0px'; 
+                    cursorNodes[k].style.height = '0px';
+                    cursorNodes[k].style.opacity = '0';
+                }
+                // 只清理非 burst 的一般跟随水滴，把爆发式散射水滴留下，确保它们能够完整触发和展示！
+                for (let i = tempDrops.length - 1; i >= 0; i--) {
+                    if (!tempDrops[i].isBurst) {
+                        if (tempDrops[i].el) tempDrops[i].el.remove();
+                        tempDrops.splice(i, 1);
+                    }
+                }
+                if (stickyAnchor) {
+                    stickyAnchor.el.remove();
+                    stickyAnchor = null;
+                }
+                spawnTimer = 0;
             } else {
                 currentHeadSize += (BASE_SIZES[0] - currentHeadSize) * 0.15;
                 currentBodySize += (BASE_SIZES[1] - currentBodySize) * 0.15;
                 currentTailSize += (BASE_SIZES[2] - currentTailSize) * 0.15;
+                
+                cursorNodes[0].style.width = `${currentHeadSize.toFixed(1)}px`;
+                cursorNodes[0].style.height = `${currentHeadSize.toFixed(1)}px`;
                 cursorNodes[0].style.opacity = '';
+                
+                cursorNodes[1].style.width = `${currentBodySize.toFixed(1)}px`;
+                cursorNodes[1].style.height = `${currentBodySize.toFixed(1)}px`;
                 cursorNodes[1].style.opacity = '';
+                
+                cursorNodes[2].style.width = `${currentTailSize.toFixed(1)}px`;
+                cursorNodes[2].style.height = `${currentTailSize.toFixed(1)}px`;
                 cursorNodes[2].style.opacity = '';
             }
 
@@ -1134,13 +1339,6 @@ void main() {
                 tailX += split * 0.5;
                 tailY += split * 0.5;
             }
-
-            cursorNodes[0].style.width = `${currentHeadSize.toFixed(1)}px`;
-            cursorNodes[0].style.height = `${currentHeadSize.toFixed(1)}px`;
-            cursorNodes[1].style.width = `${currentBodySize.toFixed(1)}px`;
-            cursorNodes[1].style.height = `${currentBodySize.toFixed(1)}px`;
-            cursorNodes[2].style.width = `${currentTailSize.toFixed(1)}px`;
-            cursorNodes[2].style.height = `${currentTailSize.toFixed(1)}px`;
 
             // 9. 静止不规则蠕动 (Jiggle) 与 渲染
             const targetAmp = isIdle ? 1.0 : 0.0;
@@ -1189,10 +1387,15 @@ void main() {
                 d.vx *= 0.91;
                 d.vy = d.vy * 0.91 + 0.14; // 0.14px/frame² 的微弱向下重力
 
-                // 随着生命值衰减进行缩放，限制最小缩放为 0.5，确保其在滤镜吞噬前产生完美的“Pop”融化断裂感
+                // 随着生命值衰减进行缩放，限制最小缩放为 0.5，确保其在滤镜吞噬前产生完美的"Pop"融化断裂感
                 const scale = 0.5 + (d.life / d.maxLife) * 0.7;
                 d.el.style.transform = `translate3d(${d.x.toFixed(1)}px, ${d.y.toFixed(1)}px, 0) translate(-50%, -50%) scale(${scale.toFixed(2)})`;
             }
+
+            // 为所有磁吸元素执行弹性弹簧插值（每帧一次，平滑渐入跟随）
+            _rippleHosts.forEach(el => {
+                if (el._magneticSpring) el._magneticSpring();
+            });
 
             requestAnimationFrame(tick);
         }
@@ -1200,33 +1403,62 @@ void main() {
 
         window.addEventListener('pointermove', onMove, { passive: true });
         window.addEventListener('scroll', () => {
-            if (cursorEl) updateCursorState(prevX, prevY);
+            if (cursorEl) updateCursorState(mouseX, mouseY);
         }, { passive: true });
         // Click burst — no cooldown, always fires at cursor position
         window.addEventListener('pointerdown', (e) => {
-            // 1. Burst droplets — at mouse position relative to cursor container
-            const localX = e.clientX - parseFloat(cursorEl.style.left || 0);
-            const localY = e.clientY - parseFloat(cursorEl.style.top || 0);
+            const localX = e.clientX;
+            const localY = e.clientY;
             const burstCount = 10 + Math.floor(Math.random() * 4);
             for (let j = 0; j < burstCount; j++) {
                 const angle = Math.random() * Math.PI * 2;
                 const speed = 2.0 + Math.random() * 3.5;
-                spawnDrop(localX, localY, 6.0 + Math.random() * 4, 0.5 + Math.random() * 0.3, Math.cos(angle) * speed, Math.sin(angle) * speed);
+                spawnDrop(localX, localY, 6.0 + Math.random() * 4, 0.5 + Math.random() * 0.3, Math.cos(angle) * speed, Math.sin(angle) * speed, true);
             }
-            // 2. Main circle split-then-recoil effect
             clickSplitTime = 1.0;
         });
         // Hide cursor when mouse leaves the window
         document.documentElement.addEventListener('mouseleave', () => {
             if (cursorEl) cursorEl.style.opacity = '0';
         });
-        document.documentElement.addEventListener('mouseenter', () => {
-            if (cursorEl) cursorEl.style.opacity = '';
+        document.documentElement.addEventListener('mouseenter', (e) => {
+            if (cursorEl) {
+                cursorEl.style.opacity = '';
+                // 强行将物理坐标跃变到移入时的鼠标当前位置，消除前一次离开的物理坐标残留闪烁
+                mouseX = e.clientX;
+                mouseY = e.clientY;
+                lastMouseX = mouseX;
+                lastMouseY = mouseY;
+                headX = mouseX; headY = mouseY;
+                bodyX = mouseX; bodyY = mouseY;
+                tailX = mouseX; tailY = mouseY;
+
+                // 立即进行一次交互状态判定，防止闪烁绿色
+                const t = document.elementFromPoint(mouseX, mouseY);
+                const rip = t && t.closest('.ripple-host, a, button, .lang-switcher-btn, .theme-toggle');
+                isHoveringInteract = !!rip;
+                if (isHoveringInteract) {
+                    currentHeadSize = 0; currentBodySize = 0; currentTailSize = 0;
+                    for (let k = 0; k < 3; k++) {
+                        cursorNodes[k].style.width = '0px'; 
+                        cursorNodes[k].style.height = '0px';
+                        cursorNodes[k].style.opacity = '0';
+                    }
+                }
+            }
         });
+    }
+
+    function initDitherNoise() {
+        if (document.querySelector('.dither-noise-overlay')) return;
+        const dither = document.createElement('div');
+        dither.className = 'dither-noise-overlay';
+        document.body.appendChild(dither);
     }
 
     /* ---------- Public init (idempotent, called per page) ---------- */
     function init() {
+        initDitherNoise();
         startAmbientLoop();
         initContourGL();
         initRipples();
