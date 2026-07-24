@@ -4068,7 +4068,7 @@ video,
     pointer-events: none;
     z-index: 990;
     opacity: 0;
-    mix-blend-mode: lighten;
+    /* mix-blend-mode: lighten; */
     /* 稍高透明度、低饱和度的精致辉光 */
     background:
         radial-gradient(circle at 50% 50%,
@@ -4078,9 +4078,9 @@ video,
             rgba(var(--accent-rgb), 0.005) 60%,
             transparent 80%),
         radial-gradient(circle at 50% 50%,
-            rgba(255, 255, 255, 0.17) 0%,
+            rgba(255, 255, 255, 0.1) 0%,
             transparent 50%);
-    filter: blur(10px);
+    filter: blur(10px), saturate(0.1);
 }
 
 [data-theme="dark"] .cursor-glow {
@@ -4092,7 +4092,7 @@ video,
             rgba(var(--accent-rgb), 0.005) 60%,
             transparent 80%),
         radial-gradient(circle at 50% 50%,
-            rgba(255, 255, 255, 0.17) 0%,
+            rgba(255, 255, 255, 0.1) 0%,
             transparent 50%);
 }
 
