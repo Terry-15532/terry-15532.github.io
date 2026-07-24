@@ -20,45 +20,26 @@
         ambientStarted = true;
 
         const orbWraps = [
-            { el: document.querySelector('.orb-wrap-1'), sx: 0.05, sy: 0.08, mx: 26, my: 18 },
-            { el: document.querySelector('.orb-wrap-2'), sx: -0.08, sy: -0.05, mx: -34, my: 24 },
-            { el: document.querySelector('.orb-wrap-3'), sx: 0.11, sy: -0.09, mx: 18, my: -30 }
+            { el: document.querySelector('.orb-wrap-1'), ax: 12, ay: 9, bx: 8, by: 6, cx: 5, cy: 7, px: 0.3, py: 0.35, fx: 0.07, fy: 0.11 },
+            { el: document.querySelector('.orb-wrap-2'), ax: 10, ay: 11, bx: 7, by: 5, cx: 6, cy: 4, px: 0.6, py: 0.55, fx: 0.09, fy: 0.13 },
+            { el: document.querySelector('.orb-wrap-3'), ax: 9, ay: 8, bx: 6, by: 7, cx: 4, cy: 5, px: 0.45, py: 0.6, fx: 0.08, fy: 0.10 }
         ].filter(o => o.el);
 
-        const decoText = document.querySelector('.deco-text-bg');
-
-        let targetScroll = window.scrollY;
-        let smoothScroll = targetScroll;
-        let mouseX = 0.5, mouseY = 0.5;
-        let smoothMX = 0.5, smoothMY = 0.5;
-
-        window.addEventListener('scroll', () => {
-            targetScroll = window.scrollY;
-        }, { passive: true });
-
-        window.addEventListener('mousemove', (e) => {
-            mouseX = e.clientX / window.innerWidth;
-            mouseY = e.clientY / window.innerHeight;
-        }, { passive: true });
+        const hw = window.innerWidth * 0.2;
+        const hh = window.innerHeight * 0.2;
 
         function frame() {
-            smoothScroll = lerp(smoothScroll, targetScroll, 0.075);
-            smoothMX = lerp(smoothMX, mouseX, 0.05);
-            smoothMY = lerp(smoothMY, mouseY, 0.05);
+            const t = performance.now() * 0.001; // seconds
 
             for (const o of orbWraps) {
-                let px = smoothScroll * o.sx + (smoothMX - 0.5) * o.mx * 2;
-                let py = smoothScroll * o.sy + (smoothMY - 0.5) * o.my * 2;
-                // Constrain to ±30% screen dimensions from initial position
-                const hw = window.innerWidth * 0.3;
-                const hh = window.innerHeight * 0.3;
-                px = clamp(px, -hw, hw);
-                py = clamp(py, -hh, hh);
-                o.el.style.transform = `translate3d(${px.toFixed(2)}px, ${py.toFixed(2)}px, 0)`;
-            }
-
-            if (decoText) {
-                decoText.style.transform = `translate3d(${(-smoothScroll * 0.22).toFixed(2)}px, 0, 0)`;
+                // 每个 orb 使用三组不同频率的正弦波叠加，位置互不重复
+                const px = Math.sin(t * o.fx + o.px * Math.PI) * o.ax +
+                           Math.cos(t * o.fy + o.py * Math.PI) * o.bx +
+                           Math.sin(t * 0.13 + 1.2) * o.cx;
+                const py = Math.cos(t * o.fy + o.py * Math.PI) * o.ay +
+                           Math.sin(t * o.fx + o.px * Math.PI * 0.7) * o.by +
+                           Math.cos(t * 0.17 + 2.5) * o.cy;
+                o.el.style.transform = `translate3d(${clamp(px, -hw, hw).toFixed(2)}px, ${clamp(py, -hh, hh).toFixed(2)}px, 0)`;
             }
 
             if (artCols.length > 1 && artGridEl) {
@@ -320,13 +301,15 @@
                 const enterDy = e.clientY - cy;
                 const len = Math.hypot(enterDx, enterDy) || 1;
                 
-                // 进入时的磁吸偏移量（卡片/大按钮用较小幅度，小按钮用标准幅度）
-                const amp = (w < 80 || h < 80) ? 3.5 : 2.0;
-                const maxMove = (w < 80 || h < 80) ? 3.0 : 2.0;
+                const isNavBtn = el.matches('.theme-toggle, .lang-switcher-btn, .icon-link, .footer-social-link');
+                const amp = isNavBtn ? 5.5 : (w < 80 || h < 80) ? 3.5 : 2.0;
+                const maxMove = isNavBtn ? 5.0 : (w < 80 || h < 80) ? 3.0 : 2.0;
                 
                 targetTransX = clamp((enterDx / len) * amp, -maxMove, maxMove);
                 targetTransY = clamp((enterDy / len) * amp, -maxMove, maxMove);
-                // 弹性弹簧在全局 tick 中每帧平滑插值，进入动画自动带有过渡效果
+                // 重置弹簧当前位置为 0，让吸附动画从零开始平滑过渡
+                curTransX = 0;
+                curTransY = 0;
             }
 
             const oldInks = el.querySelectorAll('.ripple-ink');
@@ -394,9 +377,10 @@
                 const dx = e.clientX - cx;
                 const dy = e.clientY - cy;
                 
-                // 驱动轻微随动（卡片/大按钮用更小系数）
-                const ratio = (rw < 80 || rh < 80) ? 0.12 : 0.05;
-                const limit = (rw < 80 || rh < 80) ? 3.0 : 2.0;
+                // 驱动轻微随动（导航栏小按钮用更大系数）
+                const isNavBtn = el.matches('.theme-toggle, .lang-switcher-btn, .icon-link, .footer-social-link');
+                const ratio = isNavBtn ? 0.5 : (rw < 80 || rh < 80) ? 0.3 : 0.2;
+                const limit = isNavBtn ? 13.0 : (rw < 80 || rh < 80) ? 8.0 : 6.0;
                 targetTransX = clamp(dx * ratio, -limit, limit);
                 targetTransY = clamp(dy * ratio, -limit, limit);
             }
@@ -876,6 +860,11 @@ void main() {
                 filter: url(#goo-filter) !important;
                 transform: translate3d(0, 0, 0) !important;
                 will-change: transform !important;
+                transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+                opacity: 1;
+            }
+            .liquid-cursor.cursor-in-iframe {
+                opacity: 0;
             }
             .drop-node {
                 position: absolute !important;
@@ -1274,7 +1263,7 @@ void main() {
                         const sy = tailY + Math.sin(a) * dist;
 
                         // 惯性初速度：与光标移动方向一致，大小为光标速度的 20%~60%（均值约 40%），附带少量随机扰动
-                        const inertia = speed * (0.20 + Math.random() * 0.40);
+                        const inertia = speed * (0.20 + Math.random() * 0.30);
                         const vx = mouseVxNorm * inertia + (Math.random() - 0.5) * 0.6;
                         const vy = mouseVyNorm * inertia + (Math.random() - 0.5) * 0.6;
 
@@ -1426,10 +1415,12 @@ void main() {
         });
         // Hide cursor when mouse leaves the window
         document.documentElement.addEventListener('mouseleave', () => {
-            if (cursorEl) cursorEl.style.opacity = '0';
+            if (cursorEl) cursorEl.classList.add('cursor-in-iframe');
         });
         document.documentElement.addEventListener('mouseenter', (e) => {
             if (cursorEl) {
+                cursorEl.classList.remove('cursor-in-iframe');
+                // 清除初始化时的 inline opacity:0，让 CSS opacity:1 生效
                 cursorEl.style.opacity = '';
                 // 强行将物理坐标跃变到移入时的鼠标当前位置，消除前一次离开的物理坐标残留闪烁
                 mouseX = e.clientX;
@@ -1452,6 +1443,27 @@ void main() {
                         cursorNodes[k].style.opacity = '0';
                     }
                 }
+            }
+        });
+
+        // 10. 跨域/同域通用的 iframe 鼠标进出检测
+        document.addEventListener('pointerover', (e) => {
+            if (e.target && e.target.tagName === 'IFRAME') {
+                cursorEl.classList.add('cursor-in-iframe');
+                document.documentElement.classList.remove('has-custom-cursor');
+            } else {
+                cursorEl.classList.remove('cursor-in-iframe');
+                if (finePointer) {
+                    document.documentElement.classList.add('has-custom-cursor');
+                }
+            }
+        });
+
+        // 11. 点击 Start Game 时立即隐藏光标
+        document.addEventListener('pointerdown', (e) => {
+            if (e.target && e.target.closest('.game-start-btn')) {
+                cursorEl.classList.add('cursor-in-iframe');
+                document.documentElement.classList.remove('has-custom-cursor');
             }
         });
     }

@@ -37,33 +37,26 @@
             const currentLang = document.documentElement.classList.contains('lang-zh') ? 'zh' : 'en';
             const newLang = currentLang === 'zh' ? 'en' : 'zh';
 
-            // Immediately switch only the button label to show the OPPOSITE of newLang
-            // (button always shows the language you can switch TO)
             const enOpt = btn.querySelector('.lang-option.lang-en');
             const zhOpt = btn.querySelector('.lang-option.lang-zh');
+
+            // 立即强制切换按钮文字：用显式 inline display 覆盖 CSS 类规则
             if (newLang === 'zh') {
-                // Now in Chinese mode → button should show EN (switch back to English)
                 zhOpt.style.display = 'none';
-                enOpt.style.display = '';
+                enOpt.style.display = 'inline';
             } else {
-                // Now in English mode → button should show 中 (switch back to Chinese)
                 enOpt.style.display = 'none';
-                zhOpt.style.display = '';
+                zhOpt.style.display = 'inline';
             }
 
-            // Trigger Q-bouncy pop animation on the now-visible label
-            const visibleLabel = btn.querySelector(
-                newLang === 'zh' ? '.lang-option.lang-en' : '.lang-option.lang-zh'
-            );
+            // 弹入动画
+            const visibleLabel = newLang === 'zh' ? enOpt : zhOpt;
             if (visibleLabel) {
                 visibleLabel.classList.remove('lang-pop');
                 void visibleLabel.offsetWidth;
                 visibleLabel.classList.add('lang-pop');
-                // 动画播完后自动清理，避免重复触发
                 clearTimeout(visibleLabel._popTimer);
-                visibleLabel._popTimer = setTimeout(() => {
-                    visibleLabel.classList.remove('lang-pop');
-                }, 500);
+                visibleLabel._popTimer = setTimeout(() => visibleLabel.classList.remove('lang-pop'), 500);
             }
 
             if (window.MotionUX && MotionUX.fxCircle) {
@@ -72,9 +65,8 @@
                 const color = dark ? 'rgba(13, 16, 13, 0.85)' : 'rgba(255, 255, 255, 0.85)';
                 const label = newLang === 'zh' ? '加载中文模块' : 'Loading English Module';
                 MotionUX.fxCircle(rect.left + rect.width / 2, rect.top + rect.height / 2, color, () => {
-                    // Switch page content AFTER mask fully covers screen
                     applyLang(newLang);
-                    // Clean up inline display overrides — CSS classes now handle visibility
+                    // 清除 inline display，CSS 类接管可见性
                     enOpt.style.display = '';
                     zhOpt.style.display = '';
                 }, label);

@@ -576,7 +576,7 @@ nav .nav-item .en::after {
     font-weight: bold;
     font-size: 1.05rem;
     letter-spacing: 1.5px;
-    border: 2px solid var(--text-primary);
+    border: none;
     transition: background 0.35s ease, border-color 0.35s ease;
     border-radius: 999px;
 }
@@ -1975,14 +1975,13 @@ header.hero::before {
     align-items: center;
     justify-content: center;
     padding: 10px;
-    border: 1px solid transparent;
-    border-radius: 4px;
+    border: none;
+    border-radius: 12px;
 }
 
 .icon-link:hover {
     color: var(--accent-cyan);
     background: rgba(var(--accent-rgb), 0.05);
-    border-color: transparent;
 }
 
 [data-theme="dark"] .icon-link:hover {
@@ -2598,12 +2597,24 @@ img, picture img, svg, canvas, video,
     font-size: 1.5rem;
     font-weight: bold;
     color: #ffffff;
-    background: rgba(0, 0, 0, 0.6);
+    background-color: rgba(0, 0, 0, 0.6);
     border: 2px solid #ffffff;
     cursor: pointer;
-    transition: var(--transition-base);
+    transition: color 0.45s ease, background-color 0.45s ease, border-color 0.45s ease;
     border-radius: 999px;
     position: relative;
+}
+
+/* Hover / ripple：背景、边框、文字同步渐变 */
+.game-start-btn:hover,
+.game-start-btn.is-hovered,
+.ripple-solid.ripple-filled.game-start-btn {
+    background-color: var(--accent-cyan);
+    border-color: var(--accent-cyan);
+}
+/* 深色模式下文字变为黑色、浅色模式保持白色（rippling 处理），边框统一变为 accent */
+.ripple-solid.rippling.game-start-btn {
+    border-color: var(--accent-cyan) !important;
 }
 
 /* Footer Styles */
@@ -4235,7 +4246,6 @@ html.has-custom-cursor.show-system-cursor * {
 .icon-link.is-hovered {
     color: var(--accent-cyan);
     background: rgba(var(--accent-rgb), 0.05);
-    border-color: transparent;
 }
 .icon-link.is-hovered .social-icon-img {
     filter: brightness(0) saturate(100%) invert(35%) sepia(98%) saturate(2000%) hue-rotate(96deg) brightness(90%);
