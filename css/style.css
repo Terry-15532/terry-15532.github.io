@@ -5,6 +5,7 @@
     --text-secondary: #4c564d;
     /* Accent: deep green (light mode) */
     --accent-cyan: #008A22;
+    --accent-cyan-rgb: 150, 150, 150;
     --accent: var(--accent-cyan);
     --accent-rgb: 0, 138, 34;
     --accent-opposite: #00CC33;
@@ -54,6 +55,7 @@
     --text-secondary: #a8b5a9;
     /* Accent: vivid green (dark mode) */
     --accent-cyan: #00CC33;
+    --accent-cyan-rgb: 100, 204, 100;
     --accent: var(--accent-cyan);
     --accent-rgb: 0, 204, 51;
     --accent-opposite: #008A22;
@@ -575,32 +577,13 @@ nav .nav-item .en::after {
     font-size: 1.05rem;
     letter-spacing: 1.5px;
     border: 2px solid var(--text-primary);
-    transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    transition: background 0.35s ease, border-color 0.35s ease;
     border-radius: 999px;
 }
 
 .rhombus-btn:hover {
-    background: var(--bg-color);
-    color: var(--text-primary);
-    border-color: var(--text-primary);
-    padding-left: 50px;
-}
-
-.rhombus-btn::before {
-    content: '';
-    position: absolute;
-    left: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 0;
-    height: 2px;
-    background: var(--bg-color);
-    transition: width 0.3s ease;
-}
-
-.rhombus-btn:hover::before {
-    width: 15px;
-    background: var(--text-primary);
+    background: transparent;
+    border-color: transparent;
 }
 
 /* --- Navigation --- */
@@ -641,6 +624,7 @@ nav {
     flex-direction: column;
     line-height: 1;
     margin-right: auto;
+    position: relative;
 }
 
 .logo .sub {
@@ -802,6 +786,29 @@ nav {
 .logo:hover .sub {
     color: var(--accent-cyan);
     letter-spacing: 2px;
+}
+
+/* P.R.T.S. green blinking indicator dot — no glow, irregular subtle blink */
+.status-dot {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--accent-cyan);
+    right: 0;
+    top: 0;
+    transform: translate(50%, -30%);
+    animation: statusBlink 2.8s steps(3) infinite;
+    z-index: 10;
+}
+
+@keyframes statusBlink {
+    0%   { opacity: 1; }
+    30%  { opacity: 0.65; }
+    45%  { opacity: 0.85; }
+    65%  { opacity: 0.45; }
+    78%  { opacity: 0.9; }
+    100% { opacity: 1; }
 }
 
 .theme-toggle svg {
@@ -1077,8 +1084,9 @@ header.hero::before {
     display: flex;
     gap: 2rem;
     overflow-x: auto;
-    overflow-y: hidden;
-    padding: 1rem 0 2rem 0;
+    overflow-y: visible;
+    padding: 30px 20px;
+    margin: -30px -20px;
 }
 
 /* Shared scroll card base styles */
@@ -1264,8 +1272,9 @@ header.hero::before {
     display: flex;
     gap: 2rem;
     overflow-x: auto;
-    overflow-y: hidden;
-    padding: 1rem 0 2rem 0;
+    overflow-y: visible;
+    padding: 30px 20px;
+    margin: -30px -20px;
 }
 
 /* Art Scroll Card - Normal (Lando-style label card) */
@@ -1296,9 +1305,13 @@ header.hero::before {
 }
 
 .art-scroll-card:hover {
-    transform: translateY(-8px);
     box-shadow: var(--shadow-hover);
     border-color: var(--accent-cyan);
+}
+
+/* Artworks cards: no green background fill on hover */
+.art-scroll-card.ripple-filled {
+    background-color: transparent !important;
 }
 
 .art-scroll-card-media {
@@ -2195,7 +2208,6 @@ header.hero::before {
 }
 
 .art-card:hover .art-overlay {
-    transform: translateY(0);
     opacity: 1;
 }
 
@@ -2685,18 +2697,18 @@ img, picture img, svg, canvas, video,
 
 .footer-social {
     display: flex;
-    gap: 30px;
+    gap: 18px;
     align-items: center;
 }
 
 .footer-social-link {
-    width: 45px;
-    height: 45px;
+    width: 56px;
+    height: 56px;
     display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s ease;
-    border-radius: 10px;
+    border-radius: 12px;
     border: none;
     color: var(--text-secondary);
     text-decoration: none;
@@ -2718,6 +2730,14 @@ img, picture img, svg, canvas, video,
 
 [data-theme="dark"] .footer-social-link img {
     filter: brightness(0) invert(1);
+}
+
+/* hover: invert icon colour */
+.footer-social-link:hover img {
+    filter: brightness(0) invert(1);
+}
+[data-theme="dark"] .footer-social-link:hover img {
+    filter: brightness(0);
 }
 
 /* ripple invert overrides theme filter */
@@ -2834,16 +2854,15 @@ img, picture img, svg, canvas, video,
     height: 100%;
     background-color: rgba(255, 255, 255, 0.1);
     background-image: inherit;
-    background-size: 101%;
+    background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
     transform: scale(1);
-    background-size: cover;
-    transition: transform 0.6s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.3s ease, backdrop-filter 0.3s ease;
+    border-radius: inherit;
+    transition: background-color 0.3s ease, backdrop-filter 0.3s ease;
 }
 
 .youtube-lazy:hover::before {
-    transform: scale(1.1);
     background-color: rgba(255, 255, 255, 0.3);
     backdrop-filter: blur(10px);
 }
@@ -2878,8 +2897,7 @@ img, picture img, svg, canvas, video,
     transform: translate(-50%, -50%);
     z-index: 1;
     pointer-events: none;
-    border-radius: var(--radius-md);
-    overflow: hidden;
+    border-radius: inherit;
 }
 
 .youtube-icon {
@@ -2895,6 +2913,12 @@ img, picture img, svg, canvas, video,
 
 .youtube-lazy:hover .youtube-icon {
     transform: scale(1.15);
+}
+
+.youtube-lazy,
+.youtube-overlay,
+.youtube-lazy iframe {
+    border-radius: var(--radius-md) !important;
 }
 
 .youtube-lazy iframe {
@@ -2913,7 +2937,6 @@ img, picture img, svg, canvas, video,
 }
 
 .card:hover .youtube-lazy::before {
-    transform: scale(1.1);
     background-color: rgba(255, 255, 255, 0.3);
     backdrop-filter: blur(10px);
 }
@@ -3264,16 +3287,51 @@ img, picture img, svg, canvas, video,
     content: '★';
 }
 
-/* Bow Seat clickable card – uses the same ripple as other cards */
+/* Bow Seat clickable card — visually distinct from other awards even without hover */
+/* Bow Seat clickable card — matches other awards with left green accent + blur */
 .timeline-content.link-content {
     text-decoration: none;
     color: inherit;
     display: block;
-    transition: background-color 0.4s ease;
+    transition: background-color 0.4s ease, box-shadow 0.4s ease;
+    background: var(--card-bg);
+    backdrop-filter: blur(20px) saturate(1.5);
+    -webkit-backdrop-filter: blur(20px) saturate(1.5);
+    border: 1.5px solid var(--border-color);
+    border-left: 3px solid var(--accent-cyan);
+    padding: 25px 30px;
+    border-radius: var(--radius-md);
+    position: relative;
+}
+
+.timeline-content.link-content::after {
+    content: '↗';
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 1.3rem;
+    opacity: 0.55;
+    color: var(--accent-cyan);
+    transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .timeline-content.link-content:hover {
-    background-color: rgba(var(--accent-rgb), 0.08);
+    background-color: rgba(var(--accent-rgb), 0.1);
+    border-top-color: #c0c0c0;
+    border-right-color: #c0c0c0;
+    border-bottom-color: #c0c0c0;
+    box-shadow: 0 4px 20px rgba(var(--accent-rgb), 0.12);
+}
+
+[data-theme="dark"] .timeline-content.link-content:hover {
+    border-top-color: #505050;
+    border-right-color: #505050;
+    border-bottom-color: #505050;
+}
+
+.timeline-content.link-content:hover::after {
+    opacity: 1;
+    transform: translate(2px, -2px);
 }
 
 /* Island City detail: green award link */
@@ -3686,26 +3744,39 @@ img, picture img, svg, canvas, video,
 /* Per-element cursor aura — inside ripple host, above ink so it's always visible */
 .cursor-glow {
     position: absolute;
-    width: 180px;
-    height: 180px;
+    width: 400px;
+    height: 400px;
     border-radius: 50%;
     transform: translate(-50%, -50%);
     pointer-events: none;
-    z-index: 5;
+    z-index: 990;
     opacity: 0;
-    transition: opacity 0.3s ease;
-    background: radial-gradient(circle,
-        rgba(var(--accent-cyan-rgb), 0.4) 0%,
-        rgba(var(--accent-cyan-rgb), 0.2) 25%,
-        rgba(var(--accent-cyan-rgb), 0.07) 50%,
-        transparent 70%);
+    transition: opacity 0.4s ease;
+    /* Multi-layer gradient: warm white core → soft accent tint → smooth fade */
+    background:
+        radial-gradient(circle at 50% 50%,
+            rgba(255, 255, 255, 0.4) 0%,
+            rgba(255, 255, 255, 0.25) 12%,
+            rgba(255, 255, 255, 0.12) 28%,
+            rgba(255, 255, 255, 0.04) 50%,
+            rgba(255, 255, 255, 0.01) 70%,
+            transparent 85%),
+        radial-gradient(circle at 50% 50%,
+            rgba(var(--accent-cyan-rgb), 0.08) 0%,
+            transparent 40%);
+    filter: blur(0.5px);
 }
 [data-theme="dark"] .cursor-glow {
-    background: radial-gradient(circle,
-        rgba(255, 255, 255, 0.25) 0%,
-        rgba(255, 255, 255, 0.12) 25%,
-        rgba(255, 255, 255, 0.04) 50%,
-        transparent 70%);
+    background:
+        radial-gradient(circle at 50% 50%,
+            rgba(255, 255, 255, 0.3) 0%,
+            rgba(255, 255, 255, 0.18) 12%,
+            rgba(255, 255, 255, 0.08) 28%,
+            rgba(255, 255, 255, 0.02) 50%,
+            transparent 85%),
+        radial-gradient(circle at 50% 50%,
+            rgba(var(--accent-cyan-rgb), 0.06) 0%,
+            transparent 40%);
 }
 .cursor-glow.active {
     opacity: 1;
@@ -3725,15 +3796,15 @@ img, picture img, svg, canvas, video,
     background: radial-gradient(circle,
         rgba(var(--accent-cyan-rgb), 0.2) 0%,
         rgba(var(--accent-cyan-rgb), 0.08) 30%,
-        rgba(var(--accent-cyan-rgb), 0.02) 55%,
-        transparent 70%);
+        rgba(var(--accent-cyan-rgb), 0.01) 55%,
+        transparent 90%);
 }
 [data-theme="dark"] .nav-glow {
     background: radial-gradient(circle,
         rgba(255, 255, 255, 0.12) 0%,
         rgba(255, 255, 255, 0.05) 30%,
         rgba(255, 255, 255, 0.01) 55%,
-        transparent 70%);
+        transparent 90%);
 }
 .nav-glow.active {
     opacity: 1;
@@ -3760,20 +3831,13 @@ img, picture img, svg, canvas, video,
     animation: ripple-morph-b 0.9s ease-in-out infinite;
 }
 
-/* sub layer is a neutral highlight: white in light mode, blackish in dark */
+/* sub layer: complementary accent colour so the two layers are clearly distinct */
 .ripple-solid .ripple-ink.sub {
-    background: rgba(255, 255, 255, 0.65);
-}
-[data-theme="dark"] .ripple-solid .ripple-ink.sub {
-    background: rgba(0, 0, 0, 0.55);
+    background: var(--accent-opposite);
 }
 
 .ripple-tint .ripple-ink.sub {
-    background: rgba(255, 255, 255, 0.45);
-    z-index: -2;
-}
-[data-theme="dark"] .ripple-tint .ripple-ink.sub {
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(var(--accent-opposite-rgb), 0.3);
     z-index: -2;
 }
 
@@ -3982,9 +4046,15 @@ img, picture img, svg, canvas, video,
     opacity: 1;
 }
 
-/* Brand text: appears, blinks OFF completely once, stays visible until hideBrand fades it */
-.fx-brand-text {
-    animation: brand-blink 1.2s ease-in-out 1;
+/* Brand text: hidden by default, animation triggered only when .show is added */
+.fx-brand-text,
+.fx-brand svg {
+    opacity: 0;
+}
+
+.fx-brand.show .fx-brand-text,
+.fx-brand.show svg {
+    animation: brand-blink 0.8s ease-in-out 1;
     animation-fill-mode: forwards;
 }
 
@@ -3996,16 +4066,15 @@ img, picture img, svg, canvas, video,
     stroke-width: 2;
     stroke-linecap: round;
     stroke-linejoin: round;
-    animation: brand-blink 1.2s ease-in-out 1;
-    animation-fill-mode: forwards;
 }
 
 @keyframes brand-blink {
     0%   { opacity: 0; }
-    5%   { opacity: 1; }
-    20%  { opacity: 0; }
-    25%  { opacity: 1; }
-    100% { opacity: 1; }
+    8%   { opacity: 1; }    /* appear */
+    20%  { opacity: 0; }    /* hide */
+    28%  { opacity: 1; }    /* reappear */
+    75%  { opacity: 1; }    /* stay visible */
+    100% { opacity: 0; }    /* exit fade */
 }
 
 /* Solid accent sweep for buttons: content wrapped above the circle */
@@ -4035,64 +4104,42 @@ img, picture img, svg, canvas, video,
     color: #000000 !important;
 }
 
-/* ---------- Custom SVG Liquid Cursor ---------- */
+/* ---------- Dither noise overlay to eliminate gradient banding ---------- */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 99998;
+    opacity: 0.025;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+    mix-blend-mode: overlay;
+}
+
+/* ---------- Gooey-filter liquid cursor ---------- */
+/* System cursor visible alongside custom cursor */
 .has-custom-cursor,
 .has-custom-cursor * {
-    cursor: none !important;
+    cursor: auto !important;
 }
 
 .liquid-cursor {
     position: fixed;
     top: 0;
     left: 0;
-    width: 48px;
-    height: 48px;
+    width: 0;
+    height: 0;
     pointer-events: none;
     z-index: 99999;
-    transform: translate(-50%, -50%);
     will-change: left, top;
-    overflow: visible;
-    transition: width 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
-                height 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
-                opacity 0.18s ease;
-}
-
-.liquid-cursor path {
-    fill: var(--accent-cyan);
-    transition: fill 0.2s ease;
+    transition: opacity 0.18s ease;
 }
 
 .liquid-cursor.on-ripple {
-    opacity: 0 !important;
-    transition: opacity 0.1s ease !important;
+    /* permanent nodes hidden by JS, temp drops live on */
 }
 
 .liquid-cursor.on-nav {
-    width: 90px;
-    height: 90px;
-    opacity: 0.3;
-}
-.liquid-cursor.on-nav path {
-    fill: rgba(var(--accent-cyan-rgb), 0.5);
-}
-
-/* glow circle inside the cursor SVG */
-.liquid-cursor circle {
-    stroke: rgba(var(--accent-cyan-rgb), 0.3);
-    stroke-width: 1.5;
-    fill: rgba(var(--accent-cyan-rgb), 0.08);
-    filter: blur(2px);
-}
-[data-theme="dark"] .liquid-cursor circle {
-    stroke: rgba(255, 255, 255, 0.25);
-    fill: rgba(255, 255, 255, 0.06);
-}
-
-.liquid-cursor.on-nav circle {
-    stroke: rgba(var(--accent-cyan-rgb), 0.4);
-    fill: rgba(var(--accent-cyan-rgb), 0.12);
-}
-[data-theme="dark"] .liquid-cursor.on-nav circle {
-    stroke: rgba(255, 255, 255, 0.35);
-    fill: rgba(255, 255, 255, 0.1);
+    opacity: 0.4;
 }

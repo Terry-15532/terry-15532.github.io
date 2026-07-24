@@ -1382,6 +1382,7 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null) 
                                 console.log('[ScrollBack] No matching card found for:', lastProj);
                             }
                         }, 400); // Wait for transition animation (200ms exit + 200ms enter + buffer)
+                        // Clear immediately so re-entering projects doesn't re-trigger
                         sessionStorage.removeItem('lastVisitedProject');
                     }
                 }
