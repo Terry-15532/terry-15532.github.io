@@ -5,12 +5,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>P. R. T. S.</title>
+    <script async fetchpriority="high" src="js/critical.js?v=20260725b"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <script defer fetchpriority="high" src="js/main.js?v=20260725b"></script>
+    <script async fetchpriority="low" src="js/motion.js?v=20260725i"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+        rel="stylesheet"
+        media="print"
+        onload="this.media='all'">
+    <noscript>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+            rel="stylesheet">
+    </noscript>
     <link rel="icon" href="Resources/icon.png">
 </head>
 
@@ -47,6 +57,27 @@
         <div class="deco-circle-bg"></div>
         <div class="deco-ruler-v"></div>
     </div>
+
+    <nav>
+        <a href="index.html" class="logo" style="font-size: 20px;">
+            P. R. T. S.<span class="status-dot"></span>
+            <span class="sub">PRIMITIVE TERMINAL SYSTEM</span>
+        </a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-item">
+                <span class="en">ABOUT</span>
+                <span class="cn">关于</span>
+            </a>
+            <a href="projects.html" class="nav-item active">
+                <span class="en">PROJECTS</span>
+                <span class="cn">游戏项目</span>
+            </a>
+            <a href="art.html" class="nav-item">
+                <span class="en">ARTWORKS</span>
+                <span class="cn">艺术作品</span>
+            </a>
+        </div>
+    </nav>
 
     <div class="container">
         <header class="hero">
@@ -88,7 +119,7 @@
                         </div>
                     </div>
                     <div class="card-media">
-                        <img src="Projects/BumperMaster/Cover.png" alt="Bumper Master Cover">
+                        <img src="Projects/BumperMaster/Cover.png" alt="Bumper Master Cover" loading="eager" decoding="async" fetchpriority="low">
                     </div>
                 </a>
 
@@ -108,7 +139,7 @@
                         </div>
                     </div>
                     <div class="card-media">
-                        <img src="Projects/Flicker/Cover.png" alt="Flicker Cover">
+                        <img src="Projects/Flicker/Cover.png" alt="Flicker Cover" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                 </a>
 
@@ -302,7 +333,7 @@
                         </div>
                     </div>
                     <div class="card-media">
-                        <img src="Projects/LifeAtWork/Cover.png" alt="Life At Work Cover">
+                        <img src="Projects/LifeAtWork/Cover.png" alt="Life At Work Cover" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                 </a>
 
@@ -313,9 +344,6 @@
     <footer class="site-footer">
     </footer>
 
-    <script src="js/i18n.js"></script>
-    <script src="js/main.js"></script>
-    <script src="js/motion.js"></script>
 </body>
 
 </html>

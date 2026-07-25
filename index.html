@@ -6,12 +6,22 @@
     <meta name="viewport" content="width=1000">
 
     <title>P. R. T. S.</title>
+    <script async fetchpriority="high" src="js/critical.js?v=20260725b"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <script defer fetchpriority="high" src="js/main.js?v=20260725b"></script>
+    <script async fetchpriority="low" src="js/motion.js?v=20260725i"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+        rel="stylesheet"
+        media="print"
+        onload="this.media='all'">
+    <noscript>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+            rel="stylesheet">
+    </noscript>
     <link rel="icon" href="Resources/icon.png">
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-XZGBTQ6DHW"></script>
     <meta name="google-site-verification" content="3D9QCYYzq48wpUTKJvnw2yD8_ews1_WYz3g8KfV8clw" />
@@ -110,25 +120,25 @@
                         <div style="height: 15px;"></div>
                         <div class="social-icons-row" style="margin-left: 30px;">
                             <a href="https://github.com/terry-15532" class="icon-link" title="GitHub" target="_blank">
-                                <img src="Resources/Icons/GitHub.png" alt="GitHub" class="social-icon-img">
+                                <img src="Resources/Icons/GitHub.png" alt="GitHub" class="social-icon-img" loading="lazy" decoding="async" fetchpriority="low">
                             </a>
                             <a href="https://space.bilibili.com/552477215" class="icon-link" title="Bilibili"
                                 target="_blank">
-                                <img src="Resources/Icons/Bilibili.svg" alt="Bilibili" class="social-icon-img">
+                                <img src="Resources/Icons/Bilibili.svg" alt="Bilibili" class="social-icon-img" loading="lazy" decoding="async" fetchpriority="low">
                             </a>
                             <a href="https://www.pixiv.net/users/87998395" class="icon-link" title="Pixiv"
                                 target="_blank">
-                                <img src="Resources/Icons/Pixiv.png" alt="Pixiv" class="social-icon-img">
+                                <img src="Resources/Icons/Pixiv.png" alt="Pixiv" class="social-icon-img" loading="lazy" decoding="async" fetchpriority="low">
                             </a>
                             <a href="https://flandrescarlet-15532.itch.io/" class="icon-link" title="Itch.io"
                                 target="_blank">
-                                <img src="Resources/Icons/Itch.png" alt="Itch.io" class="social-icon-img">
+                                <img src="Resources/Icons/Itch.png" alt="Itch.io" class="social-icon-img" loading="lazy" decoding="async" fetchpriority="low">
                             </a>
                             <a href="https://www.youtube.com/@Terry-w-" class="icon-link" title="YouTube"
                                 target="_blank">
-                                <img src="Resources/Icons/Youtube.png" alt="YouTube" class="social-icon-img">
+                                <img src="Resources/Icons/Youtube.png" alt="YouTube" class="social-icon-img" loading="lazy" decoding="async" fetchpriority="low">
                                 <a href="mailto:terry15532@gmail.com" class="icon-link" title="Email" target="_blank">
-                                    <img src="Resources/Icons/Email.png" alt="Email" class="social-icon-img">
+                                    <img src="Resources/Icons/Email.png" alt="Email" class="social-icon-img" loading="lazy" decoding="async" fetchpriority="low">
                                 </a>
                             </a>
                         </div>
@@ -144,7 +154,7 @@
                 </div>
                  -->
                 <div class="profile-image-right">
-                    <img src="Resources/About_Self.png" alt="About Self" class="about-self-image">
+                    <img src="Resources/About_Self.png" alt="About Self" class="about-self-image" loading="eager" decoding="async" fetchpriority="low">
                 </div>
             </div>
         </div>
@@ -160,7 +170,7 @@
                     <!-- Project 1: Bumper Master -->
                     <a href="projects.html" class="scroll-card" onclick="sessionStorage.setItem('lastVisitedProject','Projects/BumperMaster/BumperMaster.html')">
                         <div class="scroll-card-media">
-                            <img src="Projects/BumperMaster/Cover.png" alt="Bumper Master Cover">
+                            <img src="Projects/BumperMaster/Cover.png" alt="Bumper Master Cover" loading="lazy" decoding="async" fetchpriority="low">
                         </div>
                         <div class="scroll-card-content">
                             <h3><span class="en">Bumper Master</span><span class="cn">Bumper Master</span></h3>
@@ -174,7 +184,7 @@
                     <!-- Project 2: Flicker -->
                     <a href="projects.html" class="scroll-card" onclick="sessionStorage.setItem('lastVisitedProject','Projects/Flicker/Flicker.html')">
                         <div class="scroll-card-media">
-                            <img src="Projects/Flicker/Cover.png" alt="Flicker Cover">
+                            <img src="Projects/Flicker/Cover.png" alt="Flicker Cover" loading="lazy" decoding="async" fetchpriority="low">
                         </div>
                         <div class="scroll-card-content">
                             <h3><span class="en">Flicker</span><span class="cn">Flicker</span></h3>
@@ -188,7 +198,7 @@
                     <!-- Project 3: Meta Clash -->
                     <a href="projects.html" class="scroll-card" onclick="sessionStorage.setItem('lastVisitedProject','Projects/MetaClash/MetaClash.html')">
                         <div class="scroll-card-media">
-                            <img src="Projects/MetaClash/Cover.png" alt="Meta Clash Cover">
+                            <img src="Projects/MetaClash/Cover.png" alt="Meta Clash Cover" loading="lazy" decoding="async" fetchpriority="low">
                         </div>
                         <div class="scroll-card-content">
                             <h3><span class="en">Meta Clash</span><span class="cn">Meta Clash</span></h3>
@@ -203,7 +213,7 @@
                     <!-- Project 4: Island City -->
                     <a href="projects.html" class="scroll-card" onclick="sessionStorage.setItem('lastVisitedProject','Projects/IslandCity/IslandCity.html')">
                         <div class="scroll-card-media">
-                            <img src="Projects/IslandCity/Cover.png" alt="Island City Cover">
+                            <img src="Projects/IslandCity/Cover.png" alt="Island City Cover" loading="lazy" decoding="async" fetchpriority="low">
                         </div>
                         <div class="scroll-card-content">
                             <h3><span class="en">Island City</span><span class="cn">Island City</span></h3>
@@ -219,7 +229,7 @@
                     <!-- Project 5: Volley Spikers -->
                     <a href="projects.html" class="scroll-card" onclick="sessionStorage.setItem('lastVisitedProject','Projects/VolleySpikers/VolleySpikers.html')">
                         <div class="scroll-card-media">
-                            <img src="Projects/VolleySpikers/Cover.png" alt="Volley Spikers Cover">
+                            <img src="Projects/VolleySpikers/Cover.png" alt="Volley Spikers Cover" loading="lazy" decoding="async" fetchpriority="low">
                         </div>
                         <div class="scroll-card-content">
                             <h3><span class="en">Volley Spikers</span><span class="cn">Volley Spikers</span></h3>
@@ -263,7 +273,7 @@
                     <!-- Hatsune Miku - Double Width -->
                     <a href="OtherWorks/Hatsune Miku.png" target="_blank" class="art-scroll-card art-scroll-card-double">
                         <div class="art-scroll-card-media">
-                            <img src="OtherWorks/Hatsune Miku.png" alt="Hatsune Miku">
+                            <img src="OtherWorks/Hatsune Miku.png" alt="Hatsune Miku" loading="lazy" decoding="async" fetchpriority="low">
                         </div>
                         <div class="art-label">
                             <h3><span class="en">Hatsune Miku</span><span class="cn">初音未来</span></h3>
@@ -274,7 +284,7 @@
                     <!-- Sun Wukong -->
                     <a href="OtherWorks/SunWukong.jpg" target="_blank" class="art-scroll-card">
                         <div class="art-scroll-card-media">
-                            <img src="OtherWorks/SunWukong.jpg" alt="Sun Wukong">
+                            <img src="OtherWorks/SunWukong.jpg" alt="Sun Wukong" loading="lazy" decoding="async" fetchpriority="low">
                         </div>
                         <div class="art-label">
                             <h3><span class="en">Sun Wukong</span><span class="cn">孙悟空</span></h3>
@@ -285,7 +295,7 @@
                     <!-- Skull -->
                     <a href="OtherWorks/Skull.jpg" target="_blank" class="art-scroll-card">
                         <div class="art-scroll-card-media">
-                            <img src="OtherWorks/Skull.jpg" alt="Skull">
+                            <img src="OtherWorks/Skull.jpg" alt="Skull" loading="lazy" decoding="async" fetchpriority="low">
                         </div>
                         <div class="art-label">
                             <h3><span class="en">Skull</span><span class="cn">骷髅</span></h3>
@@ -296,7 +306,7 @@
                     <!-- Kirisame Marisa -->
                     <a href="OtherWorks/Kirisame Marisa.png" target="_blank" class="art-scroll-card">
                         <div class="art-scroll-card-media">
-                            <img src="OtherWorks/Kirisame Marisa.png" alt="Kirisame Marisa">
+                            <img src="OtherWorks/Kirisame Marisa.png" alt="Kirisame Marisa" loading="lazy" decoding="async" fetchpriority="low">
                         </div>
                         <div class="art-label">
                             <h3><span class="en">Kirisame Marisa</span><span class="cn">雾雨魔理沙</span></h3>
@@ -307,7 +317,7 @@
                     <!-- Minakami Yuki -->
                     <a href="OtherWorks/MInakami Yuki.png" target="_blank" class="art-scroll-card">
                         <div class="art-scroll-card-media">
-                            <img src="OtherWorks/MInakami Yuki.png" alt="Minakami Yuki">
+                            <img src="OtherWorks/MInakami Yuki.png" alt="Minakami Yuki" loading="lazy" decoding="async" fetchpriority="low">
                         </div>
                         <div class="art-label">
                             <h3><span class="en">Minakami Yuki</span><span class="cn">水上由岐</span></h3>
@@ -545,27 +555,27 @@
             <div class="footer-content">
                 <div class="footer-left">
                     <div class="footer-brand">
-                        <img src="Resources/icon_white.png" alt="Icon" class="footer-icon">
+                        <img src="Resources/icon_white.png" alt="Icon" class="footer-icon" loading="lazy" decoding="async" fetchpriority="low">
                         <span>© 2024-2026 Terry Li. All rights reserved.</span>
                     </div>
                     <div class="footer-social">
                         <a href="https://github.com/terry-15532" target="_blank" class="footer-social-link">
-                            <img src="Resources/Icons/GitHub.png" alt="GitHub">
+                            <img src="Resources/Icons/GitHub.png" alt="GitHub" loading="lazy" decoding="async" fetchpriority="low">
                         </a>
                         <a href="https://space.bilibili.com/552477215" target="_blank" class="footer-social-link">
-                            <img src="Resources/Icons/Bilibili.svg" alt="Bilibili">
+                            <img src="Resources/Icons/Bilibili.svg" alt="Bilibili" loading="lazy" decoding="async" fetchpriority="low">
                         </a>
                         <a href="https://www.pixiv.net/users/87998395" target="_blank" class="footer-social-link">
-                            <img src="Resources/Icons/Pixiv.png" alt="Pixiv">
+                            <img src="Resources/Icons/Pixiv.png" alt="Pixiv" loading="lazy" decoding="async" fetchpriority="low">
                         </a>
                         <a href="https://flandrescarlet-15532.itch.io/" target="_blank" class="footer-social-link">
-                            <img src="Resources/Icons/Itch.png" alt="Itch.io">
+                            <img src="Resources/Icons/Itch.png" alt="Itch.io" loading="lazy" decoding="async" fetchpriority="low">
                         </a>
                         <a href="https://www.youtube.com/@Terry-w-" target="_blank" class="footer-social-link">
-                            <img src="Resources/Icons/Youtube.png" alt="YouTube">
+                            <img src="Resources/Icons/Youtube.png" alt="YouTube" loading="lazy" decoding="async" fetchpriority="low">
                         </a>
                         <a href="mailto:terry15532@gmail.com" target="_blank" class="footer-social-link">
-                            <img src="Resources/Icons/Email.png" alt="Email">
+                            <img src="Resources/Icons/Email.png" alt="Email" loading="lazy" decoding="async" fetchpriority="low">
                         </a>
                     </div>
                 </div>
@@ -573,7 +583,7 @@
                     <div class="footer-hosted">
                         <span class="hosted-text">Hosted by</span>
                         <a href="https://pages.github.com/" target="_blank" class="github-pages-link">
-                            <img src="Resources/Icons/GitHub_Pages.png" alt="GitHub Pages">
+                            <img src="Resources/Icons/GitHub_Pages.png" alt="GitHub Pages" loading="lazy" decoding="async" fetchpriority="low">
                         </a>
                     </div>
                 </div>
@@ -582,9 +592,6 @@
         </div>
     </footer>
 
-    <script src="js/i18n.js"></script>
-    <script src="js/main.js"></script>
-    <script src="js/motion.js"></script>
 </body>
 
 </html>

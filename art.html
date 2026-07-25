@@ -5,12 +5,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>P. R. T. S.</title>
+    <script async fetchpriority="high" src="js/critical.js?v=20260725b"></script>
+    <link rel="stylesheet" href="css/style.css">
+    <script defer fetchpriority="high" src="js/main.js?v=20260725b"></script>
+    <script async fetchpriority="low" src="js/motion.js?v=20260725i"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
-        rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+        rel="stylesheet"
+        media="print"
+        onload="this.media='all'">
+    <noscript>
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap"
+            rel="stylesheet">
+    </noscript>
 </head>
 
 <body>
@@ -47,6 +57,27 @@
         <div class="deco-ruler-v"></div>
     </div>
 
+    <nav>
+        <a href="index.html" class="logo" style="font-size: 20px;">
+            P. R. T. S.<span class="status-dot"></span>
+            <span class="sub">PRIMITIVE TERMINAL SYSTEM</span>
+        </a>
+        <div class="nav-links">
+            <a href="index.html" class="nav-item">
+                <span class="en">ABOUT</span>
+                <span class="cn">关于</span>
+            </a>
+            <a href="projects.html" class="nav-item">
+                <span class="en">PROJECTS</span>
+                <span class="cn">游戏项目</span>
+            </a>
+            <a href="art.html" class="nav-item active">
+                <span class="en">ARTWORKS</span>
+                <span class="cn">艺术作品</span>
+            </a>
+        </div>
+    </nav>
+
     <div class="container">
         <header class="hero">
             <div class="hero-row">
@@ -71,7 +102,7 @@
                 <!-- Down Against The Flow -->
                 <div class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/DownAgainstTheFlow.jpg" alt="Down Against The Flow">
+                        <img src="OtherWorks/DownAgainstTheFlow.jpg" alt="Down Against The Flow" loading="eager" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Down Against The Flow</span><span class="cn">逆流而下</span></h3>
@@ -83,7 +114,7 @@
                 <a href="https://www.youtube.com/watch?v=-OkjF4x01e8" target="_blank"
                     class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/MacbethFilm.jpg" alt="Macbeth Film">
+                        <img src="OtherWorks/MacbethFilm.jpg" alt="Macbeth Film" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Macbeth Short Movie</span><span class="cn">微电影-麦克白</span></h3>
@@ -94,7 +125,7 @@
                 <!-- Hatsune Miku -->
                 <div class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/Hatsune Miku.png" alt="Hatsune Miku">
+                        <img src="OtherWorks/Hatsune Miku.png" alt="Hatsune Miku" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Hatsune Miku</span><span class="cn">初音未来</span></h3>
@@ -105,7 +136,7 @@
                 <!-- Flandre Scarlet -->
                 <div class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/FlandreScarlet.png" alt="FlandreScarlet">
+                        <img src="OtherWorks/FlandreScarlet.png" alt="FlandreScarlet" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Flandre · Scarlet</span><span class="cn">芙兰朵露 · 斯卡蕾特</span></h3>
@@ -116,7 +147,7 @@
                 <!-- Hakurei Reimu -->
                 <div class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/Hakurei Reimu_Blue.png" alt="Hakurei Reimu_Blue">
+                        <img src="OtherWorks/Hakurei Reimu_Blue.png" alt="Hakurei Reimu_Blue" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Hakurei Reimu - Blue</span><span class="cn">博丽灵梦 - 青</span></h3>
@@ -127,7 +158,7 @@
                 <!-- Poster Book Donation -->
                 <div class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/Poster_BookDonation.jpg" alt="Poster Book Donation">
+                        <img src="OtherWorks/Poster_BookDonation.jpg" alt="Poster Book Donation" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Poster: Book Donation</span><span class="cn">海报：图书捐赠</span></h3>
@@ -138,7 +169,7 @@
                 <!-- Poster Football Match -->
                 <div class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/Poster_FootballMatch.jpg" alt="Poster Football Match">
+                        <img src="OtherWorks/Poster_FootballMatch.jpg" alt="Poster Football Match" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Poster: Football Match</span><span class="cn">海报：足球比赛</span></h3>
@@ -149,7 +180,7 @@
                 <!-- Sun Wukong -->
                 <div class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/SunWukong.jpg" alt="Sun Wukong">
+                        <img src="OtherWorks/SunWukong.jpg" alt="Sun Wukong" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Sun Wukong</span><span class="cn">孙悟空</span></h3>
@@ -160,7 +191,7 @@
                 <!-- Minakami Yuki -->
                 <div class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/MInakami Yuki.png" alt="MInakami Yuki">
+                        <img src="OtherWorks/MInakami Yuki.png" alt="MInakami Yuki" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Minakami Yuki</span><span class="cn">水上由岐</span></h3>
@@ -171,7 +202,7 @@
                 <!-- Kirisame Marisa -->
                 <div class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/Kirisame Marisa.png" alt="Kirisame Marisa">
+                        <img src="OtherWorks/Kirisame Marisa.png" alt="Kirisame Marisa" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Kirisame Marisa</span><span class="cn">雾雨魔理沙</span></h3>
@@ -182,7 +213,7 @@
                 <!-- Postcard Design Shanghai -->
                 <div class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/PostcardDesign_Shanghai.jpg" alt="Postcard Design Shanghai">
+                        <img src="OtherWorks/PostcardDesign_Shanghai.jpg" alt="Postcard Design Shanghai" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Postcard: Shanghai</span><span class="cn">明信片：上海</span></h3>
@@ -193,7 +224,7 @@
                 <!-- Nina -->
                 <div class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/Nina.png" alt="Nina">
+                        <img src="OtherWorks/Nina.png" alt="Nina" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Iseri Nina</span><span class="cn">井芹仁菜</span></h3>
@@ -204,7 +235,7 @@
                 <!-- Skull -->
                 <div class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/Skull.jpg" alt="Skull">
+                        <img src="OtherWorks/Skull.jpg" alt="Skull" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Skull</span><span class="cn">骷髅</span></h3>
@@ -215,7 +246,7 @@
                 <!-- Shoes -->
                 <div class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/Shoes.jpg" alt="Shoes">
+                        <img src="OtherWorks/Shoes.jpg" alt="Shoes" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Shoes</span><span class="cn">鞋子</span></h3>
@@ -226,7 +257,7 @@
                 <!-- Car Design -->
                 <div class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/CarDesign.jpg" alt="Car Design">
+                        <img src="OtherWorks/CarDesign.jpg" alt="Car Design" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Car Design</span><span class="cn">汽车设计</span></h3>
@@ -237,7 +268,7 @@
                 <!-- Space And Water -->
                 <div class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/SpaceAndWater.jpg" alt="Space And Water">
+                        <img src="OtherWorks/SpaceAndWater.jpg" alt="Space And Water" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Space And Water</span><span class="cn">空间与水</span></h3>
@@ -248,7 +279,7 @@
                 <!-- Transparent -->
                 <div class="card art-card">
                     <div class="card-media">
-                        <img src="OtherWorks/Transparent.jpg" alt="Transparent">
+                        <img src="OtherWorks/Transparent.jpg" alt="Transparent" loading="lazy" decoding="async" fetchpriority="low">
                     </div>
                     <div class="art-label">
                         <h3><span class="en">Transparent</span><span class="cn">透明</span></h3>
@@ -260,9 +291,6 @@
         </section>
     </div>
 
-    <script src="js/i18n.js"></script>
-    <script src="js/main.js"></script>
-    <script src="js/motion.js"></script>
 </body>
 
 </html>

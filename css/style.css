@@ -757,11 +757,6 @@ nav {
     transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), color 0.3s ease;
 }
 
-.nav-item:hover .en,
-.nav-item:hover .cn {
-    transform: translateX(4px);
-}
-
 .nav-item:hover:not(.active)::after {
     transform: translate(-50%, -50%) scale(1);
     opacity: 0.35;
@@ -4032,7 +4027,13 @@ video,
     position: relative;
     overflow: hidden;
     isolation: isolate;
-    transition: background-color 0.45s ease;
+    transition: background-color 0.585s ease-out;
+}
+
+.ripple-host.ripple-filled {
+    transition-duration: 0.409s;
+    transition-timing-function:
+        cubic-bezier(0.75, 0, 0.9, 0.35);
 }
 
 .ripple-ink {
@@ -4069,8 +4070,8 @@ video,
     z-index: 990;
     opacity: 0;
     /* mix-blend-mode: lighten; */
-    /* 稍高透明度、低饱和度的精致辉光 */
-    background:
+    /* 辉光 */
+    /* background:
         radial-gradient(circle at 50% 50%,
             rgba(var(--accent-rgb), 0.1) 0%,
             rgba(var(--accent-rgb), 0.075) 15%,
@@ -4079,10 +4080,10 @@ video,
             transparent 80%),
         radial-gradient(circle at 50% 50%,
             rgba(255, 255, 255, 0.1) 0%,
-            transparent 50%);
+            transparent 50%); */
     filter: blur(10px), saturate(0.1);
 }
-
+/* 
 [data-theme="dark"] .cursor-glow {
     background:
         radial-gradient(circle at 50% 50%,
@@ -4094,7 +4095,7 @@ video,
         radial-gradient(circle at 50% 50%,
             rgba(255, 255, 255, 0.1) 0%,
             transparent 50%);
-}
+} */
 
 .cursor-glow.active {
     opacity: 1;
@@ -4266,6 +4267,9 @@ video,
 .art-label h3,
 .art-cat,
 .art-desc,
+.timeline-content.link-content .honor-title,
+.timeline-content.link-content .timeline-subtitle,
+.timeline-content.link-content .honor-awards,
 .skill-card-title,
 .skill-list li,
 .skill-highlight,
@@ -4590,11 +4594,6 @@ html.has-custom-cursor.show-system-cursor * {
 .rhombus-btn.is-hovered {
     background: transparent;
     border-color: transparent;
-}
-
-.nav-item.is-hovered .en,
-.nav-item.is-hovered .cn {
-    transform: translateX(4px);
 }
 
 .nav-item.is-hovered:not(.active)::after {

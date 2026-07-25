@@ -21,11 +21,13 @@ document.addEventListener('DOMContentLoaded', () => {
     document.body.insertAdjacentHTML('beforeend', LOADER_HTML);
     document.body.insertAdjacentHTML('beforeend', LIGHTBOX_HTML);
 
+    // Critical controls must be available before visual-heavy initializers.
+    initThemeToggle();
+
     // Initial Setup
     initPage();
     initBackgroundAnimation();
     initNavbarScroll();
-    initThemeToggle();
     checkYoutubeConnectivity();
 
     // Handle Browser Back/Forward
@@ -1417,17 +1419,26 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
 }
 
 function updateActiveNav() {
-    const currentPath = window.location.hash.slice(1) || 'index.html';
+    const hashPath = window.location.hash.slice(1);
+    const pathname = window.location.pathname.replace(/\\/g, '/');
+    const currentFile = pathname.split('/').pop() || 'index.html';
+    const currentPath = hashPath || (
+        /\/projects\//i.test(pathname)
+            ? `projects/${currentFile}`
+            : currentFile
+    );
+
     document.querySelectorAll('.nav-item').forEach(link => {
         link.classList.remove('active');
         const linkHref = link.getAttribute('href');
+        const linkFile = (linkHref || '').split('/').pop();
 
         // Check if current page matches this nav item
-        if (linkHref === currentPath ||
-            (currentPath === 'index.html' && linkHref === 'index.html') ||
-            (currentPath.includes('projects/') && linkHref === 'projects.html') ||
-            (currentPath === 'projects.html' && linkHref === 'projects.html') ||
-            (currentPath === 'art.html' && linkHref === 'art.html')) {
+        if (linkFile === currentPath ||
+            (currentPath === 'index.html' && linkFile === 'index.html') ||
+            (currentPath.toLowerCase().includes('projects/') && linkFile === 'projects.html') ||
+            (currentPath === 'projects.html' && linkFile === 'projects.html') ||
+            (currentPath === 'art.html' && linkFile === 'art.html')) {
             link.classList.add('active');
         }
     });
@@ -1435,7 +1446,11 @@ function updateActiveNav() {
 
 function initThemeToggle() {
     // Check for saved theme preference or default to dark mode
-    let currentTheme = localStorage.getItem('theme');
+    let currentTheme = null;
+
+    try {
+        currentTheme = localStorage.getItem('theme');
+    } catch (_) {}
 
     if (!currentTheme) {
         // Default to dark mode
@@ -1451,6 +1466,8 @@ function initThemeToggle() {
     const navLinks = nav.querySelector('.nav-links');
     if (!navLinks) return;
 
+    if (nav.querySelector('.theme-toggle')) return;
+
     const themeToggle = document.createElement('button');
     themeToggle.className = 'theme-toggle';
     themeToggle.setAttribute('aria-label', 'Toggle theme');
@@ -1461,9 +1478,6 @@ function initThemeToggle() {
 
     themeToggle.innerHTML = currentTheme === 'dark' ? sunIcon : moonIcon;
 
-    // Ensure the freshly created button picks up ripple bindings
-    if (window.MotionUX) window.MotionUX.init();
-
     themeToggle.addEventListener('click', (e) => {
         const theme = document.documentElement.getAttribute('data-theme');
         const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -1472,7 +1486,9 @@ function initThemeToggle() {
         // stays in the old theme until the full-screen mask covers everything
         const nav = document.querySelector('nav');
         if (nav) nav.classList.add(newTheme === 'dark' ? 'nav-hint-dark' : 'nav-hint-light');
-        localStorage.setItem('theme', newTheme);
+        try {
+            localStorage.setItem('theme', newTheme);
+        } catch (_) {}
         const wrap = themeToggle.querySelector('.ripple-content');
         if (wrap) wrap.innerHTML = newTheme === 'dark' ? sunIcon : moonIcon;
         else themeToggle.innerHTML = newTheme === 'dark' ? sunIcon : moonIcon;
@@ -1502,7 +1518,13 @@ function initThemeToggle() {
     if (window.matchMedia) {
         window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
             // Only auto-update if user hasn't manually set a preference
-            if (!localStorage.getItem('theme')) {
+            let hasSavedTheme = false;
+
+            try {
+                hasSavedTheme = Boolean(localStorage.getItem('theme'));
+            } catch (_) {}
+
+            if (!hasSavedTheme) {
                 const newTheme = e.matches ? 'dark' : 'light';
                 document.documentElement.setAttribute('data-theme', newTheme);
                 themeToggle.innerHTML = newTheme === 'dark' ? sunIcon : moonIcon;
@@ -1511,6 +1533,9 @@ function initThemeToggle() {
     }
 
     navLinks.parentElement.appendChild(themeToggle);
+
+    // Ensure the freshly created and attached button picks up ripple bindings.
+    if (window.MotionUX) window.MotionUX.init();
 }
 
 // YouTube Lazy Loading

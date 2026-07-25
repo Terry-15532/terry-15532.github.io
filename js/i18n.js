@@ -1,7 +1,8 @@
 (function(){
     const STORAGE_KEY = 'siteLangPref';
     function detectDefault(){
-        const saved = localStorage.getItem(STORAGE_KEY);
+        let saved = null;
+        try{ saved = localStorage.getItem(STORAGE_KEY); }catch(e){}
         if(saved) return saved;
         const nav = (navigator.languages && navigator.languages[0]) || navigator.language || 'en';
         return /^(zh|zh-)/i.test(nav) ? 'zh' : 'en';

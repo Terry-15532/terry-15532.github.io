@@ -281,6 +281,60 @@
     ].join(', ');
 
     const _rippleHosts = new Set();
+    const RIPPLE_ENTRANCE_SPEED_MULTIPLIER = 1.1;
+    const RIPPLE_EXIT_DURATION_MULTIPLIER = 1.3;
+    const MAGNETIC_RESPONSE = 0.3;
+
+    function animateMagneticReturn(
+        el,
+        currentX,
+        currentY,
+        onFinish
+    ) {
+        const reboundAxis = value => {
+            if (Math.abs(value) < 0.2) return 0;
+
+            return (
+                -Math.sign(value) *
+                clamp(Math.abs(value) * 0.12, 0.55, 1.15)
+            );
+        };
+
+        const reboundX = reboundAxis(currentX);
+        const reboundY = reboundAxis(currentY);
+
+        const animation = el.animate(
+            [
+                {
+                    transform:
+                        `translate3d(${currentX.toFixed(2)}px, ` +
+                        `${currentY.toFixed(2)}px, 0)`
+                },
+                {
+                    transform:
+                        `translate3d(${reboundX.toFixed(2)}px, ` +
+                        `${reboundY.toFixed(2)}px, 0)`,
+                    offset: 0.72
+                },
+                {
+                    transform: 'translate3d(0, 0, 0)'
+                }
+            ],
+            {
+                duration: 520,
+                easing: 'cubic-bezier(0.22, 1, 0.36, 1)',
+                fill: 'forwards'
+            }
+        );
+
+        animation.onfinish = () => {
+            animation.cancel();
+            el.style.transform = '';
+            onFinish?.();
+        };
+
+        return animation;
+    }
 
     function spawnInk(el, x, y, startScale) {
         const ink = document.createElement('span');
@@ -318,15 +372,74 @@
         let curTransX = 0;
         let curTransY = 0;
 
-        /*
-         * 原逻辑每两个 60 Hz 帧执行一次 0.18 插值。
-         * deltaFrames / 2 用于维持原来的磁吸响应时间。
-         */
-        el._magneticSpring = (deltaFrames = 2) => {
+        let reboundAnim = null;
+
+        function updateMagneticTarget(
+            clientX,
+            clientY,
+            rect = el.getBoundingClientRect()
+        ) {
+            const width = rect.width;
+            const height = rect.height;
+            const centerX =
+                rect.left + width / 2 - curTransX;
+            const centerY =
+                rect.top + height / 2 - curTransY;
+            const isNavButton = el.matches(
+                '.theme-toggle, ' +
+                '.lang-switcher-btn, ' +
+                '.icon-link, ' +
+                '.footer-social-link'
+            );
+            const isHeaderControl = el.matches(
+                '.theme-toggle, .lang-switcher-btn'
+            );
+            const limit = isNavButton
+                ? 13
+                : width < 80 || height < 80
+                    ? 8
+                    : 6;
+            const isCardLike = el.matches(
+                '.scroll-card, ' +
+                '.art-scroll-card, ' +
+                '.card, ' +
+                '.timeline-content.link-content'
+            );
+
+            /*
+             * Map the pointer's normalized position to only 72% of the former
+             * hard limit. Card-like elements intentionally use 1.7x the
+             * sensitivity and edge travel of the other large elements.
+             */
+            const usableLimit =
+                limit *
+                0.72 *
+                (isCardLike ? 1.7 : 1) *
+                (isHeaderControl ? 0.7 : 1);
+            const normalizedX = clamp(
+                (clientX - centerX) / Math.max(width / 2, 1),
+                -1,
+                1
+            );
+            const normalizedY = clamp(
+                (clientY - centerY) / Math.max(height / 2, 1),
+                -1,
+                1
+            );
+
+            targetTransX = normalizedX * usableLimit;
+            targetTransY = normalizedY * usableLimit;
+        }
+
+        el._magneticSpring = (deltaFrames = 1) => {
             if (!isHovering) return;
 
             const spring =
-                1 - Math.pow(1 - 0.18, deltaFrames / 2);
+                1 -
+                Math.pow(
+                    1 - MAGNETIC_RESPONSE,
+                    deltaFrames
+                );
 
             curTransX +=
                 (targetTransX - curTransX) * spring;
@@ -358,6 +471,12 @@
         let elRect = null;
         let maxScale = 3;
         let inkDur = 300;
+        let lastExitPoint = null;
+
+        /*
+         * Element cursor glow disabled. Keep the implementation here so it can
+         * be restored independently from the ripple behavior if needed.
+         *
         let cursorGlow = null;
 
         function ensureCursorGlow() {
@@ -372,8 +491,9 @@
 
             return cursorGlow;
         }
+        */
 
-        function exitInks() {
+        function exitInks(exitPoint) {
             const frozen = [...liveInks].filter(
                 ink => document.contains(ink)
             );
@@ -389,45 +509,13 @@
             }
 
             const rect = el.getBoundingClientRect();
+            const exitX = exitPoint
+                ? exitPoint.x
+                : rect.width / 2;
 
-            let exitX = rect.width / 2;
-            let exitY = rect.height + 10;
-
-            if (
-                el.matches(
-                    '.timeline-content.link-content'
-                )
-            ) {
-                exitX = -10;
-                exitY = rect.height / 2;
-            } else {
-                const textEl = el.querySelector(
-                    '.card-content, ' +
-                    '.card-info, ' +
-                    '.project-card-info, ' +
-                    '.art-info, ' +
-                    '.card-body, ' +
-                    '.card-text, ' +
-                    '.card-overlay-content'
-                );
-
-                if (textEl) {
-                    const tr =
-                        textEl.getBoundingClientRect();
-
-                    const textCenterX =
-                        tr.left -
-                        rect.left +
-                        tr.width / 2;
-
-                    exitX =
-                        textCenterX > rect.width / 2
-                            ? rect.width + 10
-                            : -10;
-
-                    exitY = rect.height / 2;
-                }
-            }
+            const exitY = exitPoint
+                ? exitPoint.y
+                : rect.height / 2;
 
             frozen.forEach(ink => {
                 const cs = getComputedStyle(ink);
@@ -480,14 +568,20 @@
                         }
                     ],
                     {
-                        duration: 250,
+                        duration:
+                            250 *
+                            RIPPLE_EXIT_DURATION_MULTIPLIER,
                         easing:
                             'cubic-bezier(0.4, 0, 0.8, 1)',
                         fill: 'forwards'
                     }
                 );
 
-                setTimeout(() => ink.remove(), 340);
+                setTimeout(
+                    () => ink.remove(),
+                    340 *
+                        RIPPLE_EXIT_DURATION_MULTIPLIER
+                );
             });
         }
 
@@ -503,6 +597,11 @@
         el.addEventListener('pointerenter', event => {
             if (!finePointer) return;
 
+            if (reboundAnim) {
+                reboundAnim.cancel();
+                reboundAnim = null;
+            }
+
             if (isExiting) {
                 clearExitTimers();
 
@@ -512,62 +611,15 @@
             }
 
             isHovering = true;
+            lastExitPoint = null;
 
             if (isMagnetic) {
-                const rect =
-                    el.getBoundingClientRect();
-
-                const width = rect.width;
-                const height = rect.height;
-
-                const centerX =
-                    rect.left + width / 2;
-
-                const centerY =
-                    rect.top + height / 2;
-
-                const enterDx =
-                    event.clientX - centerX;
-
-                const enterDy =
-                    event.clientY - centerY;
-
-                const length =
-                    Math.hypot(enterDx, enterDy) || 1;
-
-                const isNavButton = el.matches(
-                    '.theme-toggle, ' +
-                    '.lang-switcher-btn, ' +
-                    '.icon-link, ' +
-                    '.footer-social-link'
-                );
-
-                const amplitude = isNavButton
-                    ? 4.5
-                    : width < 80 || height < 80
-                        ? 3.5
-                        : 2;
-
-                const maxMove = isNavButton
-                    ? 4
-                    : width < 80 || height < 80
-                        ? 3
-                        : 2;
-
-                targetTransX = clamp(
-                    (enterDx / length) * amplitude,
-                    -maxMove,
-                    maxMove
-                );
-
-                targetTransY = clamp(
-                    (enterDy / length) * amplitude,
-                    -maxMove,
-                    maxMove
-                );
-
                 curTransX = 0;
                 curTransY = 0;
+                updateMagneticTarget(
+                    event.clientX,
+                    event.clientY
+                );
             }
 
             const oldInks =
@@ -613,6 +665,9 @@
             inkDur = solid ? 300 : 450;
             el.dataset.maxScale = maxScale;
 
+            /*
+             * Element cursor glow disabled.
+             *
             if (
                 !el.classList.contains('nav-item') &&
                 !el.classList.contains('rhombus-btn') &&
@@ -635,6 +690,7 @@
 
                 glow.classList.add('active');
             }
+            */
 
             const x = event.clientX - elRect.left;
             const y = event.clientY - elRect.top;
@@ -657,7 +713,12 @@
                     }
                 ],
                 {
-                    duration: inkDur,
+                    duration:
+                        inkDur *
+                        (
+                            1 /
+                            RIPPLE_ENTRANCE_SPEED_MULTIPLIER
+                        ),
                     easing: 'linear',
                     fill: 'forwards'
                 }
@@ -665,12 +726,31 @@
 
             ink.animate(
                 [
-                    { opacity: 0 },
-                    { opacity: 1 }
+                    {
+                        opacity: 0,
+                        offset: 0
+                    },
+                    {
+                        opacity: 0.08,
+                        offset: 0.55
+                    },
+                    {
+                        opacity: 0.28,
+                        offset: 0.8
+                    },
+                    {
+                        opacity: 1,
+                        offset: 1
+                    }
                 ],
                 {
-                    duration: 200,
-                    easing: 'ease-out',
+                    duration:
+                        200 *
+                        (
+                            1 /
+                            RIPPLE_ENTRANCE_SPEED_MULTIPLIER
+                        ),
+                    easing: 'linear',
                     fill: 'forwards'
                 }
             );
@@ -690,42 +770,11 @@
             elRect = el.getBoundingClientRect();
 
             if (isMagnetic) {
-                const width = elRect.width;
-                const height = elRect.height;
-
-                const centerX =
-                    elRect.left + width / 2;
-
-                const centerY =
-                    elRect.top + height / 2;
-
-                const dx = event.clientX - centerX;
-                const dy = event.clientY - centerY;
-
-                const isNavButton = el.matches(
-                    '.theme-toggle, ' +
-                    '.lang-switcher-btn, ' +
-                    '.icon-link, ' +
-                    '.footer-social-link'
+                updateMagneticTarget(
+                    event.clientX,
+                    event.clientY,
+                    elRect
                 );
-
-                const ratio = isNavButton
-                    ? 0.5
-                    : width < 80 || height < 80
-                        ? 0.3
-                        : 0.2;
-
-                const limit = isNavButton
-                    ? 13
-                    : width < 80 || height < 80
-                        ? 8
-                        : 6;
-
-                targetTransX =
-                    clamp(dx * ratio, -limit, limit);
-
-                targetTransY =
-                    clamp(dy * ratio, -limit, limit);
             }
 
             if (liveInks.length) {
@@ -735,6 +784,9 @@
                 );
             }
 
+            /*
+             * Element cursor glow disabled.
+             *
             if (cursorGlow) {
                 cursorGlow.style.left =
                     `${event.clientX - elRect.left}px`;
@@ -742,6 +794,7 @@
                 cursorGlow.style.top =
                     `${event.clientY - elRect.top}px`;
             }
+            */
         });
 
         el._scrollTick = () => {
@@ -755,21 +808,36 @@
                 moveInks(x, y);
             }
 
+            /*
+             * Element cursor glow disabled.
+             *
             if (cursorGlow) {
                 cursorGlow.style.left = `${x}px`;
                 cursorGlow.style.top = `${y}px`;
             }
+            */
         };
 
-        el.addEventListener('pointerleave', () => {
+        el.addEventListener('pointerleave', event => {
+            /*
+             * Element cursor glow disabled.
+             *
             if (cursorGlow) {
                 cursorGlow.classList.remove('active');
             }
+            */
+
+            const rect = el.getBoundingClientRect();
+
+            lastExitPoint = {
+                x: event.clientX - rect.left,
+                y: event.clientY - rect.top
+            };
 
             isHovering = false;
 
             if (!growAnim && !isExiting) {
-                startExit();
+                startExit(lastExitPoint);
             }
         });
 
@@ -784,26 +852,32 @@
             exitTimers = [];
         }
 
-        function startExit() {
+        function startExit(
+            exitPoint = lastExitPoint
+        ) {
             isExiting = true;
 
-            exitInks();
+            exitInks(exitPoint);
 
             if (isMagnetic) {
                 targetTransX = 0;
                 targetTransY = 0;
 
-                el.style.transition =
-                    'transform 0.55s ' +
-                    'cubic-bezier(0.175, 1.55, 0.35, 1.15)';
-
-                el.style.transform =
-                    'translate3d(0, 0, 0)';
+                reboundAnim = animateMagneticReturn(
+                    el,
+                    curTransX,
+                    curTransY,
+                    () => {
+                        reboundAnim = null;
+                        curTransX = 0;
+                        curTransY = 0;
+                    }
+                );
 
                 const timer = setTimeout(() => {
                     el.style.transition = '';
                     isExiting = false;
-                }, 600);
+                }, 540);
 
                 exitTimers.push(timer);
             } else {
@@ -829,6 +903,104 @@
         document
             .querySelectorAll(RIPPLE_SELECTOR)
             .forEach(bindRipple);
+
+        document
+            .querySelectorAll('.nav-item:not(.active)')
+            .forEach(bindNavMagnet);
+    }
+
+    function bindNavMagnet(el) {
+        if (el.dataset.magneticBound) return;
+
+        el.dataset.magneticBound = '1';
+        _rippleHosts.add(el);
+
+        let targetX = 0;
+        let targetY = 0;
+        let currentX = 0;
+        let currentY = 0;
+        let isHovering = false;
+        let reboundAnim = null;
+
+        el._magneticSpring = (deltaFrames = 1) => {
+            if (!isHovering) return;
+
+            const spring =
+                1 -
+                Math.pow(
+                    1 - MAGNETIC_RESPONSE,
+                    deltaFrames
+                );
+
+            currentX += (targetX - currentX) * spring;
+            currentY += (targetY - currentY) * spring;
+
+            el.style.transform =
+                `translate3d(${currentX.toFixed(1)}px, ` +
+                `${currentY.toFixed(1)}px, 0)`;
+        };
+
+        const updateTarget = event => {
+            const rect = el.getBoundingClientRect();
+            const centerX =
+                rect.left + rect.width / 2 - currentX;
+            const centerY =
+                rect.top + rect.height / 2 - currentY;
+            const normalizedX = clamp(
+                (event.clientX - centerX) /
+                    Math.max(rect.width / 2, 1),
+                -1,
+                1
+            );
+            const normalizedY = clamp(
+                (event.clientY - centerY) /
+                    Math.max(rect.height / 2, 1),
+                -1,
+                1
+            );
+
+            targetX = normalizedX * 3.6;
+            targetY = normalizedY * 2.4;
+        };
+
+        el.addEventListener('pointerenter', event => {
+            if (!finePointer) return;
+
+            if (reboundAnim) {
+                reboundAnim.cancel();
+                reboundAnim = null;
+            }
+
+            el.style.transform = '';
+            currentX = 0;
+            currentY = 0;
+            isHovering = true;
+            updateTarget(event);
+        });
+
+        el.addEventListener('pointermove', event => {
+            if (!finePointer || !isHovering) return;
+            updateTarget(event);
+        });
+
+        el.addEventListener('pointerleave', () => {
+            if (!finePointer) return;
+
+            isHovering = false;
+            targetX = 0;
+            targetY = 0;
+
+            reboundAnim = animateMagneticReturn(
+                el,
+                currentX,
+                currentY,
+                () => {
+                    reboundAnim = null;
+                    currentX = 0;
+                    currentY = 0;
+                }
+            );
+        });
     }
 
     /* ---------- Full-screen circular sweeps ---------- */
@@ -1029,7 +1201,7 @@
             {
                 duration: 300,
                 easing:
-                    'cubic-bezier(0.34, 1.1, 0.9, 1)',
+                    'cubic-bezier(0.22, 1, 0.36, 1)',
                 fill: 'forwards'
             }
         );
@@ -1133,7 +1305,7 @@
             {
                 duration: 360,
                 easing:
-                    'cubic-bezier(0.34, 1.56, 0.64, 1)',
+                    'cubic-bezier(0.22, 1, 0.36, 1)',
                 fill: 'forwards'
             }
         );
@@ -1934,6 +2106,348 @@ void main() {
         lastMouseY = centerY;
 
         let currentHoveredHost = null;
+        let hasPointerPosition = false;
+
+        /*
+         * Burst detection uses a separate, noise-resistant motion signal.
+         *
+         * The cursor itself still follows every pointer update, but bursts are
+         * based on a short regression window and a small state machine. This
+         * prevents a single noisy mouse report from looking like enormous
+         * acceleration while still detecting intentional starts, stops and
+         * large direction changes.
+         */
+        const gestureSamples = [
+            {
+                x: centerX,
+                y: centerY,
+                time: performance.now()
+            }
+        ];
+
+        let gestureVx = 0;
+        let gestureVy = 0;
+        let gestureMoving = false;
+        let motionEvidenceMs = 0;
+        let quietEvidenceMs = 0;
+        let turnEvidenceMs = 0;
+        let stableDirectionX = 0;
+        let stableDirectionY = 0;
+
+        function recordGestureSample(x, y, time) {
+            const last =
+                gestureSamples[
+                    gestureSamples.length - 1
+                ];
+
+            if (last && time <= last.time) {
+                last.x = x;
+                last.y = y;
+                return;
+            }
+
+            gestureSamples.push({ x, y, time });
+
+            const cutoff = time - 120;
+
+            while (
+                gestureSamples.length > 2 &&
+                gestureSamples[1].time < cutoff
+            ) {
+                gestureSamples.shift();
+            }
+        }
+
+        function estimateGestureVelocity(now) {
+            const windowStart = now - 72;
+            const samples = gestureSamples.filter(
+                sample => sample.time >= windowStart
+            );
+
+            if (samples.length < 3) {
+                return {
+                    vx: 0,
+                    vy: 0,
+                    confident: false
+                };
+            }
+
+            const first = samples[0];
+            const last = samples[samples.length - 1];
+            const span = last.time - first.time;
+
+            if (span < 18) {
+                return {
+                    vx: 0,
+                    vy: 0,
+                    confident: false
+                };
+            }
+
+            let meanTime = 0;
+            let meanX = 0;
+            let meanY = 0;
+            let pathLength = 0;
+
+            for (let i = 0; i < samples.length; i++) {
+                const sample = samples[i];
+
+                meanTime += sample.time;
+                meanX += sample.x;
+                meanY += sample.y;
+
+                if (i > 0) {
+                    const previous = samples[i - 1];
+
+                    pathLength += Math.hypot(
+                        sample.x - previous.x,
+                        sample.y - previous.y
+                    );
+                }
+            }
+
+            meanTime /= samples.length;
+            meanX /= samples.length;
+            meanY /= samples.length;
+
+            let timeVariance = 0;
+            let covarianceX = 0;
+            let covarianceY = 0;
+
+            for (const sample of samples) {
+                const timeOffset =
+                    sample.time - meanTime;
+
+                timeVariance +=
+                    timeOffset * timeOffset;
+
+                covarianceX +=
+                    timeOffset *
+                    (sample.x - meanX);
+
+                covarianceY +=
+                    timeOffset *
+                    (sample.y - meanY);
+            }
+
+            if (timeVariance < 1) {
+                return {
+                    vx: 0,
+                    vy: 0,
+                    confident: false
+                };
+            }
+
+            const netDistance = Math.hypot(
+                last.x - first.x,
+                last.y - first.y
+            );
+
+            const straightness =
+                pathLength > 0
+                    ? netDistance / pathLength
+                    : 0;
+
+            /*
+             * Ignore tiny or incoherent paths. Random sensor jitter tends to
+             * have little net travel and low straightness, even if one report
+             * contains a relatively large coordinate jump.
+             */
+            const confident =
+                pathLength >= 6 &&
+                netDistance >= 4 &&
+                straightness >= 0.55;
+
+            const sampleAge = now - last.time;
+            const freshness =
+                sampleAge <= 28
+                    ? 1
+                    : clamp(
+                        1 -
+                            (sampleAge - 28) /
+                                44,
+                        0,
+                        1
+                    );
+
+            return {
+                vx:
+                    (
+                        covarianceX /
+                        timeVariance
+                    ) *
+                    REFERENCE_FRAME_MS *
+                    freshness,
+                vy:
+                    (
+                        covarianceY /
+                        timeVariance
+                    ) *
+                    REFERENCE_FRAME_MS *
+                    freshness,
+                confident:
+                    confident && freshness > 0
+            };
+        }
+
+        function detectGestureBurst(
+            now,
+            deltaMs,
+            deltaFrames
+        ) {
+            const estimate =
+                estimateGestureVelocity(now);
+
+            const gestureAlpha =
+                frameAlpha(0.28, deltaFrames);
+
+            gestureVx = lerp(
+                gestureVx,
+                estimate.vx,
+                gestureAlpha
+            );
+
+            gestureVy = lerp(
+                gestureVy,
+                estimate.vy,
+                gestureAlpha
+            );
+
+            const gestureSpeed =
+                Math.hypot(gestureVx, gestureVy);
+
+            if (!gestureMoving) {
+                if (
+                    estimate.confident &&
+                    gestureSpeed >= 5.5
+                ) {
+                    motionEvidenceMs += deltaMs;
+                } else {
+                    motionEvidenceMs = Math.max(
+                        0,
+                        motionEvidenceMs -
+                            deltaMs * 1.5
+                    );
+                }
+
+                if (motionEvidenceMs >= 28) {
+                    gestureMoving = true;
+                    motionEvidenceMs = 0;
+                    quietEvidenceMs = 0;
+
+                    stableDirectionX =
+                        gestureVx / gestureSpeed;
+
+                    stableDirectionY =
+                        gestureVy / gestureSpeed;
+
+                    return 'start';
+                }
+
+                return null;
+            }
+
+            if (
+                gestureSpeed <= 0.9 ||
+                !estimate.confident
+            ) {
+                quietEvidenceMs += deltaMs;
+            } else {
+                quietEvidenceMs = Math.max(
+                    0,
+                    quietEvidenceMs -
+                        deltaMs * 2
+                );
+            }
+
+            if (quietEvidenceMs >= 64) {
+                gestureMoving = false;
+                quietEvidenceMs = 0;
+                turnEvidenceMs = 0;
+                stableDirectionX = 0;
+                stableDirectionY = 0;
+
+                /*
+                 * Stopping only resets the gesture state. Bursts are reserved
+                 * for intentional starts and large direction changes.
+                 */
+                return null;
+            }
+
+            if (
+                estimate.confident &&
+                gestureSpeed >= 4.5
+            ) {
+                const directionX =
+                    gestureVx / gestureSpeed;
+
+                const directionY =
+                    gestureVy / gestureSpeed;
+
+                const directionDot =
+                    directionX *
+                        stableDirectionX +
+                    directionY *
+                        stableDirectionY;
+
+                /*
+                 * dot <= 0.2 means roughly 78 degrees or more. Requiring the
+                 * direction to persist for multiple frames filters out the
+                 * alternating one-pixel noise common with high-DPI mice.
+                 */
+                if (directionDot <= 0.2) {
+                    turnEvidenceMs += deltaMs;
+                } else {
+                    turnEvidenceMs = Math.max(
+                        0,
+                        turnEvidenceMs -
+                            deltaMs * 2
+                    );
+                }
+
+                if (turnEvidenceMs >= 24) {
+                    stableDirectionX = directionX;
+                    stableDirectionY = directionY;
+                    turnEvidenceMs = 0;
+
+                    return 'turn';
+                }
+
+                if (directionDot > 0.65) {
+                    const directionAlpha =
+                        frameAlpha(
+                            0.08,
+                            deltaFrames
+                        );
+
+                    const blendedX = lerp(
+                        stableDirectionX,
+                        directionX,
+                        directionAlpha
+                    );
+
+                    const blendedY = lerp(
+                        stableDirectionY,
+                        directionY,
+                        directionAlpha
+                    );
+
+                    const blendedLength =
+                        Math.hypot(
+                            blendedX,
+                            blendedY
+                        ) || 1;
+
+                    stableDirectionX =
+                        blendedX / blendedLength;
+
+                    stableDirectionY =
+                        blendedY / blendedLength;
+                }
+            }
+
+            return null;
+        }
 
         function updateElementHoverState(
             clientX,
@@ -2163,6 +2677,13 @@ void main() {
         const onMove = event => {
             mouseX = event.clientX;
             mouseY = event.clientY;
+            hasPointerPosition = true;
+
+            recordGestureSample(
+                mouseX,
+                mouseY,
+                performance.now()
+            );
 
             updateElementHoverState(
                 event.clientX,
@@ -2290,9 +2811,6 @@ void main() {
             lastMouseX = mouseX;
             lastMouseY = mouseY;
 
-            const oldVx = mouseVx;
-            const oldVy = mouseVy;
-
             const velocityAlpha =
                 frameAlpha(0.35, deltaFrames);
 
@@ -2311,11 +2829,12 @@ void main() {
             const speed =
                 Math.hypot(mouseVx, mouseVy);
 
-            const acceleration =
-                (
-                    speed -
-                    Math.hypot(oldVx, oldVy)
-                ) / safeDeltaFrames;
+            const gestureBurst =
+                detectGestureBurst(
+                    now,
+                    deltaMs,
+                    deltaFrames
+                );
 
             const mouseDirectionX =
                 speed > 0.1
@@ -2551,8 +3070,8 @@ void main() {
 
             if (
                 !isHoveringInteract &&
-                acceleration > 10 &&
-                now - lastBurstTime > 200
+                gestureBurst &&
+                now - lastBurstTime > 160
             ) {
                 lastBurstTime = now;
 
@@ -2994,7 +3513,7 @@ void main() {
 
             if (
                 magneticElapsedMs >=
-                REFERENCE_FRAME_MS * 2
+                REFERENCE_FRAME_MS
             ) {
                 const magneticDeltaFrames =
                     magneticElapsedMs /
@@ -3009,7 +3528,7 @@ void main() {
                 }
 
                 magneticElapsedMs %=
-                    REFERENCE_FRAME_MS * 2;
+                    REFERENCE_FRAME_MS;
             }
 
             requestAnimationFrame(tick);
@@ -3023,15 +3542,48 @@ void main() {
             { passive: true }
         );
 
+        let scrollHoverFrame = null;
+
         window.addEventListener(
             'scroll',
             () => {
-                if (cursorEl) {
-                    updateCursorState(
-                        mouseX,
-                        mouseY
-                    );
+                if (
+                    !cursorEl ||
+                    !hasPointerPosition ||
+                    scrollHoverFrame !== null
+                ) {
+                    return;
                 }
+
+                scrollHoverFrame =
+                    requestAnimationFrame(() => {
+                        scrollHoverFrame = null;
+
+                        /*
+                         * A stationary pointer does not reliably emit native
+                         * enter/leave events when scrolling moves a new
+                         * element beneath it. Re-run hit testing once per
+                         * animation frame so ripple and hover state stay in
+                         * sync with the visual element under the cursor.
+                         */
+                        updateElementHoverState(
+                            mouseX,
+                            mouseY
+                        );
+
+                        updateCursorState(
+                            mouseX,
+                            mouseY
+                        );
+
+                        for (
+                            const host of _rippleHosts
+                        ) {
+                            if (host._scrollTick) {
+                                host._scrollTick();
+                            }
+                        }
+                    });
             },
             { passive: true }
         );
@@ -3100,9 +3652,27 @@ void main() {
 
                 mouseX = event.clientX;
                 mouseY = event.clientY;
+                hasPointerPosition = true;
 
                 lastMouseX = mouseX;
                 lastMouseY = mouseY;
+
+                gestureSamples.length = 0;
+
+                recordGestureSample(
+                    mouseX,
+                    mouseY,
+                    performance.now()
+                );
+
+                gestureVx = 0;
+                gestureVy = 0;
+                gestureMoving = false;
+                motionEvidenceMs = 0;
+                quietEvidenceMs = 0;
+                turnEvidenceMs = 0;
+                stableDirectionX = 0;
+                stableDirectionY = 0;
 
                 headX = mouseX;
                 headY = mouseY;
