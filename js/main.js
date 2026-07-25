@@ -1566,6 +1566,8 @@ function initYoutubeLazyLoad() {
 function initYoutubePointerGlow(container) {
     if (!window.__youtubeGlowDocumentBound) {
         document.addEventListener('pointermove', (e) => {
+            window.__youtubeGlowPointerX = e.clientX;
+            window.__youtubeGlowPointerY = e.clientY;
             const hoveredVideo = e.target.closest?.('.youtube-lazy');
 
             document
@@ -1584,18 +1586,42 @@ function initYoutubePointerGlow(container) {
 
     container.dataset.youtubeGlowBound = 'true';
 
-    const updateGlowPosition = (e) => {
+    const setGlowPosition = (clientX, clientY) => {
         const rect = container.getBoundingClientRect();
 
         container.classList.add('youtube-pointer-glow');
         container.style.setProperty(
             '--youtube-glow-x',
-            `${e.clientX - rect.left}px`
+            `${clientX - rect.left}px`
         );
         container.style.setProperty(
             '--youtube-glow-y',
-            `${e.clientY - rect.top}px`
+            `${clientY - rect.top}px`
         );
+    };
+
+    const updateGlowPosition = (e) => {
+        window.__youtubeGlowPointerX = e.clientX;
+        window.__youtubeGlowPointerY = e.clientY;
+        setGlowPosition(e.clientX, e.clientY);
+    };
+
+    const syncGlowPosition = () => {
+        if (
+            typeof window.__youtubeGlowPointerX !== 'number' ||
+            typeof window.__youtubeGlowPointerY !== 'number'
+        ) return;
+
+        const hoveredAtPointer = document.elementFromPoint(
+            window.__youtubeGlowPointerX,
+            window.__youtubeGlowPointerY
+        )?.closest?.('.youtube-lazy');
+
+        if (hoveredAtPointer === container) {
+            setGlowPosition(window.__youtubeGlowPointerX, window.__youtubeGlowPointerY);
+        } else if (container.classList.contains('youtube-pointer-glow')) {
+            container.classList.remove('youtube-pointer-glow');
+        }
     };
 
     container.addEventListener('pointerenter', (e) => {
@@ -1606,6 +1632,7 @@ function initYoutubePointerGlow(container) {
     container.addEventListener('pointerleave', () => {
         container.classList.remove('youtube-pointer-glow');
     });
+    window.addEventListener('scroll', syncGlowPosition, { passive: true });
 }
 
 // Check YouTube connectivity on page load

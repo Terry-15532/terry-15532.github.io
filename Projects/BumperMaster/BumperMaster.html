@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>P. R. T. S.</title>
     <script async fetchpriority="high" src="../../js/critical.js?v=20260725b"></script>
-    <link rel="stylesheet" href="../../css/style.css?v=20260725g">
-    <script defer fetchpriority="high" src="../../js/main.js?v=20260725f"></script>
+    <link rel="stylesheet" href="../../css/style.css?v=20260725h">
+    <script defer fetchpriority="high" src="../../js/main.js?v=20260725g"></script>
 </head>
 
 <body>
@@ -34,76 +34,54 @@
 
     <div class="container project-detail-container">
 
-        <div style="border: 2px solid var(--border-color);
-            background: var(--card-bg);
-            backdrop-filter: blur(5px);
-            margin-left: 2%; width: 95%; margin-bottom: 50px; margin-top: 5%; padding: 40px;
-            font-family: var(--font-main);
-            box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.3), 0 4px 20px rgba(0, 0, 0, 0.15);
-            clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
-            position: relative; overflow: hidden;
-            transition: all 0.3s ease;">
-
-            <!-- Decorative corner elements -->
-            <div
-                style="position: absolute; top: 0; left: 0; width: 40px; height: 40px; border-top: 2px solid var(--border-color); border-left: 2px solid var(--border-color); z-index: 2;">
-            </div>
-            <div
-                style="position: absolute; bottom: 0; right: 0; width: 40px; height: 40px; border-bottom: 2px solid var(--border-color); border-right: 2px solid var(--border-color); z-index: 2;">
+        <section class="project-detail-panel">
+            <div class="project-panel-header">
+                <div class="project-panel-kicker">System Guide</div>
+                <h2 class="project-panel-title"><span class="en">Controls</span><span class="cn">游玩方式</span></h2>
+                <div class="project-panel-divider"></div>
             </div>
 
-            <div style="text-align: center; margin-bottom: 10px; position: relative;">
-                <div style="height: 1px; background: var(--border-color); margin-bottom: 10px;"></div>
-                <h2
-                    style="font-size: 2rem; color: var(--text-primary); letter-spacing: 2px; text-transform: uppercase; font-weight: 800; margin: 0;">
-                    <span class="en">CONTROLS</span><span class="cn">游玩方式</span>
-                </h2>
-                <div style="height: 1px; background: var(--border-color); margin-top: 20px;"></div>
-            </div>
+            <div class="project-panel-list">
+                <article class="project-panel-item">
+                    <span class="project-panel-marker">›</span>
+                    <div class="project-panel-body">
+                        <strong class="project-panel-label"><span class="en">Game Mode Selection</span><span class="cn">游戏模式选择</span></strong>
+                        <p>
+                            <strong class="project-panel-key">[Q]</strong> <span class="en">Single Player</span><span class="cn">单人游戏</span>
+                            &nbsp;&nbsp;&nbsp;
+                            <strong class="project-panel-key">[E]</strong> <span class="en">Multiplayer</span><span class="cn">多人游戏</span>
+                        </p>
+                    </div>
+                </article>
 
-            <div
-                style="color: var(--text-primary); position: relative; z-index: 1; display: flex; flex-direction: column; gap: 20px;">
-                <div
-                    style="padding: 20px; background: rgba(0,0,0,0.03); border-left: 3px solid var(--accent-cyan); transition: all 0.3s ease;">
-                    <span
-                        style="color: var(--accent-cyan); font-size: 16px; margin-right: 8px; font-weight: bold;">›</span>
-                    <strong style="font-size: 1.3rem; color: var(--text-primary);"><span class="en">Game Mode Selection</span><span class="cn">游戏模式选择</span></strong><br>
-                    <span style="color: var(--text-secondary); margin-left: 24px; font-size: 1.1rem;">
-                        <strong style="color: var(--text-primary);">[Q]</strong> — <span class="en">Single Player</span><span class="cn">单人游戏</span> &nbsp;&nbsp;&nbsp;
-                        <strong style="color: var(--text-primary);">[E]</strong> — <span class="en">Multiplayer</span><span class="cn">多人游戏</span>
-                    </span>
-                </div>
-            </div>
+                <article class="project-panel-item">
+                    <span class="project-panel-marker">›</span>
+                    <div class="project-panel-body">
+                        <strong class="project-panel-label"><span class="en">Movement</span><span class="cn">移动</span></strong>
+                        <p><strong class="project-panel-key"><span class="en">Blue Side:</span><span class="cn">蓝方：</span></strong> [W], [A], [S], [D]</p>
+                        <p><strong class="project-panel-key"><span class="en">Red Side:</span><span class="cn">红方：</span></strong> <span class="en">Arrow Keys (Multiplayer only)</span><span class="cn">方向键（仅多人模式）</span></p>
+                    </div>
+                </article>
 
-            <div
-                style="padding: 20px; background: rgba(0, 0, 0, 0.03); border-left: 3px solid var(--accent-cyan); transition: all 0.3s ease;">
-                <span style="color: var(--accent-cyan); font-size: 16px; margin-right: 8px; font-weight: bold;">›</span>
-                <strong style="font-size: 1.3rem; color: var(--text-primary);"><span class="en">Movement</span><span class="cn">移动</span></strong><br>
-                <div style="color: var(--text-secondary); margin-left: 24px; font-size: 1.1rem;">
-                    <strong style="color: var(--text-primary);"><span class="en">Blue Side:</span><span class="cn">蓝方：</span></strong> [W], [A], [S], [D]<br>
-                    <strong style="color: var(--text-primary);"><span class="en">Red Side:</span><span class="cn">红方：</span></strong> <span class="en">Arrow Keys (Multiplayer only)</span><span class="cn">方向键（仅多人模式）</span>
-                </div>
-            </div>
+                <article class="project-panel-item">
+                    <span class="project-panel-marker">›</span>
+                    <div class="project-panel-body">
+                        <strong class="project-panel-label"><span class="en">Place Bomb</span><span class="cn">放置炸弹</span></strong>
+                        <p><strong class="project-panel-key"><span class="en">Blue Side:</span><span class="cn">蓝方：</span></strong> <strong class="project-panel-key">[Space]</strong></p>
+                        <p><strong class="project-panel-key"><span class="en">Red Side:</span><span class="cn">红方：</span></strong> <strong class="project-panel-key">[Enter]</strong></p>
+                    </div>
+                </article>
 
-            <div
-                style="padding: 20px; background: rgba(0,0,0,0.03); border-left: 3px solid var(--accent-cyan); transition: all 0.3s ease;">
-                <span style="color: var(--accent-cyan); font-size: 16px; margin-right: 8px; font-weight: bold;">›</span>
-                <strong style="font-size: 1.3rem; color: var(--text-primary);"><span class="en">Place Bomb</span><span class="cn">放置炸弹</span></strong><br>
-                <div style="color: var(--text-secondary); margin-left: 24px; font-size: 1.1rem;">
-                    <strong style="color: var(--text-primary);"><span class="en">Blue Side:</span><span class="cn">蓝方：</span></strong> <strong style="color: var(--text-primary);">[Space]</strong><br>
-                    <strong style="color: var(--text-primary);"><span class="en">Red Side:</span><span class="cn">红方：</span></strong> <strong style="color: var(--text-primary);">[Enter]</strong>
-                </div>
+                <article class="project-panel-item">
+                    <span class="project-panel-marker">›</span>
+                    <div class="project-panel-body">
+                        <strong class="project-panel-label"><span class="en">Other Controls</span><span class="cn">其他控制</span></strong>
+                        <p><strong class="project-panel-key">[Esc]</strong> <span class="en">Pause</span><span class="cn">暂停</span></p>
+                        <p><strong class="project-panel-key">[F11]</strong> <span class="en">Toggle Fullscreen</span><span class="cn">切换全屏</span></p>
+                    </div>
+                </article>
             </div>
-
-            <div
-                style="padding: 20px; background: rgba(0,0,0,0.03); border-left: 3px solid var(--accent-cyan); transition: all 0.3s ease;">
-                <span style="color: var(--accent-cyan); font-size: 16px; margin-right: 8px; font-weight: bold;">›</span>
-                <strong style="font-size: 1.3rem; color: var(--text-primary);"><span class="en">Other Controls</span><span class="cn">其他控制</span></strong><br>
-                <div style="color: var(--text-secondary); margin-left: 24px; font-size: 1.1rem;">
-                    <strong style="color: var(--text-primary);">[Esc]</strong> — <span class="en">Pause</span><span class="cn">暂停</span><br>
-                    <strong style="color: var(--text-primary);">[F11]</strong> — <span class="en">Toggle Fullscreen</span><span class="cn">切换全屏</span>
-                </div>
-            </div>
+        </section>
         </div>
 
         <div class="webgl-container" id="game-container-bumpermaster" style="aspect-ratio: 16/8.2;">
@@ -117,78 +95,55 @@
 
         <div class="deco-line"></div>
 
-        <div style="border: 2px solid var(--border-color);
-            background: var(--card-bg);
-            backdrop-filter: blur(5px);
-            margin-left: 2%; width: 95%; margin-bottom: 100px; margin-top: 5%; padding: 40px;
-            font-family: var(--font-main);
-            box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.3), 0 4px 20px rgba(0, 0, 0, 0.15);
-            clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
-            position: relative; overflow: hidden;
-            transition: all 0.3s ease;">
-
-            <!-- Decorative corner elements -->
-            <div
-                style="position: absolute; top: 0; left: 0; width: 40px; height: 40px; border-top: 2px solid var(--border-color); border-left: 2px solid var(--border-color); z-index: 2;">
-            </div>
-            <div
-                style="position: absolute; bottom: 0; right: 0; width: 40px; height: 40px; border-bottom: 2px solid var(--border-color); border-right: 2px solid var(--border-color); z-index: 2;">
+        <section class="project-detail-panel" style="margin-bottom: 100px;">
+            <div class="project-panel-header">
+                <div class="project-panel-kicker">Asset Sources</div>
+                <h2 class="project-panel-title"><span class="en">Credits</span><span class="cn">引用</span></h2>
+                <div class="project-panel-divider"></div>
             </div>
 
-            <div style="text-align: center; margin-bottom: 10px; position: relative;">
-                <div style="height: 1px; background: var(--border-color); margin-bottom: 10px;"></div>
-                <h2
-                    style="font-size: 2rem; color: var(--text-primary); letter-spacing: 2px; text-transform: uppercase; font-weight: 800; margin: 0;">
-                    <span class="en">CREDITS</span><span class="cn">引用</span>
-                </h2>
-                <div style="height: 1px; background: var(--border-color); margin-top: 20px;"></div>
-            </div>
+            <div class="project-panel-list">
+                <article class="project-panel-item">
+                    <span class="project-panel-marker">›</span>
+                    <div class="project-panel-body">
+                        <strong class="project-panel-label"><span class="en">Background Music</span><span class="cn">背景音乐</span></strong>
+                        <p>No Bet, No Life by 塞壬唱片-MSR &amp; N2V</p>
+                    </div>
+                </article>
 
-            <div
-                style="padding: 20px; background: rgba(0,0,0,0.03); border-left: 3px solid var(--accent-cyan); transition: all 0.3s ease;">
-                <span style="color: var(--accent-cyan); font-size: 16px; margin-right: 8px; font-weight: bold;">›</span>
-                <strong style="font-size: 1.1rem; color: var(--text-primary);"><span class="en">Background Music:</span><span class="cn">背景音乐：</span></strong><br>
-                <span style="color: var(--text-secondary); margin-left: 24px;">
-                    No Bet, No Life by 塞壬唱片-MSR & N2V
-                </span>
-            </div>
+                <article class="project-panel-item">
+                    <span class="project-panel-marker">›</span>
+                    <div class="project-panel-body">
+                        <strong class="project-panel-label"><span class="en">Sound Effects</span><span class="cn">音效</span></strong>
+                        <p><span class="en">Downloaded from Pixabay</span><span class="cn">下载自 Pixabay</span></p>
+                    </div>
+                </article>
 
-            <div
-                style="padding: 20px; background: rgba(0,0,0,0.03); border-left: 3px solid var(--accent-cyan); transition: all 0.3s ease;">
-                <span style="color: var(--accent-cyan); font-size: 16px; margin-right: 8px; font-weight: bold;">›</span>
-                <strong style="font-size: 1.1rem; color: var(--text-primary);"><span class="en">Sound Effects:</span><span class="cn">音效：</span></strong><br>
-                <span style="color: var(--text-secondary); margin-left: 24px;">
-                    <span class="en">Downloaded from Pixabay</span><span class="cn">下载自 Pixabay</span>
-                </span>
-            </div>
+                <article class="project-panel-item">
+                    <span class="project-panel-marker">›</span>
+                    <div class="project-panel-body">
+                        <strong class="project-panel-label"><span class="en">Textures</span><span class="cn">纹理</span></strong>
+                        <p><span class="en">One texture sourced online</span><span class="cn">一个纹理来源于网络</span></p>
+                    </div>
+                </article>
 
-            <div
-                style="padding: 20px; background: rgba(0,0,0,0.03); border-left: 3px solid var(--accent-cyan); transition: all 0.3s ease;">
-                <span style="color: var(--accent-cyan); font-size: 16px; margin-right: 8px; font-weight: bold;">›</span>
-                <strong style="font-size: 1.1rem; color: var(--text-primary);"><span class="en">Textures:</span><span class="cn">纹理：</span></strong><br>
-                <span style="color: var(--text-secondary); margin-left: 24px;">
-                    <span class="en">One texture sourced online</span><span class="cn">一个纹理来源于网络</span>
-                </span>
-            </div>
+                <article class="project-panel-item">
+                    <span class="project-panel-marker">›</span>
+                    <div class="project-panel-body">
+                        <strong class="project-panel-label"><span class="en">Models &amp; Art Assets</span><span class="cn">模型和美术资产</span></strong>
+                        <p><span class="en">Created by myself (Terry) with Blender</span><span class="cn">使用 Blender 独立制作</span></p>
+                    </div>
+                </article>
 
-            <div
-                style="padding: 20px; background: rgba(0,0,0,0.03); border-left: 3px solid var(--accent-cyan); transition: all 0.3s ease;">
-                <span style="color: var(--accent-cyan); font-size: 16px; margin-right: 8px; font-weight: bold;">›</span>
-                <strong style="font-size: 1.1rem; color: var(--text-primary);"><span class="en">Models & Art Assets:</span><span class="cn">模型和美术资产：</span></strong><br>
-                <span style="color: var(--text-secondary); margin-left: 24px;">
-                    <span class="en">Created by myself (Terry) with Blender</span><span class="cn">使用 Blender 独立制作</span>
-                </span>
+                <article class="project-panel-item">
+                    <span class="project-panel-marker">›</span>
+                    <div class="project-panel-body">
+                        <strong class="project-panel-label"><span class="en">Code &amp; Shader</span><span class="cn">代码和着色器</span></strong>
+                        <p><span class="en">Developed by myself (Terry) with help from GitHub Copilot</span><span class="cn">借助 GitHub Copilot 独立开发</span></p>
+                    </div>
+                </article>
             </div>
-
-            <div
-                style="padding: 20px; background: rgba(0,0,0,0.03); border-left: 3px solid var(--accent-cyan); transition: all 0.3s ease;">
-                <span style="color: var(--accent-cyan); font-size: 16px; margin-right: 8px; font-weight: bold;">›</span>
-                <strong style="font-size: 1.1rem; color: var(--text-primary);"><span class="en">Code & Shader:</span><span class="cn">代码和着色器：</span></strong><br>
-                <span style="color: var(--text-secondary); margin-left: 24px;">
-                    <span class="en">Developed by myself (Terry) with help from GitHub Copilot</span><span class="cn">借助 GitHub Copilot 独立开发</span>
-                </span>
-            </div>
-        </div>
+        </section>
 
         <div class="project-content">
             <div class="project-gallery"></div>

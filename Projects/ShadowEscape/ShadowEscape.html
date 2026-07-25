@@ -6,8 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>P. R. T. S.</title>
     <script async fetchpriority="high" src="../../js/critical.js?v=20260725b"></script>
-    <link rel="stylesheet" href="../../css/style.css?v=20260725g">
-    <script defer fetchpriority="high" src="../../js/main.js?v=20260725f"></script>
+    <link rel="stylesheet" href="../../css/style.css?v=20260725h">
+    <script defer fetchpriority="high" src="../../js/main.js?v=20260725g"></script>
 </head>
 
 <body>
@@ -34,74 +34,47 @@
 
     <div class="container project-detail-container">
 
-        <div style="border: 2px solid var(--border-color);
-            background: var(--card-bg);
-            backdrop-filter: blur(5px);
-            margin-left: 2%; width: 95%; margin-bottom: 100px; margin-top: 5%; padding: 40px;
-            font-family: var(--font-main);
-            box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.3), 0 4px 20px rgba(0, 0, 0, 0.15);
-            clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
-            position: relative; overflow: hidden;
-            transition: all 0.3s ease;">
-
-            <!-- Decorative corner elements -->
-            <div
-                style="position: absolute; top: 0; left: 0; width: 40px; height: 40px; border-top: 2px solid var(--border-color); border-left: 2px solid var(--border-color); z-index: 2;">
-            </div>
-            <div
-                style="position: absolute; bottom: 0; right: 0; width: 40px; height: 40px; border-bottom: 2px solid var(--border-color); border-right: 2px solid var(--border-color); z-index: 2;">
+        <section class="project-detail-panel" style="margin-bottom: 100px;">
+            <div class="project-panel-header">
+                <div class="project-panel-kicker">Interaction Guide</div>
+                <h2 class="project-panel-title"><span class="en">Controls</span><span class="cn">控制</span></h2>
+                <div class="project-panel-divider"></div>
             </div>
 
-            <!-- Title with decorative line -->
-            <div style="text-align: center; margin-bottom: 10px; position: relative;">
-                <div style="height: 1px; background: var(--border-color); margin-bottom: 10px;"></div>
-                <h2
-                    style="font-size: 2rem; color: var(--text-primary); letter-spacing: 2px; text-transform: uppercase; font-weight: 800; margin: 0;">
-                    <span class="en">CONTROLS</span><span class="cn">控制</span>
-                </h2>
-                <div style="height: 1px; background: var(--border-color); margin-top: 20px;"></div>
-            </div>
+            <div class="project-panel-list">
+                <article class="project-panel-item">
+                    <span class="project-panel-marker">›</span>
+                    <div class="project-panel-body">
+                        <strong class="project-panel-label"><span class="en">Movement</span><span class="cn">移动</span></strong>
+                        <p><strong class="project-panel-key">A / D</strong> <span class="en">and</span><span class="cn">和</span> <strong class="project-panel-key">SPACEBAR</strong> <span class="en">to move and jump</span><span class="cn">移动和跳跃</span></p>
+                    </div>
+                </article>
 
-            <div
-                style="color: var(--text-primary); position: relative; z-index: 1; display: flex; flex-direction: column; gap: 20px;">
-                <div
-                    style="padding: 20px; background: rgba(0,0,0,0.03); border-left: 3px solid var(--accent-cyan); transition: all 0.3s ease;">
-                    <span
-                        style="color: var(--accent-cyan); font-size: 16px; margin-right: 8px; font-weight: bold;">›</span>
-                    <strong style="font-size: 1.3rem; color: var(--text-primary);">A / D</strong>
-                    <span style="color: var(--text-secondary);"> <span class="en">and</span><span class="cn">和</span> </span>
-                    <strong style="font-size: 1.3rem; color: var(--text-primary);">SPACEBAR</strong>
-                    <span style="color: var(--text-secondary);"> <span class="en">to move and jump</span><span class="cn">移动和跳跃</span></span>
-                </div>
-            </div>
+                <article class="project-panel-item project-panel-note">
+                    <span class="project-panel-marker">⚠</span>
+                    <div class="project-panel-body">
+                        <strong class="project-panel-label"><span class="en">Checkpoint Reset</span><span class="cn">检查点重置</span></strong>
+                        <p><span class="en">Press</span><span class="cn">按</span> <strong class="project-panel-key">R</strong> <span class="en">to restart from the last checkpoint if you get stuck</span><span class="cn">从最后一个检查点重启，如果卡住了会很有用</span></p>
+                    </div>
+                </article>
 
-            <div
-                style="padding: 20px; background: rgba(0, 0, 0, 0.03); border-left: 3px solid var(--accent-cyan); transition: all 0.3s ease;">
-                <span style="color: var(--accent-cyan); font-size: 16px; margin-right: 8px; font-weight: bold;">⚠</span>
-                <span style="color: var(--text-secondary);"><span class="en">Press</span><span class="cn">按</span> </span>
-                <strong style="font-size: 1.3rem; color: var(--text-primary);">'R'</strong>
-                <span style="color: var(--text-secondary);"> <span class="en">to restart from last checkpoint (helpful if you are
-                    stuck)</span><span class="cn">从最后一个检查点重启（如果卡住了很有用）</span></span>
-            </div>
+                <article class="project-panel-item">
+                    <span class="project-panel-marker">›</span>
+                    <div class="project-panel-body">
+                        <strong class="project-panel-label"><span class="en">Light Manipulation</span><span class="cn">灯光操作</span></strong>
+                        <p><span class="en">Click highlighted lights to drag them, then use the</span><span class="cn">点击高亮灯光进行拖拽，并使用</span> <strong class="project-panel-key"><span class="en">mouse-wheel</span><span class="cn">鼠标滚轮</span></strong> <span class="en">to push and pull them</span><span class="cn">推近或拉远它们</span></p>
+                    </div>
+                </article>
 
-            <div
-                style="padding: 20px; background: rgba(0,0,0,0.03); border-left: 3px solid var(--accent-cyan); transition: all 0.3s ease;">
-                <span style="color: var(--accent-cyan); font-size: 16px; margin-right: 8px; font-weight: bold;">›</span>
-                <strong style="font-size: 1.1rem; color: var(--text-primary);"><span class="en">Click on highlighted lights</span><span class="cn">点击高亮显示的灯光</span></strong>
-                <span style="color: var(--text-secondary);"> <span class="en">to drag and drop lights, and use</span><span class="cn">来拖放灯光，并使用</span> </span>
-                <strong style="font-size: 1.1rem; color: var(--text-primary);"><span class="en">mouse-wheel</span><span class="cn">鼠标滚轮</span></strong>
-                <span style="color: var(--text-secondary);"> <span class="en">when dragging lights to push and pull them</span><span class="cn">在拖动灯光时推拉它们</span></span>
+                <article class="project-panel-item">
+                    <span class="project-panel-marker">›</span>
+                    <div class="project-panel-body">
+                        <strong class="project-panel-label"><span class="en">Platform Scaling</span><span class="cn">平台缩放</span></strong>
+                        <p><strong class="project-panel-key"><span class="en">Left-click</span><span class="cn">左键点击</span></strong> <span class="en">highlighted platforms to enlarge them, and</span><span class="cn">高亮平台以放大它们，并用</span> <strong class="project-panel-key"><span class="en">Right-click</span><span class="cn">右键点击</span></strong> <span class="en">to shrink them</span><span class="cn">缩小它们</span></p>
+                    </div>
+                </article>
             </div>
-
-            <div
-                style="padding: 20px; background: rgba(0,0,0,0.03); border-left: 3px solid var(--accent-cyan); transition: all 0.3s ease;">
-                <span style="color: var(--accent-cyan); font-size: 16px; margin-right: 8px; font-weight: bold;">›</span>
-                <strong style="font-size: 1.1rem; color: var(--text-primary);"><span class="en">Left-click</span><span class="cn">左键点击</span></strong>
-                <span style="color: var(--text-secondary);"> <span class="en">on highlighted platforms to scale them up in size,</span><span class="cn">高亮显示的平台来放大它们，</span> </span>
-                <strong style="font-size: 1.1rem; color: var(--text-primary);"><span class="en">Right-click</span><span class="cn">右键点击</span></strong>
-                <span style="color: var(--text-secondary);"> <span class="en">to scale them down</span><span class="cn">缩小它们</span></span>
-            </div>
-        </div>
+        </section>
 
 
         <div class="webgl-container" id="game-container-shadowescape" style="aspect-ratio: 16/8.2;">
