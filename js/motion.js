@@ -584,9 +584,9 @@ void main() {
         // by these weights keeps the masonry stable between reloads while
         // producing visibly different final column lengths.
         const columnWeights = n === 3
-            ? [1.1, 0.9, 1]
+            ? [1.13, 0.88, 0.99]
             : n === 2
-                ? [1.08, 0.92]
+                ? [1.1, 0.9]
                 : [1];
 
         cards.forEach(card => {
@@ -1354,8 +1354,8 @@ void main() {
                 1
             );
 
-            targetX = normalizedX * 3.6;
-            targetY = normalizedY * 2.4;
+            targetX = normalizedX * 6.12;
+            targetY = normalizedY * 4.08;
         };
 
         el.addEventListener('pointerenter', event => {
@@ -1394,6 +1394,30 @@ void main() {
                     currentX = 0;
                     currentY = 0;
                 }
+            );
+        });
+
+        el.addEventListener('click', event => {
+            if (!finePointer || !isHovering) return;
+
+            el.dispatchEvent(
+                new PointerEvent('pointerleave', {
+                    bubbles: true,
+                    cancelable: true,
+                    clientX: event.clientX,
+                    clientY: event.clientY
+                })
+            );
+
+            document.dispatchEvent(
+                new CustomEvent('motion-force-pointer-exit', {
+                    detail: {
+                        host: el,
+                        clientX: event.clientX,
+                        clientY: event.clientY,
+                        silent: true
+                    }
+                })
             );
         });
     }
@@ -2283,14 +2307,14 @@ void main() {
                                 1 0 0 0 0
                                 0 1 0 0 0
                                 0 0 1 0 0
-                                0 0 0 33 -12
+                                0 0 0 31 -13
                             "
                             result="gooey"
                         />
 
                         <feGaussianBlur
                             in="gooey"
-                            stdDeviation="0.1"
+                            stdDeviation="0.35"
                             result="antialiasedGoo"
                         />
                     </filter>
@@ -2552,7 +2576,28 @@ void main() {
         lastMouseY = centerY;
 
         let currentHoveredHost = null;
+        let suppressedInteractiveHost = null;
         let hasPointerPosition = false;
+
+        const interactiveFromTarget = target => {
+            const interactive = target
+                ? target.closest(
+                    '.ripple-host, ' +
+                    'a, ' +
+                    'button, ' +
+                    '.lang-switcher-btn, ' +
+                    '.theme-toggle'
+                )
+                : null;
+
+            if (interactive?.matches('.nav-item.active')) {
+                return null;
+            }
+
+            return interactive === suppressedInteractiveHost
+                ? null
+                : interactive;
+        };
 
         /*
          * Burst detection uses a separate, noise-resistant motion signal.
@@ -2765,7 +2810,7 @@ void main() {
             if (!gestureMoving) {
                 if (
                     estimate.confident &&
-                    gestureSpeed >= 5.5
+                    gestureSpeed >= 10
                 ) {
                     motionEvidenceMs += deltaMs;
                 } else {
@@ -2776,7 +2821,7 @@ void main() {
                     );
                 }
 
-                if (motionEvidenceMs >= 28) {
+                if (motionEvidenceMs >= 55) {
                     gestureMoving = true;
                     motionEvidenceMs = 0;
                     quietEvidenceMs = 0;
@@ -2822,7 +2867,7 @@ void main() {
 
             if (
                 estimate.confident &&
-                gestureSpeed >= 4.5
+                gestureSpeed >= 8
             ) {
                 const directionX =
                     gestureVx / gestureSpeed;
@@ -2837,11 +2882,11 @@ void main() {
                         stableDirectionY;
 
                 /*
-                 * dot <= 0.2 means roughly 78 degrees or more. Requiring the
+                 * dot <= -0.35 means roughly 110 degrees or more. Requiring the
                  * direction to persist for multiple frames filters out the
                  * alternating one-pixel noise common with high-DPI mice.
                  */
-                if (directionDot <= 0.2) {
+                if (directionDot <= -0.35) {
                     turnEvidenceMs += deltaMs;
                 } else {
                     turnEvidenceMs = Math.max(
@@ -2851,7 +2896,7 @@ void main() {
                     );
                 }
 
-                if (turnEvidenceMs >= 24) {
+                if (turnEvidenceMs >= 48) {
                     stableDirectionX = directionX;
                     stableDirectionY = directionY;
                     turnEvidenceMs = 0;
@@ -2897,7 +2942,8 @@ void main() {
 
         function updateElementHoverState(
             clientX,
-            clientY
+            clientY,
+            suppressTransitionEffects = false
         ) {
             if (
                 typeof document.elementFromPoint !==
@@ -2913,15 +2959,7 @@ void main() {
                     clientY
                 );
 
-            const ripple = target
-                ? target.closest(
-                    '.ripple-host, ' +
-                    'a, ' +
-                    'button, ' +
-                    '.lang-switcher-btn, ' +
-                    '.theme-toggle'
-                )
-                : null;
+            const ripple = interactiveFromTarget(target);
 
             if (ripple === currentHoveredHost) {
                 return;
@@ -2949,7 +2987,8 @@ void main() {
 
             if (
                 wasInteractive &&
-                !isInteractive
+                !isInteractive &&
+                !suppressTransitionEffects
             ) {
                 if (stickyAnchor) {
                     stickyAnchor.el.remove();
@@ -3014,6 +3053,14 @@ void main() {
                         true
                     );
                 }
+            }
+
+            if (
+                suppressTransitionEffects &&
+                stickyAnchor
+            ) {
+                stickyAnchor.el.remove();
+                stickyAnchor = null;
             }
 
             currentHoveredHost = ripple;
@@ -3098,13 +3145,7 @@ void main() {
                 '.nav-item, .logo'
             );
 
-            const ripple = target.closest(
-                '.ripple-host, ' +
-                'a, ' +
-                'button, ' +
-                '.lang-switcher-btn, ' +
-                '.theme-toggle'
-            );
+            const ripple = interactiveFromTarget(target);
 
             cursorEl.classList.toggle(
                 'on-nav',
@@ -3121,6 +3162,23 @@ void main() {
         };
 
         const onMove = event => {
+            if (suppressedInteractiveHost) {
+                const target =
+                    document.elementFromPoint(
+                        event.clientX,
+                        event.clientY
+                    );
+
+                if (
+                    !target ||
+                    !suppressedInteractiveHost.contains(
+                        target
+                    )
+                ) {
+                    suppressedInteractiveHost = null;
+                }
+            }
+
             mouseX = event.clientX;
             mouseY = event.clientY;
             hasPointerPosition = true;
@@ -3141,6 +3199,29 @@ void main() {
                 event.clientY
             );
         };
+
+        document.addEventListener(
+            'motion-force-pointer-exit',
+            event => {
+                const host = event.detail?.host;
+
+                if (!host) return;
+
+                suppressedInteractiveHost = host;
+                updateElementHoverState(
+                    event.detail?.clientX ?? mouseX,
+                    event.detail?.clientY ?? mouseY,
+                    Boolean(event.detail?.silent)
+                );
+                if (event.detail?.suppressUntilMove === false) {
+                    suppressedInteractiveHost = null;
+                }
+                updateCursorState(
+                    event.detail?.clientX ?? mouseX,
+                    event.detail?.clientY ?? mouseY
+                );
+            }
+        );
 
         let lastTickTime = null;
 
@@ -3215,13 +3296,7 @@ void main() {
 
             if (hoveredTarget) {
                 const ripple =
-                    hoveredTarget.closest(
-                        '.ripple-host, ' +
-                        'a, ' +
-                        'button, ' +
-                        '.lang-switcher-btn, ' +
-                        '.theme-toggle'
-                    );
+                    interactiveFromTarget(hoveredTarget);
 
                 const nav =
                     hoveredTarget.closest(
@@ -3517,7 +3592,7 @@ void main() {
             if (
                 !isHoveringInteract &&
                 gestureBurst &&
-                now - lastBurstTime > 160
+                now - lastBurstTime > 320
             ) {
                 lastBurstTime = now;
 
@@ -4136,14 +4211,7 @@ void main() {
                     );
 
                 const ripple =
-                    target &&
-                    target.closest(
-                        '.ripple-host, ' +
-                        'a, ' +
-                        'button, ' +
-                        '.lang-switcher-btn, ' +
-                        '.theme-toggle'
-                    );
+                    interactiveFromTarget(target);
 
                 isHoveringInteract =
                     Boolean(ripple);
@@ -4168,6 +4236,16 @@ void main() {
                             '0';
                     }
                 }
+
+                updateElementHoverState(
+                    mouseX,
+                    mouseY
+                );
+
+                updateCursorState(
+                    mouseX,
+                    mouseY
+                );
             }
         );
 
@@ -4178,6 +4256,17 @@ void main() {
                     event.target &&
                     event.target.tagName === 'IFRAME'
                 ) {
+                    if (currentHoveredHost) {
+                        suppressedInteractiveHost =
+                            currentHoveredHost;
+                        updateElementHoverState(
+                            event.clientX,
+                            event.clientY,
+                            true
+                        );
+                        suppressedInteractiveHost = null;
+                    }
+
                     cursorEl.classList.add(
                         'cursor-in-iframe'
                     );

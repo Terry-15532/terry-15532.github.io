@@ -1557,6 +1557,9 @@ function initYoutubeLazyLoad() {
             const videoId = this.getAttribute('data-video-id');
             if (!videoId) return;
 
+            this.classList.add('youtube-glow-disabled');
+            this.classList.remove('youtube-pointer-glow');
+
             // Try to load YouTube iframe
             tryLoadYoutube(this, videoId);
         }, true);
@@ -1589,6 +1592,8 @@ function initYoutubePointerGlow(container) {
     const setGlowPosition = (clientX, clientY) => {
         const rect = container.getBoundingClientRect();
 
+        if (container.classList.contains('youtube-glow-disabled')) return;
+
         container.classList.add('youtube-pointer-glow');
         container.style.setProperty(
             '--youtube-glow-x',
@@ -1607,15 +1612,21 @@ function initYoutubePointerGlow(container) {
     };
 
     const syncGlowPosition = () => {
+        if (container.classList.contains('youtube-glow-disabled')) {
+            container.classList.remove('youtube-pointer-glow');
+            return;
+        }
+
         if (
             typeof window.__youtubeGlowPointerX !== 'number' ||
             typeof window.__youtubeGlowPointerY !== 'number'
         ) return;
 
-        const hoveredAtPointer = document.elementFromPoint(
+        const pointerTarget = document.elementFromPoint(
             window.__youtubeGlowPointerX,
             window.__youtubeGlowPointerY
-        )?.closest?.('.youtube-lazy');
+        );
+        const hoveredAtPointer = pointerTarget?.closest?.('.youtube-lazy');
 
         if (hoveredAtPointer === container) {
             setGlowPosition(window.__youtubeGlowPointerX, window.__youtubeGlowPointerY);
@@ -1626,13 +1637,18 @@ function initYoutubePointerGlow(container) {
 
     container.addEventListener('pointerenter', (e) => {
         updateGlowPosition(e);
-        container.classList.add('youtube-pointer-glow');
     });
     container.addEventListener('pointermove', updateGlowPosition);
     container.addEventListener('pointerleave', () => {
         container.classList.remove('youtube-pointer-glow');
     });
     window.addEventListener('scroll', syncGlowPosition, { passive: true });
+}
+
+function bindYoutubeIframeGlowDismiss(iframe, container) {
+    if (!iframe || !container || iframe.dataset.youtubeGlowDismissBound === 'true') return;
+
+    iframe.dataset.youtubeGlowDismissBound = 'true';
 }
 
 // Check YouTube connectivity on page load
@@ -1712,6 +1728,7 @@ function tryLoadYoutube(container, videoId) {
             iframe.setAttribute('frameborder', '0');
             iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
             iframe.setAttribute('allowfullscreen', '');
+            bindYoutubeIframeGlowDismiss(iframe, container);
             iframe.onload = () => {
                 container.style.backgroundImage = 'none';
                 const overlay = container.querySelector('.youtube-overlay');
@@ -1730,13 +1747,25 @@ function tryLoadYoutube(container, videoId) {
 
     // Create iframe
     const iframe = document.createElement('iframe');
+    const playerId =
+        `youtube-player-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const playerOrigin =
+        location.origin && location.origin !== 'null'
+            ? `&origin=${encodeURIComponent(location.origin)}`
+            : '';
     iframe.setAttribute('width', '100%');
     iframe.setAttribute('height', '100%');
-    iframe.setAttribute('src', `https://www.youtube.com/embed/${videoId}?autoplay=1`);
+    iframe.setAttribute('id', playerId);
+    iframe.setAttribute(
+        'src',
+        `https://www.youtube.com/embed/${videoId}` +
+        `?autoplay=1&enablejsapi=1&playsinline=1${playerOrigin}`
+    );
     iframe.setAttribute('title', 'YouTube video player');
     iframe.setAttribute('frameborder', '0');
     iframe.setAttribute('allow', 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share');
     iframe.setAttribute('allowfullscreen', '');
+    bindYoutubeIframeGlowDismiss(iframe, container);
 
     // On successful load
     iframe.onload = () => {
