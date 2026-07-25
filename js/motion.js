@@ -580,6 +580,14 @@ void main() {
         }
 
         const colHeights = Array(n).fill(0);
+        // Deliberately give each column a different target capacity. Dividing
+        // by these weights keeps the masonry stable between reloads while
+        // producing visibly different final column lengths.
+        const columnWeights = n === 3
+            ? [1.1, 0.9, 1]
+            : n === 2
+                ? [1.08, 0.92]
+                : [1];
 
         cards.forEach(card => {
             const img = card.querySelector('img');
@@ -592,7 +600,10 @@ void main() {
             let minIdx = 0;
 
             for (let c = 1; c < n; c++) {
-                if (colHeights[c] < colHeights[minIdx]) {
+                if (
+                    colHeights[c] / columnWeights[c] <
+                    colHeights[minIdx] / columnWeights[minIdx]
+                ) {
                     minIdx = c;
                 }
             }
@@ -1389,6 +1400,11 @@ void main() {
 
     /* ---------- Full-screen circular sweeps ---------- */
     const SWEEP_SIZE = 26;
+    const FULLSCREEN_ENTER_SPEED = 0.7;
+    const PAGE_SWEEP_ENTER_MS =
+        Math.round(300 / FULLSCREEN_ENTER_SPEED);
+    const FX_CIRCLE_ENTER_MS =
+        Math.round(360 / FULLSCREEN_ENTER_SPEED);
 
     function sweepPoint(direction, entering) {
         const vw = window.innerWidth;
@@ -1583,7 +1599,7 @@ void main() {
                 }
             ],
             {
-                duration: 300,
+                duration: PAGE_SWEEP_ENTER_MS,
                 easing:
                     'cubic-bezier(0.22, 1, 0.36, 1)',
                 fill: 'forwards'
@@ -1591,7 +1607,10 @@ void main() {
         );
 
         sweepBrand =
-            makeBrand('P . R . T . S .', 90);
+            makeBrand(
+                'P . R . T . S .',
+                Math.round(90 / FULLSCREEN_ENTER_SPEED)
+            );
 
         try {
             await grow.finished;
@@ -1687,7 +1706,7 @@ void main() {
                 }
             ],
             {
-                duration: 360,
+                duration: FX_CIRCLE_ENTER_MS,
                 easing:
                     'cubic-bezier(0.22, 1, 0.36, 1)',
                 fill: 'forwards'
@@ -1698,7 +1717,12 @@ void main() {
 
         if (brandContent) {
             brand =
-                makeBrand(brandContent, 100);
+                makeBrand(
+                    brandContent,
+                    Math.round(
+                        100 / FULLSCREEN_ENTER_SPEED
+                    )
+                );
 
             if (accent) {
                 circle.classList.add('no-blur');
@@ -1906,7 +1930,7 @@ void main() {
 
     float t = uTime;
 
-    uv.y -= uScroll * 0.00005;
+    uv.y -= uScroll * 0.0001;
 
     vec2 p =
         uv + vec2(t * 0.006, -t * 0.004);
@@ -4200,9 +4224,10 @@ void main() {
     }
 
     function init() {
-        if (!initOrbGL()) {
-            startAmbientLoop();
-        }
+        initOrbGL();
+        // This loop also drives the Artworks columns. Keep it running when
+        // WebGL orbs are active; the hidden CSS-orb fallback costs no layout.
+        startAmbientLoop();
 
         initContourGL();
         initRipples();

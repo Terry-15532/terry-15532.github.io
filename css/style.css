@@ -3057,20 +3057,41 @@ video,
     background-color: rgba(0, 0, 0, 0.4);
 }
 
-/* .youtube-lazy::after {
+.youtube-lazy::after {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(100, 180, 255, 0.2);
-    transition: background-color 0.3s ease;
-} */
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    border-radius: inherit;
+    background: radial-gradient(
+        circle 150px at var(--youtube-glow-x, 50%) var(--youtube-glow-y, 50%),
+        rgba(var(--accent-rgb), 0.2) 0%,
+        rgba(var(--accent-rgb), 0.09) 38%,
+        rgba(var(--accent-rgb), 0) 72%
+    );
+    opacity: 0;
+    transition: opacity 0.16s ease;
+}
 
-/* [data-theme="dark"] .youtube-lazy::after {
-    background-color: rgba(0, 0, 0, 0.5);
-} */
+.youtube-lazy.youtube-pointer-glow::after,
+.youtube-lazy:hover::after,
+.card:hover .youtube-lazy.youtube-pointer-glow::after,
+.card:hover .youtube-lazy:hover::after,
+.card.is-hovered .youtube-lazy.youtube-pointer-glow::after,
+.card.is-hovered .youtube-lazy:hover::after {
+    /* Override the card-media overlay suppression used by normal cards. */
+    opacity: 1 !important;
+}
+
+[data-theme="dark"] .youtube-lazy::after {
+    background: radial-gradient(
+        circle 160px at var(--youtube-glow-x, 50%) var(--youtube-glow-y, 50%),
+        rgba(var(--accent-rgb), 0.24) 0%,
+        rgba(var(--accent-rgb), 0.11) 38%,
+        rgba(var(--accent-rgb), 0) 72%
+    );
+}
 
 .youtube-overlay {
     position: absolute;

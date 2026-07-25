@@ -1249,7 +1249,8 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
         direction === 'right' ? 'page-exit-left' : 'page-exit-down'
     );
     const wipePromise = window.MotionUX ? MotionUX.sweepIn(direction, clickPos) : Promise.resolve();
-    const minCover = new Promise(r => setTimeout(r, 300));
+    // Keep the fallback cover gate in sync with MotionUX's 0.7x entry speed.
+    const minCover = new Promise(r => setTimeout(r, 429));
 
     try {
         // 2. Fetch new content (parallel with the wipe)
@@ -1543,6 +1544,8 @@ function initYoutubeLazyLoad() {
     const lazyVideos = document.querySelectorAll('.youtube-lazy');
 
     lazyVideos.forEach(container => {
+        initYoutubePointerGlow(container);
+
         // Skip if already loaded
         if (container.querySelector('iframe')) return;
 
@@ -1557,6 +1560,51 @@ function initYoutubeLazyLoad() {
             // Try to load YouTube iframe
             tryLoadYoutube(this, videoId);
         }, true);
+    });
+}
+
+function initYoutubePointerGlow(container) {
+    if (!window.__youtubeGlowDocumentBound) {
+        document.addEventListener('pointermove', (e) => {
+            const hoveredVideo = e.target.closest?.('.youtube-lazy');
+
+            document
+                .querySelectorAll('.youtube-lazy.youtube-pointer-glow')
+                .forEach(video => {
+                    if (video !== hoveredVideo) {
+                        video.classList.remove('youtube-pointer-glow');
+                    }
+                });
+        }, { passive: true });
+
+        window.__youtubeGlowDocumentBound = true;
+    }
+
+    if (container.dataset.youtubeGlowBound === 'true') return;
+
+    container.dataset.youtubeGlowBound = 'true';
+
+    const updateGlowPosition = (e) => {
+        const rect = container.getBoundingClientRect();
+
+        container.classList.add('youtube-pointer-glow');
+        container.style.setProperty(
+            '--youtube-glow-x',
+            `${e.clientX - rect.left}px`
+        );
+        container.style.setProperty(
+            '--youtube-glow-y',
+            `${e.clientY - rect.top}px`
+        );
+    };
+
+    container.addEventListener('pointerenter', (e) => {
+        updateGlowPosition(e);
+        container.classList.add('youtube-pointer-glow');
+    });
+    container.addEventListener('pointermove', updateGlowPosition);
+    container.addEventListener('pointerleave', () => {
+        container.classList.remove('youtube-pointer-glow');
     });
 }
 
