@@ -21,7 +21,391 @@
 
     /* ---------- Global ambient loop (runs once) ---------- */
     let ambientStarted = false;
+    let orbGLStarted = false;
     let artCols = [];
+
+    function initOrbGL() {
+        const layer = document.querySelector('.bg-orbs');
+
+        if (!layer) return false;
+        if (orbGLStarted) return true;
+
+        const canvas = document.createElement('canvas');
+
+        canvas.className = 'orb-gl-canvas';
+        canvas.setAttribute('aria-hidden', 'true');
+        layer.appendChild(canvas);
+
+        const gl = canvas.getContext('webgl', {
+            alpha: true,
+            antialias: false,
+            depth: false,
+            stencil: false,
+            premultipliedAlpha: true,
+            preserveDrawingBuffer: false
+        });
+
+        if (!gl) {
+            canvas.remove();
+            return false;
+        }
+
+        const vertexSource = `
+attribute vec2 aPosition;
+
+void main() {
+    gl_Position = vec4(aPosition, 0.0, 1.0);
+}
+`;
+
+        const fragmentSource = `
+precision highp float;
+
+uniform vec2 uResolution;
+uniform float uTime;
+uniform vec3 uAccent;
+uniform vec3 uOrbAlpha;
+
+float hash12(vec2 p) {
+    vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+    p3 += dot(p3, p3.yzx + 33.33);
+    return fract((p3.x + p3.y) * p3.z);
+}
+
+float orbProfile(
+    vec2 pixel,
+    vec2 center,
+    float radius
+) {
+    float distanceToCenter =
+        length(pixel - center) / radius;
+
+    /*
+     * A continuous Gaussian-like falloff replaces the quantized CSS blur.
+     * The complete gradient remains high precision until gl_FragColor.
+     */
+    return exp2(
+        -4.35 *
+        distanceToCenter *
+        distanceToCenter
+    );
+}
+
+void main() {
+    vec2 pixel = vec2(
+        gl_FragCoord.x,
+        uResolution.y - gl_FragCoord.y
+    );
+
+    float viewportMax =
+        max(uResolution.x, uResolution.y);
+
+    vec2 center1 =
+        vec2(0.15, 0.19) * uResolution +
+        vec2(
+            sin(uTime * 0.071 + 0.7) * 0.13,
+            cos(uTime * 0.093 + 1.1) * 0.11
+        ) * uResolution;
+
+    vec2 center2 =
+        vec2(0.88, 0.43) * uResolution +
+        vec2(
+            cos(uTime * 0.083 + 2.4) * 0.12,
+            sin(uTime * 0.107 + 0.2) * 0.13
+        ) * uResolution;
+
+    vec2 center3 =
+        vec2(0.40, 0.88) * uResolution +
+        vec2(
+            sin(uTime * 0.063 + 4.0) * 0.15,
+            cos(uTime * 0.079 + 2.8) * 0.10
+        ) * uResolution;
+
+    float alpha1 =
+        orbProfile(
+            pixel,
+            center1,
+            viewportMax * 0.34
+        ) * uOrbAlpha.x;
+
+    float alpha2 =
+        orbProfile(
+            pixel,
+            center2,
+            viewportMax * 0.29
+        ) * uOrbAlpha.y;
+
+    float alpha3 =
+        orbProfile(
+            pixel,
+            center3,
+            viewportMax * 0.38
+        ) * uOrbAlpha.z;
+
+    float alpha =
+        1.0 -
+        (1.0 - alpha1) *
+        (1.0 - alpha2) *
+        (1.0 - alpha3);
+
+    /*
+     * Subtractive triangular dither has zero mean and a maximum amplitude of
+     * one RGBA8 step. It is evaluated at physical-pixel coordinates and stays
+     * spatially fixed, so it breaks bands without visible grain or shimmer.
+     */
+    float triangularNoise =
+        hash12(gl_FragCoord.xy) -
+        hash12(gl_FragCoord.yx + vec2(19.19, 73.73));
+
+    float ditherGate =
+        smoothstep(0.0, 0.008, alpha);
+
+    alpha = clamp(
+        alpha +
+        triangularNoise *
+        (1.0 / 255.0) *
+        ditherGate,
+        0.0,
+        1.0
+    );
+
+    gl_FragColor = vec4(uAccent * alpha, alpha);
+}
+`;
+
+        function compile(type, source) {
+            const shader = gl.createShader(type);
+
+            gl.shaderSource(shader, source);
+            gl.compileShader(shader);
+
+            if (
+                !gl.getShaderParameter(
+                    shader,
+                    gl.COMPILE_STATUS
+                )
+            ) {
+                console.warn(
+                    'Orb shader compile failed:',
+                    gl.getShaderInfoLog(shader)
+                );
+
+                gl.deleteShader(shader);
+                return null;
+            }
+
+            return shader;
+        }
+
+        const vertexShader =
+            compile(gl.VERTEX_SHADER, vertexSource);
+
+        const fragmentShader =
+            compile(gl.FRAGMENT_SHADER, fragmentSource);
+
+        if (!vertexShader || !fragmentShader) {
+            canvas.remove();
+            return false;
+        }
+
+        const program = gl.createProgram();
+
+        gl.attachShader(program, vertexShader);
+        gl.attachShader(program, fragmentShader);
+        gl.linkProgram(program);
+
+        if (
+            !gl.getProgramParameter(
+                program,
+                gl.LINK_STATUS
+            )
+        ) {
+            console.warn(
+                'Orb shader link failed:',
+                gl.getProgramInfoLog(program)
+            );
+
+            canvas.remove();
+            return false;
+        }
+
+        gl.useProgram(program);
+
+        const buffer = gl.createBuffer();
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(
+            gl.ARRAY_BUFFER,
+            new Float32Array([
+                -1, -1,
+                 1, -1,
+                -1,  1,
+                -1,  1,
+                 1, -1,
+                 1,  1
+            ]),
+            gl.STATIC_DRAW
+        );
+
+        const positionLocation =
+            gl.getAttribLocation(
+                program,
+                'aPosition'
+            );
+
+        gl.enableVertexAttribArray(positionLocation);
+        gl.vertexAttribPointer(
+            positionLocation,
+            2,
+            gl.FLOAT,
+            false,
+            0,
+            0
+        );
+
+        const resolutionLocation =
+            gl.getUniformLocation(
+                program,
+                'uResolution'
+            );
+
+        const timeLocation =
+            gl.getUniformLocation(
+                program,
+                'uTime'
+            );
+
+        const accentLocation =
+            gl.getUniformLocation(
+                program,
+                'uAccent'
+            );
+
+        const alphaLocation =
+            gl.getUniformLocation(
+                program,
+                'uOrbAlpha'
+            );
+
+        let width = 0;
+        let height = 0;
+        let currentTheme = '';
+
+        function resize() {
+            const dpr = Math.min(
+                window.devicePixelRatio || 1,
+                2
+            );
+
+            const nextWidth = Math.max(
+                1,
+                Math.round(window.innerWidth * dpr)
+            );
+
+            const nextHeight = Math.max(
+                1,
+                Math.round(window.innerHeight * dpr)
+            );
+
+            if (
+                nextWidth === width &&
+                nextHeight === height
+            ) {
+                return;
+            }
+
+            width = nextWidth;
+            height = nextHeight;
+            canvas.width = width;
+            canvas.height = height;
+            gl.viewport(0, 0, width, height);
+            gl.uniform2f(
+                resolutionLocation,
+                width,
+                height
+            );
+        }
+
+        function updateTheme() {
+            const theme =
+                document.documentElement.dataset.theme ||
+                'light';
+
+            if (theme === currentTheme) return;
+            currentTheme = theme;
+
+            const style =
+                getComputedStyle(
+                    document.documentElement
+                );
+
+            const accent = style
+                .getPropertyValue('--accent-rgb')
+                .split(',')
+                .map(value =>
+                    Number.parseFloat(value) / 255
+                );
+
+            const alpha = [1, 2, 3].map(index =>
+                Number.parseFloat(
+                    style.getPropertyValue(
+                        `--orb-alpha-${index}`
+                    )
+                )
+            );
+
+            gl.uniform3f(
+                accentLocation,
+                accent[0] || 0,
+                accent[1] || 0,
+                accent[2] || 0
+            );
+
+            gl.uniform3f(
+                alphaLocation,
+                alpha[0] || 0,
+                alpha[1] || 0,
+                alpha[2] || 0
+            );
+        }
+
+        const reducedMotion =
+            window.matchMedia &&
+            window.matchMedia(
+                '(prefers-reduced-motion: reduce)'
+            ).matches;
+
+        function render(now) {
+            resize();
+            updateTheme();
+
+            gl.uniform1f(
+                timeLocation,
+                reducedMotion ? 0 : now * 0.001
+            );
+
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+            requestAnimationFrame(render);
+        }
+
+        canvas.addEventListener(
+            'webglcontextlost',
+            event => {
+                event.preventDefault();
+                orbGLStarted = false;
+                layer.classList.remove(
+                    'orb-gl-active'
+                );
+                startAmbientLoop();
+            },
+            { once: true }
+        );
+
+        layer.classList.add('orb-gl-active');
+        orbGLStarted = true;
+        requestAnimationFrame(render);
+        return true;
+    }
 
     function startAmbientLoop() {
         if (ambientStarted) return;
@@ -1398,7 +1782,6 @@ uniform vec2 uRes;
 uniform float uTime;
 uniform float uAlpha;
 uniform float uScroll;
-uniform float uGreen;
 
 vec3 mod289(vec3 x) {
     return x - floor(x * (1.0 / 289.0)) * 289.0;
@@ -1544,28 +1927,69 @@ void main() {
         );
 
     float freq = 2.4;
-    float bands = fract(h * freq);
-
-    float d =
-        min(bands, 1.0 - bands) / freq;
+    float contourCoordinate = h * freq;
+    float contourPhase =
+        min(
+            fract(contourCoordinate),
+            1.0 - fract(contourCoordinate)
+        );
 
 #ifdef GL_OES_standard_derivatives
-    float w = fwidth(h) * 0.7 + 0.001;
+    /*
+     * Convert the field-space distance to an approximate screen-pixel
+     * distance with the Euclidean gradient. Unlike a raw fwidth threshold,
+     * this keeps line weight independent of the field's local slope and the
+     * contour's orientation.
+     */
+    vec2 contourGradient =
+        vec2(
+            dFdx(contourCoordinate),
+            dFdy(contourCoordinate)
+        );
+
+    float gradientPerPixel =
+        max(length(contourGradient), 0.00001);
+
+    float distancePixels =
+        contourPhase / gradientPerPixel;
+
+    /*
+     * Adjacent contour levels get closer in steep blended regions. Cap the
+     * outer line radius to 42% of their local spacing so neighbouring lines
+     * cannot overlap into a single thick band.
+     */
+    float spacingPixels =
+        1.0 / gradientPerPixel;
+
+    float outerRadiusPixels =
+        min(1.30, spacingPixels * 0.42);
+
+    float innerRadiusPixels =
+        outerRadiusPixels * 0.46;
 
     float line =
         1.0 -
-        smoothstep(w * 0.5, w * 1.4, d);
+        smoothstep(
+            innerRadiusPixels,
+            outerRadiusPixels,
+            distancePixels
+        );
 #else
     float line =
-        smoothstep(0.012, 0.004, d);
+        smoothstep(
+            0.012,
+            0.004,
+            contourPhase / freq
+        );
 #endif
 
-    vec3 accent =
-        vec3(
-            0.0,
-            uGreen,
-            0.24 * (0.8 / uGreen)
-        );
+    /*
+     * Both theme accents share the same hue once normalized to maximum
+     * luminance. Keep the source colour fully bright and control visual
+     * strength only through alpha so overlaps with the green orbs brighten
+     * naturally through normal compositing.
+     */
+    vec3 accent = vec3(0.0, 1.0, 0.25);
 
     float alpha = line * uAlpha;
 
@@ -1658,9 +2082,6 @@ void main() {
         const scrollLocation =
             gl.getUniformLocation(program, 'uScroll');
 
-        const greenLocation =
-            gl.getUniformLocation(program, 'uGreen');
-
         let scrollY = 0;
 
         window.addEventListener(
@@ -1731,12 +2152,7 @@ void main() {
 
             gl.uniform1f(
                 alphaLocation,
-                dark ? 0.5 : 0.3
-            );
-
-            gl.uniform1f(
-                greenLocation,
-                dark ? 0.8 : 1.04
+                dark ? 0.52 : 0.33
             );
 
             gl.uniform1f(
@@ -1843,9 +2259,15 @@ void main() {
                                 1 0 0 0 0
                                 0 1 0 0 0
                                 0 0 1 0 0
-                                0 0 0 35 -13
+                                0 0 0 33 -12
                             "
                             result="gooey"
+                        />
+
+                        <feGaussianBlur
+                            in="gooey"
+                            stdDeviation="0.1"
+                            result="antialiasedGoo"
                         />
                     </filter>
                 </defs>
@@ -3777,27 +4199,11 @@ void main() {
         );
     }
 
-    function initDitherNoise() {
-        if (
-            document.querySelector(
-                '.dither-noise-overlay'
-            )
-        ) {
-            return;
+    function init() {
+        if (!initOrbGL()) {
+            startAmbientLoop();
         }
 
-        const dither =
-            document.createElement('div');
-
-        dither.className =
-            'dither-noise-overlay';
-
-        document.body.appendChild(dither);
-    }
-
-    function init() {
-        initDitherNoise();
-        startAmbientLoop();
         initContourGL();
         initRipples();
         initArtColumns();

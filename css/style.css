@@ -41,9 +41,10 @@
     --transition-base: all 0.3s ease;
     --transition-smooth: all 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     /* Background orbs */
-    --orb-alpha-1: 0.15;
-    --orb-alpha-2: 0.12;
-    --orb-alpha-3: 0.10;
+    --orb-alpha-1: 0.1;
+    --orb-alpha-2: 0.08;
+    --orb-alpha-3: 0.06;
+    --orb-dither-opacity: 0.018;
     /* Hover mask solid fill: same accent as the VIEW ALL button */
     --mask-solid: #008A22;
 }
@@ -74,9 +75,10 @@
     --nav-bg: rgba(12, 15, 12, 0.82);
     --shadow-base: none;
     --shadow-hover: none;
-    --orb-alpha-1: 0.13;
-    --orb-alpha-2: 0.10;
-    --orb-alpha-3: 0.08;
+    --orb-alpha-1: 0.07;
+    --orb-alpha-2: 0.06;
+    --orb-alpha-3: 0.032;
+    --orb-dither-opacity: 0.024;
     /* Hover mask solid fill: bright theme green */
     --mask-solid: #00CC33;
 }
@@ -2138,6 +2140,10 @@ header.hero::before {
 
 /* ---- nav instant-theme hints (applied at click, removed after mask covers) ---- */
 .nav-hint-dark {
+    --accent-cyan: #00CC33;
+    --accent-rgb: 0, 204, 51;
+    --accent-opposite: #008A22;
+    --accent-opposite-rgb: 0, 138, 34;
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
     background: rgba(12, 15, 12, 0.88) !important;
     border-color: #232a23 !important;
@@ -2152,12 +2158,18 @@ header.hero::before {
     color: #f2f7f2 !important;
 }
 
-.nav-hint-dark .nav-item .en {
+.nav-hint-dark .nav-item:not(.active) .en {
     color: #f2f7f2 !important;
 }
 
-.nav-hint-dark .nav-item .cn {
+.nav-hint-dark .nav-item:not(.active) .cn {
     color: rgba(242, 247, 242, 0.65) !important;
+}
+
+.nav-hint-dark .nav-item.active .en,
+.nav-hint-dark .nav-item.active .cn {
+    color: #00CC33 !important;
+    transition: none !important;
 }
 
 .nav-hint-dark .logo {
@@ -2179,6 +2191,10 @@ header.hero::before {
 }
 
 .nav-hint-light {
+    --accent-cyan: #008A22;
+    --accent-rgb: 0, 138, 34;
+    --accent-opposite: #00CC33;
+    --accent-opposite-rgb: 0, 204, 51;
     transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
     background: rgba(255, 255, 255, 0.85) !important;
     border-color: #dde6dd !important;
@@ -2193,12 +2209,18 @@ header.hero::before {
     color: #101511 !important;
 }
 
-.nav-hint-light .nav-item .en {
+.nav-hint-light .nav-item:not(.active) .en {
     color: #101511 !important;
 }
 
-.nav-hint-light .nav-item .cn {
+.nav-hint-light .nav-item:not(.active) .cn {
     color: rgba(16, 21, 17, 0.55) !important;
+}
+
+.nav-hint-light .nav-item.active .en,
+.nav-hint-light .nav-item.active .cn {
+    color: #008A22 !important;
+    transition: none !important;
 }
 
 .nav-hint-light .logo {
@@ -3822,10 +3844,42 @@ video,
     z-index: 0;
     pointer-events: none;
     overflow: hidden;
+    isolation: isolate;
+}
+
+/*
+ * Apply quantized high-frequency noise after the blurred orbs are composited.
+ * This covers their full soft halo, including the area beyond each orb's
+ * original box, while remaining underneath every foreground element.
+ */
+.bg-orbs:not(.orb-gl-active)::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' color-interpolation-filters='sRGB'%3E%3Cfilter id='orb-dither' x='0' y='0' width='100%25' height='100%25'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='1' seed='37' stitchTiles='stitch' result='noise'/%3E%3CfeComponentTransfer in='noise'%3E%3CfeFuncR type='discrete' tableValues='.28 .72'/%3E%3CfeFuncG type='discrete' tableValues='.28 .72'/%3E%3CfeFuncB type='discrete' tableValues='.28 .72'/%3E%3C/feComponentTransfer%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23orb-dither)'/%3E%3C/svg%3E");
+    background-size: 64px 64px;
+    opacity: var(--orb-dither-opacity);
+    mix-blend-mode: overlay;
+}
+
+.orb-gl-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+}
+
+.bg-orbs.orb-gl-active .orb-wrap {
+    display: none;
 }
 
 .orb-wrap {
     position: absolute;
+    z-index: 1;
     will-change: transform;
 }
 
@@ -3845,40 +3899,52 @@ video,
 }
 
 .orb {
+    position: relative;
     border-radius: 50%;
     will-change: transform;
+    isolation: isolate;
+}
+
+.orb::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    pointer-events: none;
+    background: var(--orb-gradient);
+    filter: blur(var(--orb-blur));
 }
 
 .orb-1 {
     width: 46vmax;
     height: 46vmax;
-    background: radial-gradient(circle at 38% 38%,
+    --orb-gradient: radial-gradient(circle at 38% 38%,
             rgba(var(--accent-rgb), var(--orb-alpha-1)) 0%,
             rgba(var(--accent-rgb), calc(var(--orb-alpha-1) * 0.4)) 42%,
             transparent 68%);
-    filter: blur(52px);
+    --orb-blur: 52px;
     animation: orb-drift-1 30s ease-in-out infinite alternate;
 }
 
 .orb-2 {
     width: 38vmax;
     height: 38vmax;
-    background: radial-gradient(circle at 60% 42%,
+    --orb-gradient: radial-gradient(circle at 60% 42%,
             rgba(var(--accent-rgb), var(--orb-alpha-2)) 0%,
             rgba(var(--accent-rgb), calc(var(--orb-alpha-2) * 0.4)) 44%,
             transparent 70%);
-    filter: blur(58px);
+    --orb-blur: 58px;
     animation: orb-drift-2 24s ease-in-out infinite alternate;
 }
 
 .orb-3 {
     width: 52vmax;
     height: 52vmax;
-    background: radial-gradient(circle at 45% 55%,
+    --orb-gradient: radial-gradient(circle at 45% 55%,
             rgba(var(--accent-rgb), var(--orb-alpha-3)) 0%,
             rgba(var(--accent-rgb), calc(var(--orb-alpha-3) * 0.4)) 46%,
             transparent 70%);
-    filter: blur(66px);
+    --orb-blur: 66px;
     animation: orb-drift-3 36s ease-in-out infinite alternate;
 }
 
@@ -4490,20 +4556,6 @@ video,
 
 [data-theme="dark"] .ripple-solid.rippling {
     color: #000000 !important;
-}
-
-/* ---------- Dither noise overlay to eliminate gradient banding ---------- */
-.dither-noise-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    pointer-events: none;
-    z-index: 99998;
-    opacity: 0.04;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-    mix-blend-mode: overlay;
 }
 
 /* ---------- Gooey-filter liquid cursor ---------- */
