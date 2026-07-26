@@ -4721,9 +4721,6 @@ void main() {
                     width,
                     height,
                     border-radius !important;
-                transition:
-                    background-color 0.15s
-                    cubic-bezier(0.4, 0, 0.2, 1);
             }
 
             html.has-custom-cursor:not(
