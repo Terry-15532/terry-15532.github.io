@@ -48,15 +48,15 @@
             // 触控设备宽度不超过此值时直接关闭模拟。
             mobileMaxWidth: 1024,
 
-            // 模拟网格：越高越细腻，但 CPU 开销近似按面积增加。
+            // GPU 模拟网格：越高越细腻，开销近似按纹理面积增加。
             gridHeight: 32,
             gridMinWidth: 64,
-            gridMaxWidth: 192,
+            gridMaxWidth: 128,
 
             // 流体求解帧率上限；不影响页面和原始 Orb 的渲染 FPS。
             simulationFps: 60,
 
-            // GPU 流体使用浮点纹理；关闭后将只保留原始 Orb。
+            // GPU 流体使用浮点纹理；关闭后不绘制流体层。
             preferFloatTexture: true,
 
             // 启动后的性能检测时长与保留流体所需最低平均 FPS。
@@ -69,13 +69,13 @@
             maximumDeltaMs: 40,
 
             // 速度扩散：越大越黏、更平滑，也越不容易形成细碎涡流。
-            velocityViscosity: 0.01,
+            velocityViscosity: 0.02,
 
             // 每帧速度保留率。越接近 1，惯性持续越久。
             velocityDamping: 0.99,
 
             // 网格坐标中的重力；负值表示向屏幕下方。
-            gravityPerFrame: -0.003,
+            gravityPerFrame: -0.006,
 
             // 压力投影迭代次数。越高越接近不可压缩流体，但更耗性能。
             projectionIterationsBeforeAdvection: 3,
@@ -95,28 +95,28 @@
             sourceFollow: 0.05,
 
             // 流体源相对 CSS Orb 透明度的倍率。
-            sourceDensityScale: 1.5,
+            sourceDensityScale: 1,
 
             // 最终密度纹理的显示倍率，只改变可见度，不改变模拟。
-            renderOpacityScale: 1,
+            renderOpacityScale: 1.8,
 
             // 源的高斯衰减。越大边缘越集中，越小范围越宽。
-            sourceProfileFalloff: 4.35,
+            sourceProfileFalloff: 8.35,
 
             // 三个连续流体源的半径，按 viewport 最大边比例计算。
             sourceRadiusScales: [0.34, 0.29, 0.38],
 
             // 鼠标速度场作用半径，占网格短边的比例。
-            pointerRadiusRatio: 0.13,
+            pointerRadiusRatio: 0.15,
 
-            // 实际计算范围是作用半径的倍数。
-            pointerReachMultiplier: 1,
+            // 平滑高斯作用尺度倍率；不会产生有限半径的硬裁切。
+            pointerReachMultiplier: 0.8,
 
             // 鼠标场的高斯衰减范围；越大影响分布越宽。
-            pointerFalloffScale: 0.46,
+            pointerFalloffScale: 0.45,
 
             // 鼠标向速度场注入的力度。
-            pointerForce: 0.6,
+            pointerForce: 0.5,
 
             // false 时鼠标不再影响速度场，但流体仍会自行运动。
             pointerEnabled: true,
@@ -125,7 +125,7 @@
             pointerAddsDensity: true,
 
             // 鼠标补充流体的强度；仅在 pointerAddsDensity 为 true 时生效。
-            pointerDensity: 0.006,
+            pointerDensity: 0.001,
 
             // 单次鼠标位移上限（CSS 像素），防止噪声产生巨大速度。
             pointerMaxDelta: 72,
@@ -392,15 +392,17 @@ void main() {
                 window.devicePixelRatio || 1,
                 2
             );
+            const rect =
+                layer.getBoundingClientRect();
 
             const nextWidth = Math.max(
                 1,
-                Math.round(window.innerWidth * dpr)
+                Math.round(rect.width * dpr)
             );
 
             const nextHeight = Math.max(
                 1,
-                Math.round(window.innerHeight * dpr)
+                Math.round(rect.height * dpr)
             );
 
             if (
@@ -436,7 +438,9 @@ void main() {
                 );
 
             const accent = style
-                .getPropertyValue('--accent-rgb')
+                .getPropertyValue(
+                    '--orb-fluid-rgb'
+                )
                 .split(',')
                 .map(value =>
                     Number.parseFloat(value) / 255
@@ -654,6 +658,7 @@ void main() {
     );
     velocity.y += uGravity;
     float pointerDensity = 0.0;
+    vec2 screenUv = vec2(vUv.x, 1.0 - vUv.y);
 
     for (int pointerIndex = 0; pointerIndex < 8; pointerIndex++) {
         if (float(pointerIndex) >= uPointerCount) {
@@ -667,37 +672,36 @@ void main() {
         float radiusSq =
             uPointerRadius * uPointerRadius;
 
-        if (
-            distanceSq <=
-            radiusSq *
-            uPointerReachMultiplier *
-            uPointerReachMultiplier
-        ) {
-            float influence = exp(
-                -distanceSq /
-                max(
-                    radiusSq *
-                    uPointerFalloffScale,
-                    0.001
-                )
-            );
-            velocity +=
-                pointer.zw *
-                influence *
-                uPointerForce *
-                uPointerVelocityEnabled;
-            pointerDensity = max(
-                pointerDensity,
-                influence *
-                uPointerDensity *
-                uPointerAddsDensity
-            );
-        }
+        float reach = max(
+            uPointerReachMultiplier,
+            0.001
+        );
+        float effectiveRadiusSq =
+            radiusSq * reach * reach;
+        float influence = exp(
+            -distanceSq /
+            max(
+                effectiveRadiusSq *
+                uPointerFalloffScale,
+                0.001
+            )
+        );
+
+        velocity +=
+            pointer.zw *
+            influence *
+            uPointerForce *
+            uPointerVelocityEnabled;
+        pointerDensity = max(
+            pointerDensity,
+            influence *
+            uPointerDensity *
+            uPointerAddsDensity
+        );
     }
 
     velocity *= uVelocityDamping;
 
-    vec2 screenUv = vec2(vUv.x, 1.0 - vUv.y);
     vec2 center1 =
         vec2(0.15, 0.19) +
         vec2(
@@ -1262,7 +1266,6 @@ void main() {
                         8
                     )
                     : 0;
-
             gpuPointerData.fill(0);
 
             for (
@@ -2338,6 +2341,18 @@ void main() {
                         event.clientY -
                         lastFluidPointerY;
                     const magnitude = Math.hypot(dx, dy);
+                    const pointerCanvasRect =
+                        canvas.getBoundingClientRect();
+                    const pointerViewportWidth =
+                        Math.max(
+                            pointerCanvasRect.width,
+                            1
+                        );
+                    const pointerViewportHeight =
+                        Math.max(
+                            pointerCanvasRect.height,
+                            1
+                        );
                     const scale =
                         magnitude >
                         ORB_FLUID_CONFIG
@@ -2349,33 +2364,27 @@ void main() {
 
                     pendingFluidForces.push({
                         x:
-                            event.clientX /
-                            Math.max(
-                                window.innerWidth,
-                                1
-                            ),
+                            (
+                                event.clientX -
+                                pointerCanvasRect.left
+                            ) /
+                            pointerViewportWidth,
                         y:
                             1 -
-                            event.clientY /
-                            Math.max(
-                                window.innerHeight,
-                                1
-                            ),
+                            (
+                                event.clientY -
+                                pointerCanvasRect.top
+                            ) /
+                            pointerViewportHeight,
                         vx:
                             dx *
                             scale /
-                            Math.max(
-                                window.innerWidth,
-                                1
-                            ) *
+                            pointerViewportWidth *
                             fluidGridWidth,
                         vy:
                             -dy *
                             scale /
-                            Math.max(
-                                window.innerHeight,
-                                1
-                            ) *
+                            pointerViewportHeight *
                             fluidGridHeight
                     });
 
@@ -3125,7 +3134,8 @@ void main() {
                     }
                 );
 
-                setTimeout(
+                clearTimeout(ink._rippleRemovalTimer);
+                ink._rippleRemovalTimer = setTimeout(
                     () => ink.remove(),
                     340 *
                         RIPPLE_EXIT_DURATION_MULTIPLIER
@@ -3144,6 +3154,22 @@ void main() {
 
         el.addEventListener('pointerenter', event => {
             if (!finePointer) return;
+
+            /*
+             * Native pointer events and the elementFromPoint reconciler can
+             * report the same transition in one frame. Do not restart the
+             * ripple or overwrite its active animation on that duplicate.
+             */
+            if (isHovering) {
+                if (isMagnetic) {
+                    updateMagneticTarget(
+                        event.clientX,
+                        event.clientY
+                    );
+                }
+
+                return;
+            }
 
             if (reboundAnim) {
                 const rendered =
@@ -3169,6 +3195,7 @@ void main() {
             }
 
             isHovering = true;
+            el._motionHoverActive = true;
             lastExitPoint = null;
 
             if (isMagnetic) {
@@ -3178,19 +3205,52 @@ void main() {
                 );
             }
 
-            const oldInks =
-                el.querySelectorAll('.ripple-ink');
+            const oldInks = [
+                ...el.querySelectorAll('.ripple-ink')
+            ];
+            let recoveredInk =
+                oldInks.length
+                    ? oldInks[oldInks.length - 1]
+                    : null;
 
             oldInks.forEach(ink => {
-                ink.style.transition =
-                    'opacity 0.2s ease';
+                if (ink !== recoveredInk) {
+                    clearTimeout(
+                        ink._rippleRemovalTimer
+                    );
+                    ink.remove();
+                    return;
+                }
 
-                ink.style.opacity = '0';
+                const renderedStyle =
+                    getComputedStyle(ink);
+                const renderedTransform =
+                    renderedStyle.transform;
+                const renderedOpacity =
+                    renderedStyle.opacity;
 
-                setTimeout(() => ink.remove(), 250);
+                ink.getAnimations().forEach(
+                    animation => {
+                        try {
+                            animation.cancel();
+                        } catch (_) {}
+                    }
+                );
+                clearTimeout(
+                    ink._rippleRemovalTimer
+                );
+                ink._rippleRemovalTimer = null;
+                ink.style.animation = 'none';
+                ink.style.transition = 'none';
+                ink.style.transform =
+                    renderedTransform;
+                ink.style.opacity =
+                    renderedOpacity;
             });
 
-            liveInks = [];
+            liveInks = recoveredInk
+                ? [recoveredInk]
+                : [];
 
             if (growAnim) {
                 try {
@@ -3251,16 +3311,52 @@ void main() {
             const x = event.clientX - elRect.left;
             const y = event.clientY - elRect.top;
 
-            const ink = spawnInk(el, x, y);
+            const ink =
+                recoveredInk ||
+                spawnInk(el, x, y);
 
             liveInks = [ink];
-            ink.style.opacity = '0';
+            const wasRecovered =
+                Boolean(recoveredInk);
+            const recoveredStyle =
+                getComputedStyle(ink);
+            const recoveredTransform =
+                recoveredStyle.transform;
+            const recoveredOpacity =
+                wasRecovered
+                    ? clamp(
+                        parseFloat(
+                            recoveredStyle.opacity
+                        ) || 0,
+                        0,
+                        1
+                    )
+                    : 0;
+            const recoveredMatrixMatch =
+                recoveredTransform.match(
+                    /matrix\(([^)]+)\)/
+                );
+            let recoveredScale = 0;
+
+            if (
+                wasRecovered &&
+                recoveredMatrixMatch
+            ) {
+                const matrixValues =
+                    recoveredMatrixMatch[1]
+                        .split(',')
+                        .map(Number);
+
+                recoveredScale =
+                    Math.abs(matrixValues[0]) || 0;
+            }
 
             growAnim = ink.animate(
                 [
                     {
                         transform:
-                            'translate(-50%, -50%) scale(0)'
+                            `translate(-50%, -50%) ` +
+                            `scale(${recoveredScale.toFixed(3)})`
                     },
                     {
                         transform:
@@ -3283,15 +3379,21 @@ void main() {
             ink.animate(
                 [
                     {
-                        opacity: 0,
+                        opacity: recoveredOpacity,
                         offset: 0
                     },
                     {
-                        opacity: 0.08,
+                        opacity: Math.max(
+                            recoveredOpacity,
+                            0.08
+                        ),
                         offset: 0.55
                     },
                     {
-                        opacity: 0.28,
+                        opacity: Math.max(
+                            recoveredOpacity,
+                            0.28
+                        ),
                         offset: 0.8
                     },
                     {
@@ -3375,6 +3477,8 @@ void main() {
         };
 
         el.addEventListener('pointerleave', event => {
+            if (!finePointer || !isHovering) return;
+
             /*
              * Element cursor glow disabled.
              *
@@ -3391,6 +3495,7 @@ void main() {
             };
 
             isHovering = false;
+            el._motionHoverActive = false;
 
             if (!growAnim && !isExiting) {
                 startExit(lastExitPoint);
@@ -3411,6 +3516,8 @@ void main() {
         function startExit(
             exitPoint = lastExitPoint
         ) {
+            if (isHovering) return;
+
             isExiting = true;
             el.classList.add('motion-exiting');
 
@@ -3459,6 +3566,7 @@ void main() {
 
             el.classList.remove('is-hovered');
             isHovering = false;
+            el._motionHoverActive = false;
         }
     }
 
@@ -3545,6 +3653,11 @@ void main() {
         el.addEventListener('pointerenter', event => {
             if (!finePointer) return;
 
+            if (isHovering) {
+                updateTarget(event);
+                return;
+            }
+
             if (reboundAnim) {
                 const rendered =
                     readRenderedTranslate(el);
@@ -3562,6 +3675,7 @@ void main() {
 
             el.classList.remove('motion-exiting');
             isHovering = true;
+            el._motionHoverActive = true;
             updateTarget(event);
         });
 
@@ -3571,9 +3685,10 @@ void main() {
         });
 
         el.addEventListener('pointerleave', () => {
-            if (!finePointer) return;
+            if (!finePointer || !isHovering) return;
 
             isHovering = false;
+            el._motionHoverActive = false;
             targetX = 0;
             targetY = 0;
             magneticVelocityX = 0;
@@ -5161,6 +5276,28 @@ void main() {
             const ripple = interactiveFromTarget(target);
 
             if (ripple === currentHoveredHost) {
+                /*
+                 * A fast leave/re-enter can occur between two global pointer
+                 * samples. If the DOM hit target is unchanged but the host's
+                 * local state was cleared, immediately repair that state.
+                 */
+                if (
+                    ripple &&
+                    !ripple._motionHoverActive
+                ) {
+                    ripple.dispatchEvent(
+                        new PointerEvent(
+                            'pointerenter',
+                            {
+                                bubbles: true,
+                                cancelable: true,
+                                clientX,
+                                clientY
+                            }
+                        )
+                    );
+                }
+
                 return;
             }
 

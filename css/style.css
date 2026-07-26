@@ -10,6 +10,7 @@
     --accent-rgb: 0, 138, 34;
     --accent-opposite: #00CC33;
     --accent-opposite-rgb: 0, 204, 51;
+    --orb-fluid-rgb: 0, 204, 51;
     --accent-yellow: #101511;
     --accent-dark: rgba(0, 138, 34, 0.08);
     --border-color: #dde6dd;
@@ -61,6 +62,7 @@
     --accent-rgb: 0, 204, 51;
     --accent-opposite: #008A22;
     --accent-opposite-rgb: 0, 138, 34;
+    --orb-fluid-rgb: 0, 204, 51;
     --accent-yellow: #ffffff;
     --accent-dark: #000000;
     --border-color: #232a23;
@@ -4314,7 +4316,9 @@ video,
     position: relative;
     overflow: hidden;
     isolation: isolate;
-    transition: background-color 0.585s ease-out;
+    transition:
+        background-color 0.585s
+        cubic-bezier(0.12, 0.72, 0.28, 1);
 }
 
 .ripple-host.ripple-filled {
@@ -4601,11 +4605,11 @@ video,
     pointer-events: none;
 }
 
-/* A leaving element cannot start a second hover/click interaction until its
-   ripple contraction and magnetic return have both completed. */
-.motion-exiting {
-    pointer-events: none !important;
-}
+/*
+ * Keep exiting hosts hit-testable so a pointer re-entry can reverse the
+ * contraction from its current visual state. Interaction deduplication is
+ * handled by motion.js instead of removing the host from pointer hit testing.
+ */
 
 /* Background grid lines: worn effect - broken in the middle, intact at edges */
 .deco-grid-overlay {
