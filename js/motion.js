@@ -75,7 +75,7 @@
             velocityDamping: 0.99,
 
             // 网格坐标中的重力；负值表示向屏幕下方。
-            gravityPerFrame: -0.006,
+            gravityPerFrame: -0.01,
 
             // 压力投影迭代次数。越高越接近不可压缩流体，但更耗性能。
             projectionIterationsBeforeAdvection: 3,
@@ -89,10 +89,10 @@
             advectionStrength: 1,
 
             // 每帧密度保留率。越接近 1，流体尾迹停留越久。
-            densityDecay: 0.994,
+            densityDecay: 0.99,
 
             // Orb 每帧向密度场补充的速度。
-            sourceFollow: 0.05,
+            sourceFollow: 0.1,
 
             // 流体源相对 CSS Orb 透明度的倍率。
             sourceDensityScale: 1,
