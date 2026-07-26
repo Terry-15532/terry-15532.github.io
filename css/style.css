@@ -10,7 +10,8 @@
     --accent-rgb: 0, 138, 34;
     --accent-opposite: #00CC33;
     --accent-opposite-rgb: 0, 204, 51;
-    --orb-fluid-rgb: 0, 204, 51;
+    /* Use the lighter theme's deep green for the fluid background. */
+    --orb-fluid-rgb: 0, 138, 34;
     --accent-yellow: #101511;
     --accent-dark: rgba(0, 138, 34, 0.08);
     --border-color: #dde6dd;
@@ -360,7 +361,7 @@ nav .nav-item .en::after {
     width: 100%;
     height: 100%;
     z-index: -1;
-    opacity: 0.3;
+    opacity: 0.24;
     pointer-events: none;
     transition: opacity 0.3s ease;
 }
@@ -2612,8 +2613,19 @@ header.hero::before {
     border-radius: calc(var(--radius-md) * 1.3);
 }
 
+.progressive-image {
+    filter: blur(0.8px);
+    transition: filter 0.35s ease;
+}
+
+.progressive-image.is-full-loaded {
+    filter: none;
+}
+
 .project-detail-panel {
-    width: min(95%, 1120px);
+    /* Keep guides and credits aligned with the playable iframe/media. */
+    width: 100%;
+    max-width: none;
     margin: 5% auto 3.5rem;
     padding: clamp(1.35rem, 2.2vw, 2rem);
     position: relative;
@@ -2734,7 +2746,8 @@ header.hero::before {
 
 @media (max-width: 768px) {
     .project-detail-panel {
-        width: min(100%, 1120px);
+        width: 100%;
+        max-width: none;
         margin: 2rem auto 2.5rem;
         padding: 1.25rem;
         border-radius: 5px;

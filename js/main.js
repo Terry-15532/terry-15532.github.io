@@ -185,6 +185,7 @@ function initPage() {
         initDotController,
         initArtworksDot,
         initLightbox,
+        initProgressiveImages,
         initYoutubeLazyLoad,
         initDragScroll,
         () => { if (window.MotionUX) window.MotionUX.init(); }
@@ -1263,6 +1264,22 @@ function inferCurrentSpaPath() {
 
     const fileName = pathname.split('/').pop();
     return fileName || 'index.html';
+}
+
+// Show lightweight thumbnails immediately, then replace them with full-size images.
+function initProgressiveImages() {
+    document.querySelectorAll('img[data-full-src]').forEach(image => {
+        if (image.dataset.progressiveReady === 'true') return;
+        image.dataset.progressiveReady = 'true';
+
+        const fullImage = new Image();
+        fullImage.decoding = 'async';
+        fullImage.onload = () => {
+            image.src = fullImage.src;
+            image.classList.add('is-full-loaded');
+        };
+        fullImage.src = image.dataset.fullSrc;
+    });
 }
 
 function normalizeSpaPath(path) {
