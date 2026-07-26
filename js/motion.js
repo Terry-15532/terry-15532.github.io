@@ -98,7 +98,7 @@
             sourceDensityScale: 1,
 
             // 最终密度纹理的显示倍率，只改变可见度，不改变模拟。
-            renderOpacityScale: 1.8,
+            renderOpacityScale: 1.5,
 
             // 源的高斯衰减。越大边缘越集中，越小范围越宽。
             sourceProfileFalloff: 8.35,
