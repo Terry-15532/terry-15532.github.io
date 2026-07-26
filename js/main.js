@@ -17,6 +17,8 @@ const $$ = (selector, parent = document) => parent.querySelectorAll(selector);
 document.addEventListener('DOMContentLoaded', () => {
     console.log('System Online. Welcome to PRTS Design.');
 
+    initDoubleClickSelectionGuard();
+
     // Inject components
     document.body.insertAdjacentHTML('beforeend', LOADER_HTML);
     document.body.insertAdjacentHTML('beforeend', LIGHTBOX_HTML);
@@ -89,6 +91,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const href = link.getAttribute('href');
 
+            if (
+                href &&
+                /^#Projects\//i.test(href)
+            ) {
+                e.preventDefault();
+                navigateTo(
+                    href.slice(1),
+                    true,
+                    { x: e.clientX, y: e.clientY }
+                );
+                return;
+            }
+
             // Check if it's an internal link and not an anchor link or external
             if (href && !href.startsWith('http') && !href.startsWith('#') && !href.startsWith('mailto:') && !link.hasAttribute('target')) {
                 e.preventDefault();
@@ -126,6 +141,41 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize YouTube lazy loading
     initYoutubeLazyLoad();
 });
+
+function initDoubleClickSelectionGuard() {
+    if (document.documentElement.dataset.doubleClickGuard === 'ready') {
+        return;
+    }
+
+    document.documentElement.dataset.doubleClickGuard = 'ready';
+
+    const isEditable = target =>
+        target instanceof Element &&
+        Boolean(target.closest(
+            'input, textarea, select, [contenteditable="true"]'
+        ));
+
+    // A browser normally creates the word selection during the second
+    // mousedown, before `dblclick` fires. Cancel only repeated presses so a
+    // normal first press followed by a drag can still create a text range.
+    document.addEventListener('mousedown', event => {
+        if (
+            event.button === 0 &&
+            event.detail > 1 &&
+            !isEditable(event.target)
+        ) {
+            event.preventDefault();
+        }
+    }, true);
+
+    document.addEventListener('dblclick', event => {
+        if (!isEditable(event.target)) {
+            event.preventDefault();
+            window.getSelection()?.removeAllRanges();
+        }
+    }, true);
+}
+
 function initPage() {
     // Initialize all page features
     const initializers = [
@@ -1157,7 +1207,13 @@ function initLightbox() {
 
             if (iframe && iframe.hasAttribute('data-src')) {
                 // Load the game by setting src attribute
-                iframe.src = iframe.getAttribute('data-src');
+                const gamePath = iframe
+                    .getAttribute('data-src')
+                    .replace(/^\/+/, '');
+                iframe.src = new URL(
+                    gamePath,
+                    `${window.location.origin}/`
+                ).href;
                 iframe.removeAttribute('data-src');
             }
 
@@ -1185,6 +1241,52 @@ function initLightbox() {
 // (including its full-screen sweep), keeping nav active state in sync.
 let __navToken = null;   // non-null while a navigation is in-flight
 let __loadingLocked = false; // blocks all clicks/nav during load
+let __currentSpaPath = '';
+let __lastNavSource = '';
+
+function inferCurrentSpaPath() {
+    const hashPath = window.location.hash
+        .slice(1)
+        .replace(/^#+/, '');
+    if (hashPath) return hashPath;
+
+    const pathname = decodeURIComponent(
+        window.location.pathname
+    ).replace(/\\/g, '/');
+    const projectIndex = pathname
+        .toLowerCase()
+        .indexOf('/projects/');
+
+    if (projectIndex >= 0) {
+        return pathname.slice(projectIndex + 1);
+    }
+
+    const fileName = pathname.split('/').pop();
+    return fileName || 'index.html';
+}
+
+function normalizeSpaPath(path) {
+    const cleanPath = String(path || 'index.html')
+        .replace(/^#+/, '')
+        .split('?')[0]
+        .replace(/\\/g, '/');
+
+    // Project pages use several forms of a return URL (projects.html,
+    // ../projects.html, ../../projects.html). They all address the root list.
+    if (/(^|\/)projects\.html$/i.test(cleanPath)) {
+        return 'projects.html';
+    }
+
+    return cleanPath.replace(/^\/+/, '');
+}
+
+function getCurrentSpaPath() {
+    return __currentSpaPath || inferCurrentSpaPath();
+}
+
+__currentSpaPath = normalizeSpaPath(inferCurrentSpaPath());
+__lastNavSource = __currentSpaPath;
+window.__currentSpaPath = __currentSpaPath;
 
 function navigateTo(url, pushHistory = true, clickPos = null) {
     if (__loadingLocked) return;
@@ -1194,7 +1296,7 @@ function navigateTo(url, pushHistory = true, clickPos = null) {
     }
     const token = { cancelled: false };
     __navToken = token;
-    const sourceHash = window.location.hash.slice(1) || 'index.html';
+    const sourceHash = getCurrentSpaPath();
     __lastNavSource = sourceHash;
     loadPage(url, pushHistory, clickPos, token, sourceHash);
 }
@@ -1221,9 +1323,8 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
         return name.split('#')[0].split('?')[0];
     };
 
-    // FIX: Get current file from hash if present, otherwise default to index.html
-    let currentPath = window.location.hash.slice(1);
-    if (!currentPath) currentPath = 'index.html';
+    // Track the content actually displayed, not a potentially stale URL hash.
+    const currentPath = getCurrentSpaPath();
 
     const currentFile = getFileName(currentPath);
     const nextFile = getFileName(url);
@@ -1289,6 +1390,13 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
                 window.location.hash = url;
             }
 
+            // Content has now been swapped successfully. Keep an explicit
+            // canonical source for the next navigation, including rapid
+            // project-to-project transitions where hash events can lag.
+            __currentSpaPath = normalizeSpaPath(url);
+            __lastNavSource = __currentSpaPath;
+            window.__currentSpaPath = __currentSpaPath;
+
             // 6. Re-initialize (behind the sweep)
             initPage();
 
@@ -1306,10 +1414,7 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
                 const isCurProject = (lowerCur.startsWith('projects/') || lowerCur.includes('/projects/')) && curFile !== 'projects.html';
                 const isNextProjects = nxtFile.toLowerCase() === 'projects.html';
                 
-                console.log('[ScrollBack] fromPage:', fromPage, 'curFile:', curFile, 'nxtFile:', nxtFile, 'isCurProject:', isCurProject, 'isNextProjects:', isNextProjects);
-                
                 if (isCurProject && isNextProjects) {
-                    console.log('[ScrollBack] Storing:', fromPage);
                     sessionStorage.setItem('lastVisitedProject', fromPage);
                 }
             } catch (e) { console.error('[ScrollBack] Error:', e); }
@@ -1317,13 +1422,20 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
             // 7. Execute inline scripts from the new page
             const newScripts = doc.querySelectorAll('script');
             newScripts.forEach(script => {
-                if (script.src) {
+                const rawSrc = script.getAttribute('src');
+                if (rawSrc) {
                     // Check if script is already loaded (avoid duplicates)
-                    const existingScript = document.querySelector(`script[src="${script.src}"]`);
+                    const absoluteSrc = new URL(
+                        rawSrc,
+                        response.url
+                    ).href;
+                    const existingScript = Array
+                        .from(document.scripts)
+                        .some(existing => existing.src === absoluteSrc);
                     if (!existingScript) {
                         // External script - reload it only if not already present
                         const newScript = document.createElement('script');
-                        newScript.src = script.src;
+                        newScript.src = absoluteSrc;
                         document.body.appendChild(newScript);
                     }
                 } else if (script.textContent) {
@@ -1341,20 +1453,17 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
                 const loadedFileName = getFileName(url);
                 if (loadedFileName === 'projects.html') {
                     const lastProj = sessionStorage.getItem('lastVisitedProject');
-                    console.log('[ScrollBack] Loading projects.html, lastProj:', lastProj);
                     if (lastProj) {
                         // Retry with increasing delay: 0ms, 50ms, 100ms, 200ms, 400ms
                         const delays = [0, 50, 100, 200, 400];
                         const attemptScroll = (idx) => {
                             if (idx >= delays.length) {
-                                console.log('[ScrollBack] All retries exhausted, grid never appeared');
                                 sessionStorage.removeItem('lastVisitedProject');
                                 return;
                             }
                             setTimeout(() => {
                                 const grid = document.querySelector('.grid-container');
                                 const cards = grid ? grid.querySelectorAll('a.card') : [];
-                                console.log(`[ScrollBack] Attempt ${idx}: grid=${!!grid}, cards=${cards.length}`);
                                 if (grid && cards.length > 0) {
                                     const clean = (s) => (s || '').replace(/^#+/, '').toLowerCase();
                                     const needle = clean(lastProj);
@@ -1363,7 +1472,6 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
                                         const href = card.getAttribute('href');
                                         if (!href) continue;
                                         const hrefLower = clean(href);
-                                        console.log('[ScrollBack]   card:', hrefLower, 'needle:', needle);
                                         if (hrefLower === needle || hrefLower.endsWith(needle) || needle.endsWith(hrefLower)) {
                                             target = card; break;
                                         }
@@ -1392,9 +1500,6 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
                                                 target.style.transition = '';
                                             }, 550);
                                         }, 500);
-                                        console.log('[ScrollBack] Scrolled to target');
-                                    } else {
-                                        console.log('[ScrollBack] No match for:', needle);
                                     }
                                     sessionStorage.removeItem('lastVisitedProject');
                                 } else {

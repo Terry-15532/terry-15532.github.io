@@ -19,6 +19,125 @@
 
     const EASE_INOUT = 'cubic-bezier(0.7, 0, 0.2, 1)';
 
+    /*
+     * ================================================================
+     * Orb 连续流体参数
+     * ------------------------------------------------
+     * 可直接修改下方默认值；也可以在 motion.js 加载前设置：
+     *
+     * window.ORB_FLUID_CONFIG = {
+     *     gravityPerFrame: -0.004,
+     *     pointerForce: 0.55
+     * };
+     *
+     * 页面会用你提供的字段覆盖默认值。除特别注明外，涉及时间的
+     * 数值均以 60 FPS 的“一帧”为基准。
+     * ================================================================
+     */
+    const ORB_FLUID_CONFIG = Object.assign(
+        {
+            // 总开关。false 时关闭流体背景，只保留其余背景效果。
+            enabled: true,
+
+            // 是否在移动/粗指针设备上关闭模拟。
+            disableOnMobile: true,
+
+            // 是否服从系统的“减少动态效果”设置。
+            respectReducedMotion: true,
+
+            // 触控设备宽度不超过此值时直接关闭模拟。
+            mobileMaxWidth: 1024,
+
+            // 模拟网格：越高越细腻，但 CPU 开销近似按面积增加。
+            gridHeight: 32,
+            gridMinWidth: 64,
+            gridMaxWidth: 192,
+
+            // 流体求解帧率上限；不影响页面和原始 Orb 的渲染 FPS。
+            simulationFps: 60,
+
+            // GPU 流体使用浮点纹理；关闭后将只保留原始 Orb。
+            preferFloatTexture: true,
+
+            // 启动后的性能检测时长与保留流体所需最低平均 FPS。
+            autoDisableOnLowFps: true,
+            performanceTestMs: 1500,
+            minimumAverageFps: 55,
+
+            // 单帧时间钳制，避免切回页面时模拟一次跨越太远。
+            minimumDeltaMs: 4,
+            maximumDeltaMs: 40,
+
+            // 速度扩散：越大越黏、更平滑，也越不容易形成细碎涡流。
+            velocityViscosity: 0.01,
+
+            // 每帧速度保留率。越接近 1，惯性持续越久。
+            velocityDamping: 0.99,
+
+            // 网格坐标中的重力；负值表示向屏幕下方。
+            gravityPerFrame: -0.003,
+
+            // 压力投影迭代次数。越高越接近不可压缩流体，但更耗性能。
+            projectionIterationsBeforeAdvection: 3,
+            projectionIterationsAfterAdvection: 2,
+
+            // 散度与压力梯度系数；通常保持相同，越大投影越强。
+            divergenceScale: 0.8,
+            pressureGradientScale: 0.8,
+
+            // 平流位移倍率；提高会让流体随速度移动得更远。
+            advectionStrength: 1,
+
+            // 每帧密度保留率。越接近 1，流体尾迹停留越久。
+            densityDecay: 0.994,
+
+            // Orb 每帧向密度场补充的速度。
+            sourceFollow: 0.05,
+
+            // 流体源相对 CSS Orb 透明度的倍率。
+            sourceDensityScale: 1.5,
+
+            // 最终密度纹理的显示倍率，只改变可见度，不改变模拟。
+            renderOpacityScale: 1,
+
+            // 源的高斯衰减。越大边缘越集中，越小范围越宽。
+            sourceProfileFalloff: 4.35,
+
+            // 三个连续流体源的半径，按 viewport 最大边比例计算。
+            sourceRadiusScales: [0.34, 0.29, 0.38],
+
+            // 鼠标速度场作用半径，占网格短边的比例。
+            pointerRadiusRatio: 0.13,
+
+            // 实际计算范围是作用半径的倍数。
+            pointerReachMultiplier: 1,
+
+            // 鼠标场的高斯衰减范围；越大影响分布越宽。
+            pointerFalloffScale: 0.46,
+
+            // 鼠标向速度场注入的力度。
+            pointerForce: 0.6,
+
+            // false 时鼠标不再影响速度场，但流体仍会自行运动。
+            pointerEnabled: true,
+
+            // 开启后鼠标移动轨迹也会补充流体密度。
+            pointerAddsDensity: true,
+
+            // 鼠标补充流体的强度；仅在 pointerAddsDensity 为 true 时生效。
+            pointerDensity: 0.006,
+
+            // 单次鼠标位移上限（CSS 像素），防止噪声产生巨大速度。
+            pointerMaxDelta: 72,
+
+            // 一帧前最多保留的鼠标输入数量。
+            pointerQueueLimit: 8
+        },
+        window.ORB_FLUID_CONFIG || {}
+    );
+
+    window.ORB_FLUID_CONFIG = ORB_FLUID_CONFIG;
+
     /* ---------- Global ambient loop (runs once) ---------- */
     let ambientStarted = false;
     let orbGLStarted = false;
@@ -50,6 +169,21 @@
             return false;
         }
 
+        const mobileFluidDisabled =
+            ORB_FLUID_CONFIG.disableOnMobile &&
+            Boolean(
+                (
+                    window.matchMedia &&
+                    window.matchMedia(
+                        '(pointer: coarse)'
+                    ).matches
+                ) ||
+                (
+                    navigator.maxTouchPoints > 0 &&
+                    window.innerWidth <=
+                        ORB_FLUID_CONFIG.mobileMaxWidth
+                )
+            );
         const vertexSource = `
 attribute vec2 aPosition;
 
@@ -65,6 +199,9 @@ uniform vec2 uResolution;
 uniform float uTime;
 uniform vec3 uAccent;
 uniform vec3 uOrbAlpha;
+uniform sampler2D uOrbFluidMap;
+uniform float uOrbFluidEnabled;
+uniform float uOrbFluidOpacityScale;
 
 float hash12(vec2 p) {
     vec3 p3 = fract(vec3(p.xyx) * 0.1031);
@@ -72,81 +209,21 @@ float hash12(vec2 p) {
     return fract((p3.x + p3.y) * p3.z);
 }
 
-float orbProfile(
-    vec2 pixel,
-    vec2 center,
-    float radius
-) {
-    float distanceToCenter =
-        length(pixel - center) / radius;
+void main() {
+    float fluidAlpha = 0.0;
+
+    if (uOrbFluidEnabled > 0.5) {
+        fluidAlpha = texture2D(
+            uOrbFluidMap,
+            gl_FragCoord.xy / uResolution
+        ).r * uOrbFluidOpacityScale;
+    }
 
     /*
-     * A continuous Gaussian-like falloff replaces the quantized CSS blur.
-     * The complete gradient remains high precision until gl_FragColor.
+     * 三个 Orb 只在流体求解 shader 中作为连续密度源，不再直接显示
+     * Gaussian 本体；最终画面完全来自被平流和压力投影后的流体场。
      */
-    return exp2(
-        -4.35 *
-        distanceToCenter *
-        distanceToCenter
-    );
-}
-
-void main() {
-    vec2 pixel = vec2(
-        gl_FragCoord.x,
-        uResolution.y - gl_FragCoord.y
-    );
-
-    float viewportMax =
-        max(uResolution.x, uResolution.y);
-
-    vec2 center1 =
-        vec2(0.15, 0.19) * uResolution +
-        vec2(
-            sin(uTime * 0.071 + 0.7) * 0.13,
-            cos(uTime * 0.093 + 1.1) * 0.11
-        ) * uResolution;
-
-    vec2 center2 =
-        vec2(0.88, 0.43) * uResolution +
-        vec2(
-            cos(uTime * 0.083 + 2.4) * 0.12,
-            sin(uTime * 0.107 + 0.2) * 0.13
-        ) * uResolution;
-
-    vec2 center3 =
-        vec2(0.40, 0.88) * uResolution +
-        vec2(
-            sin(uTime * 0.063 + 4.0) * 0.15,
-            cos(uTime * 0.079 + 2.8) * 0.10
-        ) * uResolution;
-
-    float alpha1 =
-        orbProfile(
-            pixel,
-            center1,
-            viewportMax * 0.34
-        ) * uOrbAlpha.x;
-
-    float alpha2 =
-        orbProfile(
-            pixel,
-            center2,
-            viewportMax * 0.29
-        ) * uOrbAlpha.y;
-
-    float alpha3 =
-        orbProfile(
-            pixel,
-            center3,
-            viewportMax * 0.38
-        ) * uOrbAlpha.z;
-
-    float alpha =
-        1.0 -
-        (1.0 - alpha1) *
-        (1.0 - alpha2) *
-        (1.0 - alpha3);
+    float alpha = fluidAlpha;
 
     /*
      * Subtractive triangular dither has zero mean and a maximum amplitude of
@@ -287,9 +364,28 @@ void main() {
                 'uOrbAlpha'
             );
 
+        const orbFluidMapLocation =
+            gl.getUniformLocation(
+                program,
+                'uOrbFluidMap'
+            );
+
+        const orbFluidEnabledLocation =
+            gl.getUniformLocation(
+                program,
+                'uOrbFluidEnabled'
+            );
+
+        const orbFluidOpacityScaleLocation =
+            gl.getUniformLocation(
+                program,
+                'uOrbFluidOpacityScale'
+            );
+
         let width = 0;
         let height = 0;
         let currentTheme = '';
+        let orbAlphaValues = [0, 0, 0];
 
         function resize() {
             const dpr = Math.min(
@@ -353,6 +449,9 @@ void main() {
                     )
                 )
             );
+            orbAlphaValues = alpha.map(value =>
+                Number.isFinite(value) ? value : 0
+            );
 
             gl.uniform3f(
                 accentLocation,
@@ -363,9 +462,9 @@ void main() {
 
             gl.uniform3f(
                 alphaLocation,
-                alpha[0] || 0,
-                alpha[1] || 0,
-                alpha[2] || 0
+                orbAlphaValues[0],
+                orbAlphaValues[1],
+                orbAlphaValues[2]
             );
         }
 
@@ -375,9 +474,1939 @@ void main() {
                 '(prefers-reduced-motion: reduce)'
             ).matches;
 
+        let orbFluidEnabled =
+            ORB_FLUID_CONFIG.enabled &&
+            !mobileFluidDisabled &&
+            (
+                !ORB_FLUID_CONFIG
+                    .respectReducedMotion ||
+                !reducedMotion
+            );
+        let fluidGridWidth = 0;
+        let fluidGridHeight = 0;
+        let density = new Float32Array(0);
+        let nextDensity = new Float32Array(0);
+        let velocityX = new Float32Array(0);
+        let velocityY = new Float32Array(0);
+        let nextVelocityX = new Float32Array(0);
+        let nextVelocityY = new Float32Array(0);
+        let divergence = new Float32Array(0);
+        let pressure = new Float32Array(0);
+        let nextPressure = new Float32Array(0);
+        let fluidPixels = new Uint8Array(1);
+        let pendingFluidForces = [];
+        let lastFluidPointerX = null;
+        let lastFluidPointerY = null;
+        let lastFluidFrameTime = 0;
+        let lastFluidRenderTime = 0;
+        let fluidSimulationAccumulator = 0;
+        let fluidPerformanceStart = 0;
+        let fluidPerformanceFrames = 0;
+        let fluidPerformanceChecked = false;
+
+        const fluidTexture = gl.createTexture();
+        const floatTextureExtension =
+            gl.getExtension('OES_texture_float');
+        const floatLinearExtension =
+            gl.getExtension(
+                'OES_texture_float_linear'
+            );
+        const floatRenderExtension =
+            gl.getExtension(
+                'WEBGL_color_buffer_float'
+            );
+        const useGpuFluid = Boolean(
+            ORB_FLUID_CONFIG.preferFloatTexture &&
+            floatTextureExtension &&
+            floatLinearExtension &&
+            floatRenderExtension
+        );
+        const useFloatFluidTexture = useGpuFluid;
+        const fluidTextureType =
+            useFloatFluidTexture
+                ? gl.FLOAT
+                : gl.UNSIGNED_BYTE;
+
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, fluidTexture);
+        gl.texParameteri(
+            gl.TEXTURE_2D,
+            gl.TEXTURE_MIN_FILTER,
+            gl.LINEAR
+        );
+        gl.texParameteri(
+            gl.TEXTURE_2D,
+            gl.TEXTURE_MAG_FILTER,
+            gl.LINEAR
+        );
+        gl.texParameteri(
+            gl.TEXTURE_2D,
+            gl.TEXTURE_WRAP_S,
+            gl.CLAMP_TO_EDGE
+        );
+        gl.texParameteri(
+            gl.TEXTURE_2D,
+            gl.TEXTURE_WRAP_T,
+            gl.CLAMP_TO_EDGE
+        );
+        gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.LUMINANCE,
+            1,
+            1,
+            0,
+            gl.LUMINANCE,
+            gl.UNSIGNED_BYTE,
+            fluidPixels
+        );
+        gl.uniform1i(orbFluidMapLocation, 0);
+
+        /*
+         * GPU 后端的数据布局：
+         * state.r = 密度，state.g = X 速度，state.b = Y 速度；
+         * pressure.r = 压力，pressure.g = 散度。
+         * 所有平流、扩散和压力投影都在小尺寸浮点 framebuffer 上完成，
+         * CPU 只传入参数与最多 8 个鼠标速度脉冲。
+         */
+        const gpuFluidVertexSource = `
+attribute vec2 aPosition;
+varying vec2 vUv;
+
+void main() {
+    vUv = aPosition * 0.5 + 0.5;
+    gl_Position = vec4(aPosition, 0.0, 1.0);
+}
+`;
+        const gpuFluidAdvectSource = `
+precision highp float;
+
+varying vec2 vUv;
+uniform sampler2D uState;
+uniform vec2 uTexel;
+uniform vec2 uResolution;
+uniform float uTime;
+uniform float uFrameScale;
+uniform float uViscosity;
+uniform float uVelocityDamping;
+uniform float uGravity;
+uniform float uAdvectionStrength;
+uniform float uDensityDecay;
+uniform float uSourceFollow;
+uniform float uSourceDensityScale;
+uniform float uSourceProfileFalloff;
+uniform vec3 uSourceRadii;
+uniform vec3 uOrbAlpha;
+uniform float uPointerRadius;
+uniform float uPointerFalloffScale;
+uniform float uPointerReachMultiplier;
+uniform float uPointerForce;
+uniform float uPointerVelocityEnabled;
+uniform float uPointerAddsDensity;
+uniform float uPointerDensity;
+uniform float uPointerCount;
+uniform vec4 uPointers[8];
+
+float sourceProfile(
+    vec2 screenUv,
+    vec2 center,
+    float radius
+) {
+    vec2 delta =
+        (screenUv - center) * uResolution;
+    float distanceToCenter =
+        length(delta) /
+        (max(uResolution.x, uResolution.y) * radius);
+
+    return exp2(
+        -uSourceProfileFalloff *
+        distanceToCenter *
+        distanceToCenter
+    );
+}
+
+void main() {
+    vec4 state = texture2D(uState, vUv);
+    vec2 velocity = state.gb;
+    vec2 sourceUv = clamp(
+        vUv -
+        velocity *
+        uTexel *
+        uFrameScale *
+        uAdvectionStrength,
+        uTexel * 0.5,
+        vec2(1.0) - uTexel * 0.5
+    );
+    vec4 advected = texture2D(uState, sourceUv);
+    vec2 neighbourVelocity =
+        (
+            texture2D(uState, vUv - vec2(uTexel.x, 0.0)).gb +
+            texture2D(uState, vUv + vec2(uTexel.x, 0.0)).gb +
+            texture2D(uState, vUv - vec2(0.0, uTexel.y)).gb +
+            texture2D(uState, vUv + vec2(0.0, uTexel.y)).gb
+        ) * 0.25;
+
+    velocity = mix(
+        advected.gb,
+        neighbourVelocity,
+        uViscosity
+    );
+    velocity.y += uGravity;
+    float pointerDensity = 0.0;
+
+    for (int pointerIndex = 0; pointerIndex < 8; pointerIndex++) {
+        if (float(pointerIndex) >= uPointerCount) {
+            break;
+        }
+
+        vec4 pointer = uPointers[pointerIndex];
+        vec2 gridDelta =
+            (vUv - pointer.xy) / uTexel;
+        float distanceSq = dot(gridDelta, gridDelta);
+        float radiusSq =
+            uPointerRadius * uPointerRadius;
+
+        if (
+            distanceSq <=
+            radiusSq *
+            uPointerReachMultiplier *
+            uPointerReachMultiplier
+        ) {
+            float influence = exp(
+                -distanceSq /
+                max(
+                    radiusSq *
+                    uPointerFalloffScale,
+                    0.001
+                )
+            );
+            velocity +=
+                pointer.zw *
+                influence *
+                uPointerForce *
+                uPointerVelocityEnabled;
+            pointerDensity = max(
+                pointerDensity,
+                influence *
+                uPointerDensity *
+                uPointerAddsDensity
+            );
+        }
+    }
+
+    velocity *= uVelocityDamping;
+
+    vec2 screenUv = vec2(vUv.x, 1.0 - vUv.y);
+    vec2 center1 =
+        vec2(0.15, 0.19) +
+        vec2(
+            sin(uTime * 0.071 + 0.7) * 0.13,
+            cos(uTime * 0.093 + 1.1) * 0.11
+        );
+    vec2 center2 =
+        vec2(0.88, 0.43) +
+        vec2(
+            cos(uTime * 0.083 + 2.4) * 0.12,
+            sin(uTime * 0.107 + 0.2) * 0.13
+        );
+    vec2 center3 =
+        vec2(0.40, 0.88) +
+        vec2(
+            sin(uTime * 0.063 + 4.0) * 0.15,
+            cos(uTime * 0.079 + 2.8) * 0.10
+        );
+    float sourceDensity = max(
+        sourceProfile(
+            screenUv,
+            center1,
+            uSourceRadii.x
+        ) * uOrbAlpha.x,
+        max(
+            sourceProfile(
+                screenUv,
+                center2,
+                uSourceRadii.y
+            ) * uOrbAlpha.y,
+            sourceProfile(
+                screenUv,
+                center3,
+                uSourceRadii.z
+            ) * uOrbAlpha.z
+        )
+    ) * uSourceDensityScale;
+    float density = mix(
+        advected.r * uDensityDecay,
+        sourceDensity,
+        uSourceFollow
+    );
+    density = clamp(
+        density + pointerDensity,
+        0.0,
+        1.0
+    );
+    float edge =
+        step(uTexel.x, vUv.x) *
+        step(uTexel.y, vUv.y) *
+        step(vUv.x, 1.0 - uTexel.x) *
+        step(vUv.y, 1.0 - uTexel.y);
+
+    gl_FragColor = vec4(
+        clamp(density, 0.0, 1.0),
+        velocity * edge,
+        1.0
+    );
+}
+`;
+        const gpuFluidDivergenceSource = `
+precision highp float;
+
+varying vec2 vUv;
+uniform sampler2D uState;
+uniform vec2 uTexel;
+uniform float uDivergenceScale;
+
+void main() {
+    float left =
+        texture2D(
+            uState,
+            vUv - vec2(uTexel.x, 0.0)
+        ).g;
+    float right =
+        texture2D(
+            uState,
+            vUv + vec2(uTexel.x, 0.0)
+        ).g;
+    float bottom =
+        texture2D(
+            uState,
+            vUv - vec2(0.0, uTexel.y)
+        ).b;
+    float top =
+        texture2D(
+            uState,
+            vUv + vec2(0.0, uTexel.y)
+        ).b;
+    float divergence =
+        -uDivergenceScale *
+        (right - left + top - bottom);
+
+    gl_FragColor = vec4(0.0, divergence, 0.0, 1.0);
+}
+`;
+        const gpuFluidPressureSource = `
+precision highp float;
+
+varying vec2 vUv;
+uniform sampler2D uPressure;
+uniform vec2 uTexel;
+
+void main() {
+    vec4 field = texture2D(uPressure, vUv);
+    float pressure =
+        (
+            field.g +
+            texture2D(
+                uPressure,
+                vUv - vec2(uTexel.x, 0.0)
+            ).r +
+            texture2D(
+                uPressure,
+                vUv + vec2(uTexel.x, 0.0)
+            ).r +
+            texture2D(
+                uPressure,
+                vUv - vec2(0.0, uTexel.y)
+            ).r +
+            texture2D(
+                uPressure,
+                vUv + vec2(0.0, uTexel.y)
+            ).r
+        ) * 0.25;
+
+    gl_FragColor = vec4(
+        pressure,
+        field.g,
+        0.0,
+        1.0
+    );
+}
+`;
+        const gpuFluidProjectSource = `
+precision highp float;
+
+varying vec2 vUv;
+uniform sampler2D uState;
+uniform sampler2D uPressure;
+uniform vec2 uTexel;
+uniform float uPressureGradientScale;
+
+void main() {
+    vec4 state = texture2D(uState, vUv);
+    float left =
+        texture2D(
+            uPressure,
+            vUv - vec2(uTexel.x, 0.0)
+        ).r;
+    float right =
+        texture2D(
+            uPressure,
+            vUv + vec2(uTexel.x, 0.0)
+        ).r;
+    float bottom =
+        texture2D(
+            uPressure,
+            vUv - vec2(0.0, uTexel.y)
+        ).r;
+    float top =
+        texture2D(
+            uPressure,
+            vUv + vec2(0.0, uTexel.y)
+        ).r;
+    vec2 velocity =
+        state.gb -
+        uPressureGradientScale *
+        vec2(right - left, top - bottom);
+
+    gl_FragColor = vec4(
+        state.r,
+        velocity,
+        1.0
+    );
+}
+`;
+
+        function linkGpuFluidProgram(source) {
+            const vertex = compile(
+                gl.VERTEX_SHADER,
+                gpuFluidVertexSource
+            );
+            const fragment = compile(
+                gl.FRAGMENT_SHADER,
+                source
+            );
+
+            if (!vertex || !fragment) return null;
+
+            const fluidProgram = gl.createProgram();
+            gl.attachShader(fluidProgram, vertex);
+            gl.attachShader(fluidProgram, fragment);
+            gl.linkProgram(fluidProgram);
+
+            if (
+                !gl.getProgramParameter(
+                    fluidProgram,
+                    gl.LINK_STATUS
+                )
+            ) {
+                console.warn(
+                    'Orb fluid shader link failed:',
+                    gl.getProgramInfoLog(fluidProgram)
+                );
+                return null;
+            }
+
+            return fluidProgram;
+        }
+
+        const gpuFluidPrograms = useGpuFluid
+            ? {
+                advect: linkGpuFluidProgram(
+                    gpuFluidAdvectSource
+                ),
+                divergence: linkGpuFluidProgram(
+                    gpuFluidDivergenceSource
+                ),
+                pressure: linkGpuFluidProgram(
+                    gpuFluidPressureSource
+                ),
+                project: linkGpuFluidProgram(
+                    gpuFluidProjectSource
+                )
+            }
+            : null;
+        const gpuProgramsReady = Boolean(
+            gpuFluidPrograms &&
+            gpuFluidPrograms.advect &&
+            gpuFluidPrograms.divergence &&
+            gpuFluidPrograms.pressure &&
+            gpuFluidPrograms.project
+        );
+        const gpuStateTextures = [
+            fluidTexture,
+            gl.createTexture()
+        ];
+        const gpuStateFramebuffers = [
+            gl.createFramebuffer(),
+            gl.createFramebuffer()
+        ];
+        const gpuPressureTextures = [
+            gl.createTexture(),
+            gl.createTexture()
+        ];
+        const gpuPressureFramebuffers = [
+            gl.createFramebuffer(),
+            gl.createFramebuffer()
+        ];
+        const gpuPointerData = new Float32Array(8 * 4);
+        let gpuStateReadIndex = 0;
+        let gpuPressureReadIndex = 0;
+
+        orbFluidEnabled =
+            orbFluidEnabled &&
+            useGpuFluid &&
+            gpuProgramsReady;
+
+        if (orbFluidEnabled) {
+            layer.dataset.orbFluidBackend = 'gpu';
+        }
+
+        if (!orbFluidEnabled) {
+            layer.dataset.orbFluid =
+                !ORB_FLUID_CONFIG.enabled
+                    ? 'config-disabled'
+                    : mobileFluidDisabled
+                        ? 'mobile-disabled'
+                        : (
+                            ORB_FLUID_CONFIG
+                                .respectReducedMotion &&
+                            reducedMotion
+                        )
+                            ? 'reduced-motion-disabled'
+                            : 'gpu-unsupported';
+        }
+
+        function disableOrbFluid(reason) {
+            if (!orbFluidEnabled) return;
+
+            orbFluidEnabled = false;
+            density = new Float32Array(0);
+            nextDensity = new Float32Array(0);
+            velocityX = new Float32Array(0);
+            velocityY = new Float32Array(0);
+            nextVelocityX = new Float32Array(0);
+            nextVelocityY = new Float32Array(0);
+            pendingFluidForces.length = 0;
+            gl.uniform1f(
+                orbFluidEnabledLocation,
+                0
+            );
+            layer.dataset.orbFluid = 'disabled';
+
+            console.info(
+                `[OrbFluid] disabled: ${reason}`
+            );
+        }
+
+        function configureGpuFluidTexture(
+            texture,
+            framebuffer,
+            filter
+        ) {
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texParameteri(
+                gl.TEXTURE_2D,
+                gl.TEXTURE_MIN_FILTER,
+                filter
+            );
+            gl.texParameteri(
+                gl.TEXTURE_2D,
+                gl.TEXTURE_MAG_FILTER,
+                filter
+            );
+            gl.texParameteri(
+                gl.TEXTURE_2D,
+                gl.TEXTURE_WRAP_S,
+                gl.CLAMP_TO_EDGE
+            );
+            gl.texParameteri(
+                gl.TEXTURE_2D,
+                gl.TEXTURE_WRAP_T,
+                gl.CLAMP_TO_EDGE
+            );
+            gl.texImage2D(
+                gl.TEXTURE_2D,
+                0,
+                gl.RGBA,
+                fluidGridWidth,
+                fluidGridHeight,
+                0,
+                gl.RGBA,
+                gl.FLOAT,
+                null
+            );
+            gl.bindFramebuffer(
+                gl.FRAMEBUFFER,
+                framebuffer
+            );
+            gl.framebufferTexture2D(
+                gl.FRAMEBUFFER,
+                gl.COLOR_ATTACHMENT0,
+                gl.TEXTURE_2D,
+                texture,
+                0
+            );
+
+            const complete =
+                gl.checkFramebufferStatus(
+                    gl.FRAMEBUFFER
+                ) === gl.FRAMEBUFFER_COMPLETE;
+
+            if (complete) {
+                gl.clearColor(0, 0, 0, 0);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+            }
+
+            return complete;
+        }
+
+        function bindGpuFluidProgram(fluidProgram) {
+            gl.useProgram(fluidProgram);
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+
+            const fluidPositionLocation =
+                gl.getAttribLocation(
+                    fluidProgram,
+                    'aPosition'
+                );
+
+            gl.enableVertexAttribArray(
+                fluidPositionLocation
+            );
+            gl.vertexAttribPointer(
+                fluidPositionLocation,
+                2,
+                gl.FLOAT,
+                false,
+                0,
+                0
+            );
+        }
+
+        function bindGpuTexture(
+            fluidProgram,
+            uniformName,
+            texture,
+            textureUnit
+        ) {
+            gl.activeTexture(
+                gl.TEXTURE0 + textureUnit
+            );
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.uniform1i(
+                gl.getUniformLocation(
+                    fluidProgram,
+                    uniformName
+                ),
+                textureUnit
+            );
+        }
+
+        function drawGpuFluidPass(
+            fluidProgram,
+            framebuffer
+        ) {
+            gl.bindFramebuffer(
+                gl.FRAMEBUFFER,
+                framebuffer
+            );
+            gl.viewport(
+                0,
+                0,
+                fluidGridWidth,
+                fluidGridHeight
+            );
+            bindGpuFluidProgram(fluidProgram);
+        }
+
+        function finishGpuFluidPass() {
+            gl.drawArrays(gl.TRIANGLES, 0, 6);
+        }
+
+        function swapGpuState() {
+            gpuStateReadIndex = 1 - gpuStateReadIndex;
+        }
+
+        function projectGpuFluid(iterations) {
+            const texelX = 1 / fluidGridWidth;
+            const texelY = 1 / fluidGridHeight;
+            const divergenceProgram =
+                gpuFluidPrograms.divergence;
+
+            drawGpuFluidPass(
+                divergenceProgram,
+                gpuPressureFramebuffers[0]
+            );
+            bindGpuTexture(
+                divergenceProgram,
+                'uState',
+                gpuStateTextures[gpuStateReadIndex],
+                0
+            );
+            gl.uniform2f(
+                gl.getUniformLocation(
+                    divergenceProgram,
+                    'uTexel'
+                ),
+                texelX,
+                texelY
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    divergenceProgram,
+                    'uDivergenceScale'
+                ),
+                ORB_FLUID_CONFIG.divergenceScale
+            );
+            finishGpuFluidPass();
+            gpuPressureReadIndex = 0;
+
+            const pressureProgram =
+                gpuFluidPrograms.pressure;
+            const pressureIterations = Math.max(
+                0,
+                Math.round(iterations)
+            );
+
+            for (
+                let iteration = 0;
+                iteration < pressureIterations;
+                iteration++
+            ) {
+                const writeIndex =
+                    1 - gpuPressureReadIndex;
+
+                drawGpuFluidPass(
+                    pressureProgram,
+                    gpuPressureFramebuffers[
+                        writeIndex
+                    ]
+                );
+                bindGpuTexture(
+                    pressureProgram,
+                    'uPressure',
+                    gpuPressureTextures[
+                        gpuPressureReadIndex
+                    ],
+                    0
+                );
+                gl.uniform2f(
+                    gl.getUniformLocation(
+                        pressureProgram,
+                        'uTexel'
+                    ),
+                    texelX,
+                    texelY
+                );
+                finishGpuFluidPass();
+                gpuPressureReadIndex = writeIndex;
+            }
+
+            const projectProgram =
+                gpuFluidPrograms.project;
+            const stateWriteIndex =
+                1 - gpuStateReadIndex;
+
+            drawGpuFluidPass(
+                projectProgram,
+                gpuStateFramebuffers[
+                    stateWriteIndex
+                ]
+            );
+            bindGpuTexture(
+                projectProgram,
+                'uState',
+                gpuStateTextures[gpuStateReadIndex],
+                0
+            );
+            bindGpuTexture(
+                projectProgram,
+                'uPressure',
+                gpuPressureTextures[
+                    gpuPressureReadIndex
+                ],
+                1
+            );
+            gl.uniform2f(
+                gl.getUniformLocation(
+                    projectProgram,
+                    'uTexel'
+                ),
+                texelX,
+                texelY
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    projectProgram,
+                    'uPressureGradientScale'
+                ),
+                ORB_FLUID_CONFIG
+                    .pressureGradientScale
+            );
+            finishGpuFluidPass();
+            swapGpuState();
+        }
+
+        function advectGpuFluid(time, frameScale) {
+            const advectProgram =
+                gpuFluidPrograms.advect;
+            const stateWriteIndex =
+                1 - gpuStateReadIndex;
+            const pointerCount =
+                (
+                    ORB_FLUID_CONFIG.pointerEnabled ||
+                    ORB_FLUID_CONFIG.pointerAddsDensity
+                )
+                    ? Math.min(
+                        pendingFluidForces.length,
+                        8
+                    )
+                    : 0;
+
+            gpuPointerData.fill(0);
+
+            for (
+                let pointerIndex = 0;
+                pointerIndex < pointerCount;
+                pointerIndex++
+            ) {
+                const force =
+                    pendingFluidForces[pointerIndex];
+                const offset = pointerIndex * 4;
+                gpuPointerData[offset] = force.x;
+                gpuPointerData[offset + 1] = force.y;
+                gpuPointerData[offset + 2] = force.vx;
+                gpuPointerData[offset + 3] = force.vy;
+            }
+
+            pendingFluidForces.length = 0;
+
+            drawGpuFluidPass(
+                advectProgram,
+                gpuStateFramebuffers[
+                    stateWriteIndex
+                ]
+            );
+            bindGpuTexture(
+                advectProgram,
+                'uState',
+                gpuStateTextures[gpuStateReadIndex],
+                0
+            );
+            gl.uniform2f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uTexel'
+                ),
+                1 / fluidGridWidth,
+                1 / fluidGridHeight
+            );
+            gl.uniform2f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uResolution'
+                ),
+                width,
+                height
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uTime'
+                ),
+                time
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uFrameScale'
+                ),
+                frameScale
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uViscosity'
+                ),
+                frameAlpha(
+                    ORB_FLUID_CONFIG
+                        .velocityViscosity,
+                    frameScale
+                )
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uVelocityDamping'
+                ),
+                Math.pow(
+                    ORB_FLUID_CONFIG
+                        .velocityDamping,
+                    frameScale
+                )
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uGravity'
+                ),
+                ORB_FLUID_CONFIG
+                    .gravityPerFrame *
+                    frameScale
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uAdvectionStrength'
+                ),
+                ORB_FLUID_CONFIG
+                    .advectionStrength
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uDensityDecay'
+                ),
+                Math.pow(
+                    ORB_FLUID_CONFIG.densityDecay,
+                    frameScale
+                )
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uSourceFollow'
+                ),
+                frameAlpha(
+                    ORB_FLUID_CONFIG.sourceFollow,
+                    frameScale
+                )
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uSourceDensityScale'
+                ),
+                ORB_FLUID_CONFIG
+                    .sourceDensityScale
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uSourceProfileFalloff'
+                ),
+                ORB_FLUID_CONFIG
+                    .sourceProfileFalloff
+            );
+            gl.uniform3f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uSourceRadii'
+                ),
+                ORB_FLUID_CONFIG
+                    .sourceRadiusScales[0],
+                ORB_FLUID_CONFIG
+                    .sourceRadiusScales[1],
+                ORB_FLUID_CONFIG
+                    .sourceRadiusScales[2]
+            );
+            gl.uniform3f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uOrbAlpha'
+                ),
+                orbAlphaValues[0],
+                orbAlphaValues[1],
+                orbAlphaValues[2]
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uPointerRadius'
+                ),
+                Math.min(
+                    fluidGridWidth,
+                    fluidGridHeight
+                ) *
+                ORB_FLUID_CONFIG.pointerRadiusRatio
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uPointerFalloffScale'
+                ),
+                ORB_FLUID_CONFIG
+                    .pointerFalloffScale
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uPointerReachMultiplier'
+                ),
+                ORB_FLUID_CONFIG
+                    .pointerReachMultiplier
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uPointerForce'
+                ),
+                ORB_FLUID_CONFIG.pointerForce
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uPointerVelocityEnabled'
+                ),
+                ORB_FLUID_CONFIG.pointerEnabled
+                    ? 1
+                    : 0
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uPointerAddsDensity'
+                ),
+                ORB_FLUID_CONFIG
+                    .pointerAddsDensity
+                    ? 1
+                    : 0
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uPointerDensity'
+                ),
+                Math.max(
+                    0,
+                    ORB_FLUID_CONFIG.pointerDensity
+                )
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uPointerCount'
+                ),
+                pointerCount
+            );
+            gl.uniform4fv(
+                gl.getUniformLocation(
+                    advectProgram,
+                    'uPointers[0]'
+                ),
+                gpuPointerData
+            );
+            finishGpuFluidPass();
+            swapGpuState();
+        }
+
+        function stepGpuFluid(time, frameScale) {
+            projectGpuFluid(
+                ORB_FLUID_CONFIG
+                    .projectionIterationsBeforeAdvection
+            );
+            advectGpuFluid(time, frameScale);
+            projectGpuFluid(
+                ORB_FLUID_CONFIG
+                    .projectionIterationsAfterAdvection
+            );
+        }
+
+        function restoreOrbRenderTarget() {
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0, 0, canvas.width, canvas.height);
+            gl.useProgram(program);
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+            gl.enableVertexAttribArray(positionLocation);
+            gl.vertexAttribPointer(
+                positionLocation,
+                2,
+                gl.FLOAT,
+                false,
+                0,
+                0
+            );
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(
+                gl.TEXTURE_2D,
+                gpuStateTextures[gpuStateReadIndex]
+            );
+        }
+
+        function resetOrbFluidField() {
+            if (!orbFluidEnabled) return;
+
+            fluidGridHeight =
+                ORB_FLUID_CONFIG.gridHeight;
+            fluidGridWidth = Math.max(
+                ORB_FLUID_CONFIG.gridMinWidth,
+                Math.min(
+                    ORB_FLUID_CONFIG.gridMaxWidth,
+                    Math.round(
+                        fluidGridHeight *
+                        width /
+                        Math.max(height, 1)
+                    )
+                )
+            );
+
+            if (useGpuFluid) {
+                gpuStateReadIndex = 0;
+                gpuPressureReadIndex = 0;
+
+                const targetsComplete = [
+                    configureGpuFluidTexture(
+                        gpuStateTextures[0],
+                        gpuStateFramebuffers[0],
+                        gl.LINEAR
+                    ),
+                    configureGpuFluidTexture(
+                        gpuStateTextures[1],
+                        gpuStateFramebuffers[1],
+                        gl.LINEAR
+                    ),
+                    configureGpuFluidTexture(
+                        gpuPressureTextures[0],
+                        gpuPressureFramebuffers[0],
+                        gl.NEAREST
+                    ),
+                    configureGpuFluidTexture(
+                        gpuPressureTextures[1],
+                        gpuPressureFramebuffers[1],
+                        gl.NEAREST
+                    )
+                ].every(Boolean);
+
+                restoreOrbRenderTarget();
+
+                if (!targetsComplete) {
+                    disableOrbFluid(
+                        'incomplete GPU framebuffer'
+                    );
+                }
+
+                return;
+            }
+
+            const cellCount =
+                fluidGridWidth *
+                fluidGridHeight;
+
+            density = new Float32Array(cellCount);
+            nextDensity =
+                new Float32Array(cellCount);
+            velocityX =
+                new Float32Array(cellCount);
+            velocityY =
+                new Float32Array(cellCount);
+            nextVelocityX =
+                new Float32Array(cellCount);
+            nextVelocityY =
+                new Float32Array(cellCount);
+            divergence =
+                new Float32Array(cellCount);
+            pressure =
+                new Float32Array(cellCount);
+            nextPressure =
+                new Float32Array(cellCount);
+            fluidPixels = useFloatFluidTexture
+                ? new Float32Array(cellCount)
+                : new Uint8Array(cellCount);
+
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(
+                gl.TEXTURE_2D,
+                fluidTexture
+            );
+            gl.texImage2D(
+                gl.TEXTURE_2D,
+                0,
+                gl.LUMINANCE,
+                fluidGridWidth,
+                fluidGridHeight,
+                0,
+                gl.LUMINANCE,
+                fluidTextureType,
+                fluidPixels
+            );
+        }
+
+        function sampleFluidField(field, x, y) {
+            const clampedX = clamp(
+                x,
+                0.5,
+                fluidGridWidth - 1.5
+            );
+            const clampedY = clamp(
+                y,
+                0.5,
+                fluidGridHeight - 1.5
+            );
+            const x0 = Math.floor(clampedX);
+            const y0 = Math.floor(clampedY);
+            const x1 = x0 + 1;
+            const y1 = y0 + 1;
+            const tx = clampedX - x0;
+            const ty = clampedY - y0;
+            const row0 = y0 * fluidGridWidth;
+            const row1 = y1 * fluidGridWidth;
+            const top = lerp(
+                field[row0 + x0],
+                field[row0 + x1],
+                tx
+            );
+            const bottom = lerp(
+                field[row1 + x0],
+                field[row1 + x1],
+                tx
+            );
+
+            return lerp(top, bottom, ty);
+        }
+
+        function projectVelocity(iterations) {
+            const w = fluidGridWidth;
+            const h = fluidGridHeight;
+
+            pressure.fill(0);
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const index = y * w + x;
+
+                    divergence[index] =
+                        -ORB_FLUID_CONFIG
+                            .divergenceScale *
+                        (
+                        velocityX[index + 1] -
+                        velocityX[index - 1] +
+                        velocityY[index + w] -
+                        velocityY[index - w]
+                        );
+                }
+            }
+
+            for (
+                let iteration = 0;
+                iteration < iterations;
+                iteration++
+            ) {
+                for (let y = 1; y < h - 1; y++) {
+                    for (let x = 1; x < w - 1; x++) {
+                        const index = y * w + x;
+
+                        nextPressure[index] =
+                            (
+                                divergence[index] +
+                                pressure[index - 1] +
+                                pressure[index + 1] +
+                                pressure[index - w] +
+                                pressure[index + w]
+                            ) * 0.25;
+                    }
+                }
+
+                const oldPressure = pressure;
+                pressure = nextPressure;
+                nextPressure = oldPressure;
+                nextPressure.fill(0);
+            }
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const index = y * w + x;
+
+                    velocityX[index] -=
+                        ORB_FLUID_CONFIG
+                            .pressureGradientScale *
+                        (
+                            pressure[index + 1] -
+                            pressure[index - 1]
+                        );
+                    velocityY[index] -=
+                        ORB_FLUID_CONFIG
+                            .pressureGradientScale *
+                        (
+                            pressure[index + w] -
+                            pressure[index - w]
+                        );
+                }
+            }
+        }
+
+        function applyOrbSources(
+            time,
+            frameScale
+        ) {
+            const centers = [
+                {
+                    x:
+                        0.15 +
+                        Math.sin(
+                            time * 0.071 + 0.7
+                        ) * 0.13,
+                    y:
+                        0.19 +
+                        Math.cos(
+                            time * 0.093 + 1.1
+                        ) * 0.11,
+                    radius:
+                        ORB_FLUID_CONFIG
+                            .sourceRadiusScales[0],
+                    alpha: orbAlphaValues[0]
+                },
+                {
+                    x:
+                        0.88 +
+                        Math.cos(
+                            time * 0.083 + 2.4
+                        ) * 0.12,
+                    y:
+                        0.43 +
+                        Math.sin(
+                            time * 0.107 + 0.2
+                        ) * 0.13,
+                    radius:
+                        ORB_FLUID_CONFIG
+                            .sourceRadiusScales[1],
+                    alpha: orbAlphaValues[1]
+                },
+                {
+                    x:
+                        0.40 +
+                        Math.sin(
+                            time * 0.063 + 4.0
+                        ) * 0.15,
+                    y:
+                        0.88 +
+                        Math.cos(
+                            time * 0.079 + 2.8
+                        ) * 0.10,
+                    radius:
+                        ORB_FLUID_CONFIG
+                            .sourceRadiusScales[2],
+                    alpha: orbAlphaValues[2]
+                }
+            ];
+            const viewportMax = Math.max(
+                width,
+                height
+            );
+            const sourceFollow = frameAlpha(
+                ORB_FLUID_CONFIG.sourceFollow,
+                frameScale
+            );
+
+            for (
+                let y = 1;
+                y < fluidGridHeight - 1;
+                y++
+            ) {
+                const normalizedY =
+                    1 -
+                    y /
+                    (fluidGridHeight - 1);
+
+                for (
+                    let x = 1;
+                    x < fluidGridWidth - 1;
+                    x++
+                ) {
+                    const normalizedX =
+                        x /
+                        (fluidGridWidth - 1);
+                    const index =
+                        y * fluidGridWidth + x;
+                    let sourceDensity = 0;
+
+                    for (
+                        let sourceIndex = 0;
+                        sourceIndex < 3;
+                        sourceIndex++
+                    ) {
+                        const source =
+                            centers[sourceIndex];
+                        const dx =
+                            (
+                                normalizedX -
+                                source.x
+                            ) * width;
+                        const dy =
+                            (
+                                normalizedY -
+                                source.y
+                            ) * height;
+                        const distance =
+                            Math.hypot(dx, dy) /
+                            (
+                                viewportMax *
+                                source.radius
+                            );
+                        const profile = Math.pow(
+                            2,
+                            -ORB_FLUID_CONFIG
+                                .sourceProfileFalloff *
+                            distance *
+                            distance
+                        );
+
+                        sourceDensity = Math.max(
+                            sourceDensity,
+                            profile *
+                            source.alpha *
+                            ORB_FLUID_CONFIG
+                                .sourceDensityScale
+                        );
+                    }
+
+                    density[index] +=
+                        (
+                            sourceDensity -
+                            density[index]
+                        ) *
+                        sourceFollow;
+                }
+            }
+        }
+
+        function applyPointerForces() {
+            if (!ORB_FLUID_CONFIG.pointerEnabled) {
+                pendingFluidForces.length = 0;
+                return;
+            }
+
+            const w = fluidGridWidth;
+            const h = fluidGridHeight;
+            const radius =
+                Math.min(w, h) *
+                ORB_FLUID_CONFIG
+                    .pointerRadiusRatio;
+            const radiusSq = radius * radius;
+
+            pendingFluidForces.forEach(force => {
+                const centerX =
+                    force.x * (w - 1);
+                const centerY =
+                    force.y * (h - 1);
+                const reach = Math.ceil(
+                    radius *
+                    ORB_FLUID_CONFIG
+                        .pointerReachMultiplier
+                );
+                const minX = Math.max(
+                    1,
+                    Math.floor(centerX - reach)
+                );
+                const maxX = Math.min(
+                    w - 2,
+                    Math.ceil(centerX + reach)
+                );
+                const minY = Math.max(
+                    1,
+                    Math.floor(centerY - reach)
+                );
+                const maxY = Math.min(
+                    h - 2,
+                    Math.ceil(centerY + reach)
+                );
+
+                for (
+                    let y = minY;
+                    y <= maxY;
+                    y++
+                ) {
+                    for (
+                        let x = minX;
+                        x <= maxX;
+                        x++
+                    ) {
+                        const dx = x - centerX;
+                        const dy = y - centerY;
+                        const distanceSq =
+                            dx * dx + dy * dy;
+
+                        if (
+                            distanceSq >
+                            radiusSq *
+                            ORB_FLUID_CONFIG
+                                .pointerReachMultiplier *
+                            ORB_FLUID_CONFIG
+                                .pointerReachMultiplier
+                        ) {
+                            continue;
+                        }
+
+                        const influence = Math.exp(
+                            -distanceSq /
+                            Math.max(
+                                radiusSq *
+                                    ORB_FLUID_CONFIG
+                                        .pointerFalloffScale,
+                                0.001
+                            )
+                        );
+                        const index = y * w + x;
+
+                        velocityX[index] +=
+                            force.vx *
+                            influence *
+                            ORB_FLUID_CONFIG
+                                .pointerForce;
+                        velocityY[index] +=
+                            force.vy *
+                            influence *
+                            ORB_FLUID_CONFIG
+                                .pointerForce;
+                    }
+                }
+            });
+
+            pendingFluidForces.length = 0;
+        }
+
+        function stepOrbFluid(
+            time,
+            frameScale
+        ) {
+            if (useGpuFluid) {
+                stepGpuFluid(time, frameScale);
+                return;
+            }
+
+            const w = fluidGridWidth;
+            const h = fluidGridHeight;
+            const viscosity = frameAlpha(
+                ORB_FLUID_CONFIG
+                    .velocityViscosity,
+                frameScale
+            );
+            const velocityDamping = Math.pow(
+                ORB_FLUID_CONFIG
+                    .velocityDamping,
+                frameScale
+            );
+            const gravity =
+                ORB_FLUID_CONFIG
+                    .gravityPerFrame *
+                frameScale;
+
+            applyPointerForces();
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const index = y * w + x;
+                    const neighbourVelocityX =
+                        (
+                            velocityX[index - 1] +
+                            velocityX[index + 1] +
+                            velocityX[index - w] +
+                            velocityX[index + w]
+                        ) * 0.25;
+                    const neighbourVelocityY =
+                        (
+                            velocityY[index - 1] +
+                            velocityY[index + 1] +
+                            velocityY[index - w] +
+                            velocityY[index + w]
+                        ) * 0.25;
+
+                    nextVelocityX[index] =
+                        lerp(
+                            velocityX[index],
+                            neighbourVelocityX,
+                            viscosity
+                        ) * velocityDamping;
+                    nextVelocityY[index] =
+                        (
+                            lerp(
+                                velocityY[index],
+                                neighbourVelocityY,
+                                viscosity
+                            ) +
+                            gravity
+                        ) * velocityDamping;
+                }
+            }
+
+            let oldField = velocityX;
+            velocityX = nextVelocityX;
+            nextVelocityX = oldField;
+            nextVelocityX.fill(0);
+            oldField = velocityY;
+            velocityY = nextVelocityY;
+            nextVelocityY = oldField;
+            nextVelocityY.fill(0);
+
+            projectVelocity(
+                ORB_FLUID_CONFIG
+                    .projectionIterationsBeforeAdvection
+            );
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const index = y * w + x;
+                    const sourceX =
+                        x -
+                        velocityX[index] *
+                        frameScale *
+                        ORB_FLUID_CONFIG
+                            .advectionStrength;
+                    const sourceY =
+                        y -
+                        velocityY[index] *
+                        frameScale *
+                        ORB_FLUID_CONFIG
+                            .advectionStrength;
+
+                    nextVelocityX[index] =
+                        sampleFluidField(
+                            velocityX,
+                            sourceX,
+                            sourceY
+                        );
+                    nextVelocityY[index] =
+                        sampleFluidField(
+                            velocityY,
+                            sourceX,
+                            sourceY
+                        );
+                }
+            }
+
+            oldField = velocityX;
+            velocityX = nextVelocityX;
+            nextVelocityX = oldField;
+            nextVelocityX.fill(0);
+            oldField = velocityY;
+            velocityY = nextVelocityY;
+            nextVelocityY = oldField;
+            nextVelocityY.fill(0);
+
+            projectVelocity(
+                ORB_FLUID_CONFIG
+                    .projectionIterationsAfterAdvection
+            );
+
+            const densityDecay = Math.pow(
+                ORB_FLUID_CONFIG.densityDecay,
+                frameScale
+            );
+
+            for (let y = 1; y < h - 1; y++) {
+                for (let x = 1; x < w - 1; x++) {
+                    const index = y * w + x;
+                    const sourceX =
+                        x -
+                        velocityX[index] *
+                        frameScale *
+                        ORB_FLUID_CONFIG
+                            .advectionStrength;
+                    const sourceY =
+                        y -
+                        velocityY[index] *
+                        frameScale *
+                        ORB_FLUID_CONFIG
+                            .advectionStrength;
+
+                    nextDensity[index] =
+                        sampleFluidField(
+                            density,
+                            sourceX,
+                            sourceY
+                        ) *
+                        densityDecay;
+                }
+            }
+
+            oldField = density;
+            density = nextDensity;
+            nextDensity = oldField;
+            nextDensity.fill(0);
+
+            applyOrbSources(time, frameScale);
+        }
+
+        function uploadOrbFluid() {
+            if (useGpuFluid) {
+                restoreOrbRenderTarget();
+                return;
+            }
+
+            for (
+                let index = 0;
+                index < density.length;
+                index++
+            ) {
+                const value = clamp(
+                    density[index],
+                    0,
+                    1
+                );
+
+                fluidPixels[index] =
+                    useFloatFluidTexture
+                        ? value
+                        : Math.round(value * 255);
+            }
+
+            gl.activeTexture(gl.TEXTURE0);
+            gl.bindTexture(
+                gl.TEXTURE_2D,
+                fluidTexture
+            );
+            gl.texSubImage2D(
+                gl.TEXTURE_2D,
+                0,
+                0,
+                0,
+                fluidGridWidth,
+                fluidGridHeight,
+                gl.LUMINANCE,
+                fluidTextureType,
+                fluidPixels
+            );
+        }
+
+        function updateOrbFluid(now) {
+            if (!orbFluidEnabled || !width || !height) {
+                gl.uniform1f(
+                    orbFluidEnabledLocation,
+                    0
+                );
+                return;
+            }
+
+            const expectedHeight =
+                ORB_FLUID_CONFIG.gridHeight;
+            const expectedWidth = Math.max(
+                ORB_FLUID_CONFIG.gridMinWidth,
+                Math.min(
+                    ORB_FLUID_CONFIG.gridMaxWidth,
+                    Math.round(
+                        expectedHeight *
+                        width /
+                        Math.max(height, 1)
+                    )
+                )
+            );
+
+            if (
+                fluidGridWidth !== expectedWidth ||
+                fluidGridHeight !== expectedHeight
+            ) {
+                resetOrbFluidField();
+            }
+
+            if (!lastFluidFrameTime) {
+                lastFluidFrameTime = now;
+                lastFluidRenderTime = now;
+                fluidPerformanceStart = now;
+                layer.dataset.orbFluid =
+                    ORB_FLUID_CONFIG
+                        .autoDisableOnLowFps
+                        ? 'testing'
+                        : 'enabled';
+            }
+
+            const renderDelta =
+                now - lastFluidRenderTime;
+            lastFluidRenderTime = now;
+            fluidSimulationAccumulator +=
+                Math.max(renderDelta, 0);
+            fluidPerformanceFrames++;
+
+            gl.uniform1f(
+                orbFluidEnabledLocation,
+                1
+            );
+            gl.uniform1f(
+                orbFluidOpacityScaleLocation,
+                Math.max(
+                    0,
+                    ORB_FLUID_CONFIG
+                        .renderOpacityScale
+                )
+            );
+
+            if (
+                ORB_FLUID_CONFIG
+                    .autoDisableOnLowFps &&
+                !fluidPerformanceChecked &&
+                now - fluidPerformanceStart >=
+                    ORB_FLUID_CONFIG
+                        .performanceTestMs
+            ) {
+                fluidPerformanceChecked = true;
+
+                const averageFps =
+                    fluidPerformanceFrames *
+                    1000 /
+                    Math.max(
+                        now - fluidPerformanceStart,
+                        1
+                    );
+
+                if (
+                    averageFps <
+                    ORB_FLUID_CONFIG
+                        .minimumAverageFps
+                ) {
+                    disableOrbFluid(
+                        `average ${averageFps.toFixed(1)} FPS`
+                    );
+                    return;
+                }
+
+                layer.dataset.orbFluid = 'enabled';
+            }
+
+            const simulationFps = clamp(
+                Number(
+                    ORB_FLUID_CONFIG.simulationFps
+                ) || 60,
+                1,
+                240
+            );
+            const simulationInterval =
+                1000 / simulationFps;
+            fluidSimulationAccumulator = Math.min(
+                fluidSimulationAccumulator,
+                simulationInterval * 2
+            );
+
+            /*
+             * 只限制流体求解频率；Orb shader 仍随页面 RAF 每帧绘制。
+             * 5% 容差用于吸收 60 Hz 下约 0.5 ms 的调度抖动，避免
+             * 设为 60 时因 16.2/16.7 ms 波动意外退化成 30 FPS。
+             */
+            if (
+                fluidSimulationAccumulator +
+                    simulationInterval * 0.05 <
+                simulationInterval
+            ) {
+                return;
+            }
+
+            const deltaMs = Math.min(
+                Math.max(
+                    now - lastFluidFrameTime,
+                    ORB_FLUID_CONFIG
+                        .minimumDeltaMs
+                ),
+                ORB_FLUID_CONFIG.maximumDeltaMs
+            );
+            const frameScale =
+                deltaMs / 16.667;
+
+            lastFluidFrameTime = now;
+            fluidSimulationAccumulator = Math.max(
+                0,
+                fluidSimulationAccumulator -
+                    simulationInterval
+            );
+
+            stepOrbFluid(
+                now * 0.001,
+                frameScale
+            );
+            uploadOrbFluid();
+        }
+
+        window.addEventListener(
+            'pointermove',
+            event => {
+                if (
+                    !orbFluidEnabled ||
+                    (
+                        !ORB_FLUID_CONFIG
+                            .pointerEnabled &&
+                        !ORB_FLUID_CONFIG
+                            .pointerAddsDensity
+                    )
+                ) {
+                    return;
+                }
+
+                if (
+                    lastFluidPointerX !== null &&
+                    lastFluidPointerY !== null
+                ) {
+                    const dx =
+                        event.clientX -
+                        lastFluidPointerX;
+                    const dy =
+                        event.clientY -
+                        lastFluidPointerY;
+                    const magnitude = Math.hypot(dx, dy);
+                    const scale =
+                        magnitude >
+                        ORB_FLUID_CONFIG
+                            .pointerMaxDelta
+                            ? ORB_FLUID_CONFIG
+                                .pointerMaxDelta /
+                                magnitude
+                            : 1;
+
+                    pendingFluidForces.push({
+                        x:
+                            event.clientX /
+                            Math.max(
+                                window.innerWidth,
+                                1
+                            ),
+                        y:
+                            1 -
+                            event.clientY /
+                            Math.max(
+                                window.innerHeight,
+                                1
+                            ),
+                        vx:
+                            dx *
+                            scale /
+                            Math.max(
+                                window.innerWidth,
+                                1
+                            ) *
+                            fluidGridWidth,
+                        vy:
+                            -dy *
+                            scale /
+                            Math.max(
+                                window.innerHeight,
+                                1
+                            ) *
+                            fluidGridHeight
+                    });
+
+                    if (
+                        pendingFluidForces.length >
+                        ORB_FLUID_CONFIG
+                            .pointerQueueLimit
+                    ) {
+                        pendingFluidForces.shift();
+                    }
+                }
+
+                lastFluidPointerX = event.clientX;
+                lastFluidPointerY = event.clientY;
+            },
+            { passive: true }
+        );
+
+        window.addEventListener(
+            'pointerleave',
+            () => {
+                lastFluidPointerX = null;
+                lastFluidPointerY = null;
+            },
+            { passive: true }
+        );
+
         function render(now) {
             resize();
             updateTheme();
+            updateOrbFluid(now);
 
             gl.uniform1f(
                 timeLocation,
@@ -680,6 +2709,110 @@ void main() {
     const RIPPLE_EXIT_DURATION_MULTIPLIER = 1.3;
     const MAGNETIC_RESPONSE = 0.3;
 
+    function stepMagneticMotion(
+        currentX,
+        currentY,
+        targetX,
+        targetY,
+        velocityX,
+        velocityY,
+        spring,
+        maxSpeed,
+        deltaFrames
+    ) {
+        const safeFrames = Math.max(
+            deltaFrames,
+            0.001
+        );
+        let desiredVelocityX =
+            (targetX - currentX) *
+            spring /
+            safeFrames;
+        let desiredVelocityY =
+            (targetY - currentY) *
+            spring /
+            safeFrames;
+        const desiredSpeed = Math.hypot(
+            desiredVelocityX,
+            desiredVelocityY
+        );
+
+        if (desiredSpeed > maxSpeed) {
+            const scale = maxSpeed / desiredSpeed;
+            desiredVelocityX *= scale;
+            desiredVelocityY *= scale;
+        }
+
+        const velocityBlend = frameAlpha(
+            0.30,
+            safeFrames
+        );
+        let velocityChangeX =
+            (desiredVelocityX - velocityX) *
+            velocityBlend;
+        let velocityChangeY =
+            (desiredVelocityY - velocityY) *
+            velocityBlend;
+        const velocityChange = Math.hypot(
+            velocityChangeX,
+            velocityChangeY
+        );
+        const accelerationLimit =
+            maxSpeed * 0.24 * safeFrames;
+
+        if (
+            velocityChange > accelerationLimit &&
+            velocityChange > 0
+        ) {
+            const scale =
+                accelerationLimit / velocityChange;
+            velocityChangeX *= scale;
+            velocityChangeY *= scale;
+        }
+
+        velocityX += velocityChangeX;
+        velocityY += velocityChangeY;
+
+        const speed = Math.hypot(
+            velocityX,
+            velocityY
+        );
+
+        if (speed > maxSpeed) {
+            const scale = maxSpeed / speed;
+            velocityX *= scale;
+            velocityY *= scale;
+        }
+
+        return {
+            x: velocityX * safeFrames,
+            y: velocityY * safeFrames,
+            velocityX,
+            velocityY
+        };
+    }
+
+    function readRenderedTranslate(el) {
+        const transform =
+            getComputedStyle(el).transform;
+
+        if (!transform || transform === 'none') {
+            return { x: 0, y: 0 };
+        }
+
+        try {
+            const matrix =
+                new DOMMatrixReadOnly(transform);
+
+            return {
+                x: matrix.m41,
+                y: matrix.m42
+            };
+        } catch (_) {
+            return { x: 0, y: 0 };
+        }
+    }
+
     function animateMagneticReturn(
         el,
         currentX,
@@ -761,11 +2894,35 @@ void main() {
 
         const isMagnetic =
             !el.matches('.nav-item, .logo, .lang-option');
+        const isNavButton = el.matches(
+            '.theme-toggle, ' +
+            '.lang-switcher-btn, ' +
+            '.icon-link, ' +
+            '.footer-social-link'
+        );
+        const isHeaderControl = el.matches(
+            '.theme-toggle, .lang-switcher-btn'
+        );
+        const isCardLike = el.matches(
+            '.scroll-card, ' +
+            '.art-scroll-card, ' +
+            '.card, ' +
+            '.timeline-content.link-content'
+        );
+        const magneticSpeedLimit = isCardLike
+            ? 1.8
+            : isHeaderControl
+                ? 1.15
+                : isNavButton
+                    ? 1.3
+                    : 1.55;
 
         let targetTransX = 0;
         let targetTransY = 0;
         let curTransX = 0;
         let curTransY = 0;
+        let magneticVelocityX = 0;
+        let magneticVelocityY = 0;
 
         let reboundAnim = null;
 
@@ -780,26 +2937,11 @@ void main() {
                 rect.left + width / 2 - curTransX;
             const centerY =
                 rect.top + height / 2 - curTransY;
-            const isNavButton = el.matches(
-                '.theme-toggle, ' +
-                '.lang-switcher-btn, ' +
-                '.icon-link, ' +
-                '.footer-social-link'
-            );
-            const isHeaderControl = el.matches(
-                '.theme-toggle, .lang-switcher-btn'
-            );
             const limit = isNavButton
                 ? 13
                 : width < 80 || height < 80
                     ? 8
                     : 6;
-            const isCardLike = el.matches(
-                '.scroll-card, ' +
-                '.art-scroll-card, ' +
-                '.card, ' +
-                '.timeline-content.link-content'
-            );
 
             /*
              * Map the pointer's normalized position to only 72% of the former
@@ -836,16 +2978,27 @@ void main() {
                     deltaFrames
                 );
 
-            curTransX +=
-                (targetTransX - curTransX) * spring;
+            const delta = stepMagneticMotion(
+                curTransX,
+                curTransY,
+                targetTransX,
+                targetTransY,
+                magneticVelocityX,
+                magneticVelocityY,
+                spring,
+                magneticSpeedLimit,
+                deltaFrames
+            );
 
-            curTransY +=
-                (targetTransY - curTransY) * spring;
+            curTransX += delta.x;
+            curTransY += delta.y;
+            magneticVelocityX = delta.velocityX;
+            magneticVelocityY = delta.velocityY;
 
             el.style.transform =
                 `translate3d(` +
-                `${curTransX.toFixed(1)}px, ` +
-                `${curTransY.toFixed(1)}px, 0)`;
+                `${curTransX.toFixed(3)}px, ` +
+                `${curTransY.toFixed(3)}px, 0)`;
         };
 
         if (solid) {
@@ -993,24 +3146,32 @@ void main() {
             if (!finePointer) return;
 
             if (reboundAnim) {
+                const rendered =
+                    readRenderedTranslate(el);
+
                 reboundAnim.cancel();
                 reboundAnim = null;
+                curTransX = rendered.x;
+                curTransY = rendered.y;
+                magneticVelocityX = 0;
+                magneticVelocityY = 0;
+                el.style.transform =
+                    `translate3d(${curTransX}px, ` +
+                    `${curTransY}px, 0)`;
             }
 
             if (isExiting) {
                 clearExitTimers();
 
                 isExiting = false;
+                el.classList.remove('motion-exiting');
                 el.style.transition = '';
-                el.style.transform = '';
             }
 
             isHovering = true;
             lastExitPoint = null;
 
             if (isMagnetic) {
-                curTransX = 0;
-                curTransY = 0;
                 updateMagneticTarget(
                     event.clientX,
                     event.clientY
@@ -1251,12 +3412,15 @@ void main() {
             exitPoint = lastExitPoint
         ) {
             isExiting = true;
+            el.classList.add('motion-exiting');
 
             exitInks(exitPoint);
 
             if (isMagnetic) {
                 targetTransX = 0;
                 targetTransY = 0;
+                magneticVelocityX = 0;
+                magneticVelocityY = 0;
 
                 reboundAnim = animateMagneticReturn(
                     el,
@@ -1266,18 +3430,22 @@ void main() {
                         reboundAnim = null;
                         curTransX = 0;
                         curTransY = 0;
+                        magneticVelocityX = 0;
+                        magneticVelocityY = 0;
                     }
                 );
 
                 const timer = setTimeout(() => {
                     el.style.transition = '';
                     isExiting = false;
+                    el.classList.remove('motion-exiting');
                 }, 540);
 
                 exitTimers.push(timer);
             } else {
                 const timer = setTimeout(() => {
                     isExiting = false;
+                    el.classList.remove('motion-exiting');
                 }, 500);
 
                 exitTimers.push(timer);
@@ -1314,6 +3482,8 @@ void main() {
         let targetY = 0;
         let currentX = 0;
         let currentY = 0;
+        let magneticVelocityX = 0;
+        let magneticVelocityY = 0;
         let isHovering = false;
         let reboundAnim = null;
 
@@ -1327,12 +3497,26 @@ void main() {
                     deltaFrames
                 );
 
-            currentX += (targetX - currentX) * spring;
-            currentY += (targetY - currentY) * spring;
+            const delta = stepMagneticMotion(
+                currentX,
+                currentY,
+                targetX,
+                targetY,
+                magneticVelocityX,
+                magneticVelocityY,
+                spring,
+                1.1,
+                deltaFrames
+            );
+
+            currentX += delta.x;
+            currentY += delta.y;
+            magneticVelocityX = delta.velocityX;
+            magneticVelocityY = delta.velocityY;
 
             el.style.transform =
-                `translate3d(${currentX.toFixed(1)}px, ` +
-                `${currentY.toFixed(1)}px, 0)`;
+                `translate3d(${currentX.toFixed(3)}px, ` +
+                `${currentY.toFixed(3)}px, 0)`;
         };
 
         const updateTarget = event => {
@@ -1362,13 +3546,21 @@ void main() {
             if (!finePointer) return;
 
             if (reboundAnim) {
+                const rendered =
+                    readRenderedTranslate(el);
+
                 reboundAnim.cancel();
                 reboundAnim = null;
+                currentX = rendered.x;
+                currentY = rendered.y;
+                magneticVelocityX = 0;
+                magneticVelocityY = 0;
+                el.style.transform =
+                    `translate3d(${currentX}px, ` +
+                    `${currentY}px, 0)`;
             }
 
-            el.style.transform = '';
-            currentX = 0;
-            currentY = 0;
+            el.classList.remove('motion-exiting');
             isHovering = true;
             updateTarget(event);
         });
@@ -1384,6 +3576,9 @@ void main() {
             isHovering = false;
             targetX = 0;
             targetY = 0;
+            magneticVelocityX = 0;
+            magneticVelocityY = 0;
+            el.classList.add('motion-exiting');
 
             reboundAnim = animateMagneticReturn(
                 el,
@@ -1393,6 +3588,9 @@ void main() {
                     reboundAnim = null;
                     currentX = 0;
                     currentY = 0;
+                    magneticVelocityX = 0;
+                    magneticVelocityY = 0;
+                    el.classList.remove('motion-exiting');
                 }
             );
         });
@@ -1957,7 +4155,8 @@ void main() {
     uv.y -= uScroll * 0.0001;
 
     vec2 p =
-        uv + vec2(t * 0.006, -t * 0.004);
+        uv +
+        vec2(t * 0.006, -t * 0.004);
 
     float h =
           snoise(vec3(p * 0.75, t * 0.07))

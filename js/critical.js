@@ -10,6 +10,32 @@
 
     const LANGUAGE_STORAGE_KEY = 'siteLangPref';
     const THEME_STORAGE_KEY = 'theme';
+    const FONT_QUERY =
+        'css2?family=Inter:wght@400;500;700;800;900' +
+        '&family=Noto+Sans+SC:wght@400;500;700;800;900' +
+        '&display=swap';
+
+    function loadSansFontSources() {
+        [
+            `https://fonts.googleapis.com/${FONT_QUERY}`,
+            `https://fonts.loli.net/${FONT_QUERY}`
+        ].forEach((href, index) => {
+            if (document.querySelector(`link[href="${href}"]`)) return;
+
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = href;
+            link.media = 'print';
+            link.dataset.fontSource =
+                index === 0 ? 'google' : 'china-mirror';
+            link.onload = () => {
+                link.media = 'all';
+            };
+            document.head.appendChild(link);
+        });
+    }
+
+    loadSansFontSources();
 
     const sunIcon =
         '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>';
