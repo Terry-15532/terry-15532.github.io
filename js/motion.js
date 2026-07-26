@@ -4537,6 +4537,34 @@ void main() {
     /* ---------- Liquid cursor ---------- */
     let cursorEl = null;
     let cursorNodes = null;
+    let cursorThemeColor = '#00CC33';
+
+    function syncCursorThemeColor() {
+        setCursorTheme(
+            window.__pendingCursorTheme ||
+            document.documentElement
+                .getAttribute('data-theme')
+        );
+    }
+
+    function setCursorTheme(theme) {
+        cursorThemeColor =
+            theme === 'dark'
+                ? '#00CC33'
+                : '#008A22';
+
+        if (!cursorEl) return;
+
+        cursorEl
+            .querySelectorAll('.drop-node')
+            .forEach(node => {
+                node.style.setProperty(
+                    'background',
+                    cursorThemeColor,
+                    'important'
+                );
+            });
+    }
 
     let mouseX = window.innerWidth / 2;
     let mouseY = window.innerHeight / 2;
@@ -4621,14 +4649,14 @@ void main() {
                                 1 0 0 0 0
                                 0 1 0 0 0
                                 0 0 1 0 0
-                                0 0 0 31 -13
+                                0 0 0 30 -13
                             "
                             result="gooey"
                         />
 
                         <feGaussianBlur
                             in="gooey"
-                            stdDeviation="0.35"
+                            stdDeviation="0.1"
                             result="antialiasedGoo"
                         />
                     </filter>
@@ -4681,7 +4709,7 @@ void main() {
                 position: absolute !important;
                 background:
                     var(
-                        --accent-cyan,
+                        --cursor-color,
                         #00f0ff
                     ) !important;
                 border-radius: 50%;
@@ -4693,6 +4721,9 @@ void main() {
                     width,
                     height,
                     border-radius !important;
+                transition:
+                    background-color 0.15s
+                    cubic-bezier(0.4, 0, 0.2, 1);
             }
 
             html.has-custom-cursor:not(
@@ -4743,8 +4774,11 @@ void main() {
         element.style.left = '0';
         element.style.borderRadius = '50%';
 
-        element.style.background =
-            'var(--accent-cyan, #00f0ff)';
+        element.style.setProperty(
+            'background',
+            cursorThemeColor,
+            'important'
+        );
 
         element.style.pointerEvents = 'none';
         element.style.willChange = 'transform';
@@ -4863,6 +4897,12 @@ void main() {
 
             node.style.transform =
                 'translate3d(-50%, -50%, 0)';
+
+            node.style.setProperty(
+                'background',
+                cursorThemeColor,
+                'important'
+            );
 
             cursorEl.appendChild(node);
             cursorNodes.push(node);
@@ -5344,8 +5384,11 @@ void main() {
                 anchorElement.style.borderRadius =
                     '50%';
 
-                anchorElement.style.background =
-                    'var(--accent-cyan, #00f0ff)';
+                anchorElement.style.setProperty(
+                    'background',
+                    cursorThemeColor,
+                    'important'
+                );
 
                 anchorElement.style.pointerEvents =
                     'none';
@@ -5581,6 +5624,17 @@ void main() {
                     );
 
             lastTickTime = now;
+
+            // The cursor is invisible over an iframe. Avoid running its costly
+            // liquid simulation until it can be seen again.
+            if (
+                cursorEl.classList.contains(
+                    'cursor-in-iframe'
+                )
+            ) {
+                requestAnimationFrame(tick);
+                return;
+            }
 
             const deltaSeconds =
                 deltaMs * 0.001;
@@ -6485,14 +6539,66 @@ void main() {
             }
         );
 
+        const setIframeCursorState = insideIframe => {
+            if (!cursorEl) return;
+
+            cursorEl.classList.toggle(
+                'cursor-in-iframe',
+                insideIframe
+            );
+
+            document.documentElement.classList.toggle(
+                'has-custom-cursor',
+                finePointer && !insideIframe
+            );
+        };
+
+        const pointerIsInIframe = () => {
+            const hoveredIframe =
+                document.querySelector(
+                    'iframe:hover'
+                );
+
+            if (hoveredIframe) {
+                return true;
+            }
+
+            if (
+                hasPointerPosition &&
+                typeof document.elementFromPoint ===
+                    'function'
+            ) {
+                const target =
+                    document.elementFromPoint(
+                        mouseX,
+                        mouseY
+                    );
+
+                if (target) {
+                    return target.tagName ===
+                        'IFRAME';
+                }
+            }
+
+            const activeElement =
+                document.activeElement;
+
+            return Boolean(
+                activeElement &&
+                activeElement.tagName === 'IFRAME'
+            );
+        };
+
+        const syncIframeCursorState = () => {
+            setIframeCursorState(
+                pointerIsInIframe()
+            );
+        };
+
         document.documentElement.addEventListener(
             'mouseleave',
             () => {
-                if (cursorEl) {
-                    cursorEl.classList.add(
-                        'cursor-in-iframe'
-                    );
-                }
+                setIframeCursorState(true);
             }
         );
 
@@ -6501,9 +6607,7 @@ void main() {
             event => {
                 if (!cursorEl) return;
 
-                cursorEl.classList.remove(
-                    'cursor-in-iframe'
-                );
+                setIframeCursorState(false);
 
                 cursorEl.style.opacity = '';
 
@@ -6582,6 +6686,8 @@ void main() {
                     mouseX,
                     mouseY
                 );
+
+                syncIframeCursorState();
             }
         );
 
@@ -6603,25 +6709,9 @@ void main() {
                         suppressedInteractiveHost = null;
                     }
 
-                    cursorEl.classList.add(
-                        'cursor-in-iframe'
-                    );
-
-                    document.documentElement
-                        .classList.remove(
-                            'has-custom-cursor'
-                        );
+                    setIframeCursorState(true);
                 } else {
-                    cursorEl.classList.remove(
-                        'cursor-in-iframe'
-                    );
-
-                    if (finePointer) {
-                        document.documentElement
-                            .classList.add(
-                                'has-custom-cursor'
-                            );
-                    }
+                    setIframeCursorState(false);
                 }
             }
         );
@@ -6635,15 +6725,66 @@ void main() {
                         '.game-start-btn'
                     )
                 ) {
-                    cursorEl.classList.add(
-                        'cursor-in-iframe'
-                    );
-
-                    document.documentElement
-                        .classList.remove(
-                            'has-custom-cursor'
-                        );
+                    setIframeCursorState(true);
                 }
+            }
+        );
+
+        // Returning from another application does not always produce a new
+        // pointerover event. Re-check both focus ownership and the last known
+        // pointer position after the browser regains focus.
+        window.addEventListener(
+            'focus',
+            () => {
+                requestAnimationFrame(
+                    syncIframeCursorState
+                );
+            }
+        );
+
+        window.addEventListener(
+            'blur',
+            () => {
+                setTimeout(
+                    syncIframeCursorState,
+                    0
+                );
+            }
+        );
+
+        document.addEventListener(
+            'visibilitychange',
+            () => {
+                if (!document.hidden) {
+                    requestAnimationFrame(
+                        syncIframeCursorState
+                    );
+                }
+            }
+        );
+
+        syncCursorThemeColor();
+
+        const cursorThemeObserver =
+            new MutationObserver(
+                mutations => {
+                    if (
+                        mutations.some(
+                            mutation =>
+                                mutation.attributeName ===
+                                'data-theme'
+                        )
+                    ) {
+                        syncCursorThemeColor();
+                    }
+                }
+            );
+
+        cursorThemeObserver.observe(
+            document.documentElement,
+            {
+                attributes: true,
+                attributeFilter: ['data-theme']
             }
         );
     }
@@ -6665,7 +6806,8 @@ void main() {
         sweepIn,
         sweepOut,
         fxCircle,
-        abortSweep
+        abortSweep,
+        setCursorTheme
     };
 
     if (document.readyState === 'loading') {

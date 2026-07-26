@@ -258,6 +258,16 @@
                     : 'nav-hint-light'
             );
 
+            // Start the cursor color transition in the same rendering frame
+            // as the navigation theme hint. The full page theme is applied
+            // later, after the circular wipe covers the background.
+            window.__pendingCursorTheme =
+                nextTheme;
+
+            window.MotionUX?.setCursorTheme?.(
+                nextTheme
+            );
+
             writeStorage(
                 THEME_STORAGE_KEY,
                 nextTheme
@@ -281,6 +291,7 @@
 
             const finish = () => {
                 applyTheme(nextTheme);
+                delete window.__pendingCursorTheme;
 
                 nav.classList.remove(
                     'nav-hint-dark',

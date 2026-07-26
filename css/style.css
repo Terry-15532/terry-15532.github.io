@@ -6,6 +6,7 @@
     /* Accent: deep green (light mode) */
     --accent-cyan: #008A22;
     --accent-cyan-rgb: 150, 150, 150;
+    --cursor-color: #008A22;
     --accent: var(--accent-cyan);
     --accent-rgb: 0, 138, 34;
     --accent-opposite: #00CC33;
@@ -59,6 +60,7 @@
     /* Accent: vivid green (dark mode) */
     --accent-cyan: #00CC33;
     --accent-cyan-rgb: 100, 204, 100;
+    --cursor-color: #00CC33;
     --accent: var(--accent-cyan);
     --accent-rgb: 0, 204, 51;
     --accent-opposite: #008A22;

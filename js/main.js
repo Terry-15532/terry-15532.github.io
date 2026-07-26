@@ -67,6 +67,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // Browsers may not emit a visibilitychange when focus returns from
+    // another window, so keep the ambient particles alive on focus as well.
+    window.addEventListener('focus', () => {
+        window._bgAnimationControl?.resume();
+    });
+
     // Check for file protocol
     if (window.location.protocol === 'file:') {
         console.warn('Warning: SPA navigation (fetch API) may be blocked by CORS when running from file://. Please use a local server (e.g. Live Server extension) for full functionality.');
@@ -299,7 +305,6 @@ class DotController {
             focusLevel: 0,
             targetFocusLevel: 1,
             lastFrameTime: performance.now(),
-            frameHistory: []
         };
 
         this.CONSTANTS = {
@@ -508,8 +513,16 @@ class DotController {
     }
 
     draw() {
-        // Check if paused (performance optimization)
-        if (this.isPaused) {
+        // Stop controllers whose canvas was removed by SPA navigation.
+        if (!this.canvas.isConnected) {
+            this.destroy();
+            return;
+        }
+
+        // Keep off-screen decorative controllers idle without changing their
+        // visible behavior. Reset the clock so returning on screen is smooth.
+        if (this.isPaused || this.isVisible === false) {
+            this.state.lastFrameTime = performance.now();
             this.rafId = requestAnimationFrame(this.draw);
             return;
         }
@@ -529,11 +542,6 @@ class DotController {
         const deltaTime = Math.min(rawDelta / 16.67, 2);
         state.lastFrameTime = now;
         
-        // Track performance - if consistently low FPS, we might need optimizations
-        if (!state.frameHistory) state.frameHistory = [];
-        state.frameHistory.push(rawDelta);
-        if (state.frameHistory.length > 60) state.frameHistory.shift();
-
         // Smoothly transition focus level (frame-rate independent)
         state.focusLevel += (state.targetFocusLevel - state.focusLevel) * 0.05 * deltaTime;
         const focusEase = 1 - Math.pow(1 - state.focusLevel, 3); // Cubic ease
@@ -763,6 +771,12 @@ class DotController {
         if (window._dotControllers && this._id) {
             delete window._dotControllers[this._id];
         }
+        if (
+            window._dotControllers &&
+            window._dotControllers[this.canvas.id] === this
+        ) {
+            delete window._dotControllers[this.canvas.id];
+        }
     }
 }
 
@@ -802,14 +816,10 @@ function initBackgroundAnimation() {
     let mouseX = null;
     let mouseY = null;
     let scrollY = 0;
-    let lastScrollY = 0;
-    let scrollVelocity = 0;
-    let isPaused = false; // Control variable for pausing animation
-    
-    // Expose pause/resume globally for performance optimization
+    // Kept as a compatibility hook. This animation intentionally never pauses
+    // while the page is visible, including when an embedded game is running.
     window._bgAnimationControl = {
-        pause: () => { isPaused = true; },
-        resume: () => { isPaused = false; }
+        resume: () => {}
     };
 
     function resize() {
@@ -821,7 +831,7 @@ function initBackgroundAnimation() {
     window.addEventListener('mousemove', (e) => {
         mouseX = e.clientX;
         mouseY = e.clientY;
-    });
+    }, { passive: true });
 
     window.addEventListener('mouseleave', () => {
         mouseX = null;
@@ -831,9 +841,7 @@ function initBackgroundAnimation() {
     // Track scroll
     window.addEventListener('scroll', () => {
         scrollY = window.scrollY;
-        scrollVelocity = scrollY - lastScrollY;
-        lastScrollY = scrollY;
-    });
+    }, { passive: true });
 
     // Simple Particle Class
     class Particle {
@@ -894,14 +902,16 @@ function initBackgroundAnimation() {
             return true; // Still alive
         }
 
-        draw() {
-            // Check current theme
-            const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-            const color = isDark ? `rgba(255, 255, 255, ${this.alpha})` : `rgba(0, 0, 0, ${this.alpha})`;
-
-            ctx.fillStyle = color;
+        draw(offsetX, offsetY) {
+            ctx.globalAlpha = this.alpha;
             ctx.beginPath();
-            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.arc(
+                this.x + offsetX,
+                this.y + offsetY,
+                this.size,
+                0,
+                Math.PI * 2
+            );
             ctx.fill();
         }
     }
@@ -914,13 +924,10 @@ function initBackgroundAnimation() {
     }
 
     function animate() {
-        // Skip animation frame if paused
-        if (isPaused) {
-            requestAnimationFrame(animate);
-            return;
-        }
-        
         ctx.clearRect(0, 0, width, height);
+        const isDark =
+            document.documentElement.getAttribute('data-theme') === 'dark';
+        ctx.fillStyle = isDark ? '#ffffff' : '#000000';
 
         // Calculate base offset based on mouse position
         let baseOffsetX = 0;
@@ -937,10 +944,12 @@ function initBackgroundAnimation() {
         // Add scroll-based offset
         const scrollOffsetY = scrollY * -0.1;
 
-        // Update and filter particles
-        particles = particles.filter(p => {
+        // Compact in place to avoid allocating a new array every frame.
+        let writeIndex = 0;
+        for (let readIndex = 0; readIndex < particles.length; readIndex++) {
+            const p = particles[readIndex];
             const alive = p.update();
-            
+
             if (alive) {
                 // Larger dots get more offset (based on size)
                 const sizeMultiplier = Math.pow(p.size / 2, 3);
@@ -952,15 +961,12 @@ function initBackgroundAnimation() {
                     particleOffsetY += scrollOffsetY * (0.4 + sizeMultiplier * 1);
                 }
 
-                // Save context and apply per-particle translation
-                ctx.save();
-                ctx.translate(particleOffsetX, particleOffsetY);
-                p.draw();
-                ctx.restore();
+                p.draw(particleOffsetX, particleOffsetY);
+                particles[writeIndex++] = p;
             }
-            
-            return alive;
-        });
+        }
+        particles.length = writeIndex;
+        ctx.globalAlpha = 1;
 
         // Maintain particle count by spawning new ones from edges
         const targetCount = 50;
@@ -974,7 +980,7 @@ function initBackgroundAnimation() {
     window.addEventListener('resize', () => {
         resize();
         initParticles();
-    });
+    }, { passive: true });
 
     resize();
     initParticles();
@@ -1221,19 +1227,7 @@ function initLightbox() {
             // Hide the overlay
             overlay.classList.add('hidden');
             
-            // PERFORMANCE OPTIMIZATION: Pause background animations when game starts
-            console.log('[Performance] Pausing background animations for game');
-            if (window._bgAnimationControl) {
-                window._bgAnimationControl.pause();
-            }
-            // Pause all dot controllers
-            if (window._dotControllers) {
-                Object.values(window._dotControllers).forEach(ctrl => {
-                    if (ctrl && ctrl.isPaused !== undefined) {
-                        ctrl.isPaused = true;
-                    }
-                });
-            }
+            // The ambient background remains active while the embedded game runs.
         });
     });
 }
@@ -1272,13 +1266,27 @@ function initProgressiveImages() {
         if (image.dataset.progressiveReady === 'true') return;
         image.dataset.progressiveReady = 'true';
 
-        const fullImage = new Image();
-        fullImage.decoding = 'async';
-        fullImage.onload = () => {
-            image.src = fullImage.src;
-            image.classList.add('is-full-loaded');
+        const loadFullImage = () => {
+            const fullImage = new Image();
+            fullImage.decoding = 'async';
+            fullImage.onload = () => {
+                image.src = fullImage.src;
+                image.classList.add('is-full-loaded');
+            };
+            fullImage.src = image.dataset.fullSrc;
         };
-        fullImage.src = image.dataset.fullSrc;
+
+        // Do not compete with the thumbnail request. Start the full-size
+        // request only after the lightweight image is available.
+        if (image.complete && image.naturalWidth > 0) {
+            loadFullImage();
+        } else {
+            image.addEventListener(
+                'load',
+                loadFullImage,
+                { once: true }
+            );
+        }
     });
 }
 
@@ -1605,6 +1613,12 @@ function initThemeToggle() {
         const theme = document.documentElement.getAttribute('data-theme');
         const newTheme = theme === 'dark' ? 'light' : 'dark';
 
+        // Change the cursor at the same moment the theme transition starts.
+        window.__pendingCursorTheme = newTheme;
+        if (window.MotionUX?.setCursorTheme) {
+            window.MotionUX.setCursorTheme(newTheme);
+        }
+
         // nav changes instantly via a temporary class; the rest of the page
         // stays in the old theme until the full-screen mask covers everything
         const nav = document.querySelector('nav');
@@ -1629,10 +1643,12 @@ function initThemeToggle() {
             MotionUX.fxCircle(cx, cy, targetColor, () => {
                 // the rest of the page switches once the mask fully covers
                 document.documentElement.setAttribute('data-theme', newTheme);
+                delete window.__pendingCursorTheme;
                 if (nav) nav.classList.remove('nav-hint-dark', 'nav-hint-light');
             }, iconWrap, accent);
         } else {
             document.documentElement.setAttribute('data-theme', newTheme);
+            delete window.__pendingCursorTheme;
             if (nav) nav.classList.remove('nav-hint-dark', 'nav-hint-light');
         }
     });
@@ -1649,6 +1665,7 @@ function initThemeToggle() {
 
             if (!hasSavedTheme) {
                 const newTheme = e.matches ? 'dark' : 'light';
+                window.MotionUX?.setCursorTheme?.(newTheme);
                 document.documentElement.setAttribute('data-theme', newTheme);
                 themeToggle.innerHTML = newTheme === 'dark' ? sunIcon : moonIcon;
             }
