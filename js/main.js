@@ -211,6 +211,8 @@ function initArtworksDot() {
         designH: 680,
         viewBoxSize: 76,
         totalSamples: 300,
+        // Expand the pointer interaction field to 1.5x the shared default.
+        repulsionRadius: 22.5,
         dotRadiusDark: 1.5,
         dotRadiusLight: 1.8,
         svgPaths: artworksPaths
@@ -229,6 +231,8 @@ function initDotController(canvasId = 'gamepad-canvas') {
         designH: 620,
         viewBoxSize: 16,
         totalSamples: 500,
+        // Expand the pointer interaction field to 1.5x the shared default.
+        repulsionRadius: 22.5,
         dotRadiusDark: 1.5,
         dotRadiusLight: 1.8,
         svgPaths: gamepadPaths
@@ -1456,7 +1460,29 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
                     ).href;
                     const existingScript = Array
                         .from(document.scripts)
-                        .some(existing => existing.src === absoluteSrc);
+                        .some(existing => {
+                            if (!existing.src) return false;
+
+                            const existingUrl =
+                                new URL(existing.src);
+                            const candidateUrl =
+                                new URL(absoluteSrc);
+
+                            /*
+                             * Cache-busting query strings differ between
+                             * pages, but the script itself is the same SPA
+                             * singleton. Comparing origin + pathname prevents
+                             * motion.js/main.js/critical.js from being
+                             * executed again and creating duplicate global
+                             * effects such as stacked fluid canvases.
+                             */
+                            return (
+                                existingUrl.origin ===
+                                    candidateUrl.origin &&
+                                existingUrl.pathname ===
+                                    candidateUrl.pathname
+                            );
+                        });
                     if (!existingScript) {
                         // External script - reload it only if not already present
                         const newScript = document.createElement('script');
@@ -1511,7 +1537,7 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
                                         const nav = document.querySelector('nav');
                                         const navH = nav ? nav.offsetHeight : 0;
                                         const sy = window.scrollY + rect.top - (window.innerHeight / 2) + (rect.height / 2) - navH;
-                                        window.scrollTo({ top: Math.max(0, sy), behavior: 'auto' });
+                                        window.scrollTo({ top: Math.max(0, sy), behavior: 'smooth' });
                                         target.classList.add('scroll-return-highlight');
                                         setTimeout(() => {
                                             target.style.transition = 'outline-color 0.5s ease, outline-width 0.5s ease, transform 0.35s ease';

@@ -27,7 +27,8 @@
      *
      * window.ORB_FLUID_CONFIG = {
      *     gravityPerFrame: -0.004,
-     *     pointerForce: 0.55
+     *     pointerForce: 0.55,
+     *     maxDensity: 0.65
      * };
      *
      * 页面会用你提供的字段覆盖默认值。除特别注明外，涉及时间的
@@ -91,6 +92,10 @@
             // 每帧密度保留率。越接近 1，流体尾迹停留越久。
             densityDecay: 0.99,
 
+            // 流体密度硬上限，取值 0-1；越低，背景最高亮度越暗。
+            // 设为 1 可恢复为不额外限制最高密度。
+            maxDensity: 0.2,
+
             // Orb 每帧向密度场补充的速度。
             sourceFollow: 0.05,
 
@@ -125,7 +130,7 @@
             pointerAddsDensity: true,
 
             // 鼠标补充流体的强度；仅在 pointerAddsDensity 为 true 时生效。
-            pointerDensity: 0.005,
+            pointerDensity: 0.01,
 
             // 单次鼠标位移上限（CSS 像素），防止噪声产生巨大速度。
             pointerMaxDelta: 72,
@@ -134,6 +139,18 @@
             pointerQueueLimit: 8
         },
         window.ORB_FLUID_CONFIG || {}
+    );
+
+    ORB_FLUID_CONFIG.maxDensity = Math.min(
+        1,
+        Math.max(
+            0,
+            Number.isFinite(
+                Number(ORB_FLUID_CONFIG.maxDensity)
+            )
+                ? Number(ORB_FLUID_CONFIG.maxDensity)
+                : 0.65
+        )
     );
 
     window.ORB_FLUID_CONFIG = ORB_FLUID_CONFIG;
@@ -147,7 +164,13 @@
         const layer = document.querySelector('.bg-orbs');
 
         if (!layer) return false;
-        if (orbGLStarted) return true;
+        if (
+            orbGLStarted ||
+            window.__motionOrbGLStarted
+        ) {
+            orbGLStarted = true;
+            return true;
+        }
 
         const canvas = document.createElement('canvas');
 
@@ -629,6 +652,7 @@ uniform float uVelocityDamping;
 uniform float uGravity;
 uniform float uAdvectionStrength;
 uniform float uDensityDecay;
+uniform float uMaxDensity;
 uniform float uSourceFollow;
 uniform float uSourceDensityScale;
 uniform float uSourceProfileFalloff;
@@ -781,7 +805,7 @@ void main() {
     // 浮点纹理数值漂移而异常累积时, 将其平滑压回, 从根本上限制最大
     // 密度, 杜绝流体随时间越来越亮, 且过渡无跳变。
     density = density / (1.0 + max(density - 0.4, 0.0) * 2.5);
-    density = clamp(density, 0.0, 1.0);
+    density = clamp(density, 0.0, uMaxDensity);
     float edge =
         step(uTexel.x, vUv.x) *
         step(uTexel.y, vUv.y) *
@@ -789,7 +813,7 @@ void main() {
         step(vUv.y, 1.0 - uTexel.y);
 
     gl_FragColor = vec4(
-        clamp(density, 0.0, 1.0),
+        density,
         velocity * edge,
         1.0
     );
@@ -1411,6 +1435,13 @@ void main() {
             gl.uniform1f(
                 gl.getUniformLocation(
                     advectProgram,
+                    'uMaxDensity'
+                ),
+                ORB_FLUID_CONFIG.maxDensity
+            );
+            gl.uniform1f(
+                gl.getUniformLocation(
+                    advectProgram,
                     'uSourceFollow'
                 ),
                 frameAlpha(
@@ -1912,6 +1943,10 @@ void main() {
                             ) *
                             2.5
                         );
+                    density[index] = Math.min(
+                        density[index],
+                        ORB_FLUID_CONFIG.maxDensity
+                    );
                 }
             }
         }
@@ -2187,7 +2222,7 @@ void main() {
                 const value = clamp(
                     density[index],
                     0,
-                    1
+                    ORB_FLUID_CONFIG.maxDensity
                 );
 
                 fluidPixels[index] =
@@ -2484,6 +2519,8 @@ void main() {
             event => {
                 event.preventDefault();
                 orbGLStarted = false;
+                window.__motionOrbGLStarted = false;
+                canvas.remove();
                 layer.classList.remove(
                     'orb-gl-active'
                 );
@@ -2496,6 +2533,7 @@ void main() {
             layer.classList.add('orb-gl-active');
         }
         orbGLStarted = true;
+        window.__motionOrbGLStarted = true;
         requestAnimationFrame(render);
 
         // 运行时开关：禁用立即生效（显示 CSS 兜底 orbs）；重新启用需重建
