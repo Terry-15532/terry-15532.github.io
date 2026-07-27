@@ -4106,6 +4106,17 @@ void main() {
     function initContourGL() {
         if (glStarted) return;
 
+        // 移动端或低性能设备直接降级为 3-orb 背景
+        const isMobile = /Mobi|Android|iPhone/i.test(navigator.userAgent);
+        const lowMemory = navigator.deviceMemory && navigator.deviceMemory < 4;
+        if (isMobile || lowMemory) {
+            const canvas = document.getElementById('contour-gl');
+            if (canvas) canvas.remove();
+            const bgOrbs = document.querySelector('.bg-orbs');
+            if (bgOrbs) bgOrbs.classList.remove('orb-gl-active');
+            return;
+        }
+
         const canvas =
             document.getElementById('contour-gl');
 
@@ -4120,6 +4131,9 @@ void main() {
 
         if (!gl) {
             canvas.remove();
+            // 降级：显示 CSS 3-orb 背景作为 fallback
+            const bgOrbs = document.querySelector('.bg-orbs');
+            if (bgOrbs) bgOrbs.classList.remove('orb-gl-active');
             return;
         }
 
