@@ -3154,9 +3154,8 @@ void main() {
                 const transform = cs.transform;
                 const opacity = cs.opacity;
 
-                // 只取消 WAAPI 的 grow / 透明度动画; 保留 CSS
-                // ripple-morph, 让 border-radius 在退出期间持续波动,
-                // 不至于退化为方形。
+                // 只取消 WAAPI 的 grow / 透明度动画; 圆角由 CSS
+                // 固定(略微不规则), 退出期间保持不变, 不会退化为方形。
                 if (growAnim) {
                     try {
                         growAnim.cancel();

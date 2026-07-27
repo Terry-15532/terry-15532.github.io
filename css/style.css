@@ -4354,13 +4354,12 @@ video,
     width: 24px;
     height: 24px;
     background: var(--accent-cyan);
-    /* 兜底圆角: 即使 morph 动画被关闭也绝不会退化为方形 */
-    border-radius: 50%;
+    /* 固定的略微不规则圆角, 生成后保持不变, 中途不变形 */
+    border-radius: 46% 54% 52% 48% / 49% 51% 47% 53%;
     transform: translate(-50%, -50%) scale(0);
     pointer-events: none;
     z-index: 3;
     opacity: 0;
-    animation: ripple-morph 0.45s ease-in-out infinite;
 }
 
 /* cards / tinted host: push ink behind content so it never blocks */
