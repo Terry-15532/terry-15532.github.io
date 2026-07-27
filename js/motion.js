@@ -61,7 +61,7 @@
 
             // 启动后的性能检测时长与保留流体所需最低平均 FPS。
             autoDisableOnLowFps: true,
-            performanceTestMs: 1500,
+            performanceTestMs: 500,
             minimumAverageFps: 55,
 
             // 单帧时间钳制，避免切回页面时模拟一次跨越太远。
@@ -98,7 +98,7 @@
             sourceDensityScale: 1,
 
             // 最终密度纹理的显示倍率，只改变可见度，不改变模拟。
-            renderOpacityScale: 2,
+            renderOpacityScale: 1,
 
             // 源的高斯衰减。越大边缘越集中，越小范围越宽。
             sourceProfileFalloff: 8.35,
@@ -457,19 +457,45 @@ void main() {
                 Number.isFinite(value) ? value : 0
             );
 
+            baseAccent = accent;
+            baseOrbAlpha = orbAlphaValues;
+            applyFluidColor();
+        }
+
+        // 将当前主题色乘以 fluidFade 写入 uniform，实现颜色驱动的整体淡入淡出。
+        function applyFluidColor() {
+            const fade = fluidFade;
             gl.uniform3f(
                 accentLocation,
-                accent[0] || 0,
-                accent[1] || 0,
-                accent[2] || 0
+                (baseAccent[0] || 0) * fade,
+                (baseAccent[1] || 0) * fade,
+                (baseAccent[2] || 0) * fade
             );
-
             gl.uniform3f(
                 alphaLocation,
-                orbAlphaValues[0],
-                orbAlphaValues[1],
-                orbAlphaValues[2]
+                baseOrbAlpha[0] * fade,
+                baseOrbAlpha[1] * fade,
+                baseOrbAlpha[2] * fade
             );
+        }
+
+        // 退场期间保持绘制（颜色已乘以 fluidFade），完全淡出后停止渲染。
+        function applyFluidFade(now) {
+            if (fluidFadingOut) {
+                const t =
+                    (now - fluidFadeStart) /
+                    FLUID_FADE_MS;
+                fluidFade = 1 - Math.min(Math.max(t, 0), 1);
+                if (fluidFade <= 0) {
+                    fluidFade = 0;
+                    fluidFadingOut = false;
+                }
+            }
+            gl.uniform1f(
+                orbFluidEnabledLocation,
+                fluidFade > 0 ? 1 : 0
+            );
+            applyFluidColor();
         }
 
         const reducedMotion =
@@ -486,6 +512,12 @@ void main() {
                     .respectReducedMotion ||
                 !reducedMotion
             );
+        let fluidFade = 1;
+        let fluidFadingOut = false;
+        let fluidFadeStart = 0;
+        const FLUID_FADE_MS = 2000;
+        let baseAccent = [0, 0, 0];
+        let baseOrbAlpha = [0, 0, 0];
         let fluidGridWidth = 0;
         let fluidGridHeight = 0;
         let density = new Float32Array(0);
@@ -744,11 +776,12 @@ void main() {
         sourceDensity,
         uSourceFollow
     );
-    density = clamp(
-        density + pointerDensity,
-        0.0,
-        1.0
-    );
+    density += pointerDensity;
+    // 软上限(soft-knee): 常规密度完全不受影响; 当密度因源持续注入或
+    // 浮点纹理数值漂移而异常累积时, 将其平滑压回, 从根本上限制最大
+    // 密度, 杜绝流体随时间越来越亮, 且过渡无跳变。
+    density = density / (1.0 + max(density - 0.4, 0.0) * 2.5);
+    density = clamp(density, 0.0, 1.0);
     float edge =
         step(uTexel.x, vUv.x) *
         step(uTexel.y, vUv.y) *
@@ -984,6 +1017,7 @@ void main() {
             if (!orbFluidEnabled) return;
 
             orbFluidEnabled = false;
+            layer.classList.remove('orb-gl-active');
             density = new Float32Array(0);
             nextDensity = new Float32Array(0);
             velocityX = new Float32Array(0);
@@ -991,10 +1025,9 @@ void main() {
             nextVelocityX = new Float32Array(0);
             nextVelocityY = new Float32Array(0);
             pendingFluidForces.length = 0;
-            gl.uniform1f(
-                orbFluidEnabledLocation,
-                0
-            );
+            // 停止模拟后通过颜色在 FLUID_FADE_MS 内淡出，而非硬切。
+            fluidFadingOut = true;
+            fluidFadeStart = performance.now();
             layer.dataset.orbFluid = 'disabled';
 
             console.info(
@@ -1868,6 +1901,17 @@ void main() {
                             density[index]
                         ) *
                         sourceFollow;
+                    // 软上限(与 GPU 路径一致): 防止密度异常累积导致越来越亮
+                    density[index] =
+                        density[index] /
+                        (
+                            1 +
+                            Math.max(
+                                density[index] - 0.4,
+                                0
+                            ) *
+                            2.5
+                        );
                 }
             }
         }
@@ -2416,6 +2460,7 @@ void main() {
             resize();
             updateTheme();
             updateOrbFluid(now);
+            applyFluidFade(now);
 
             gl.uniform1f(
                 timeLocation,
@@ -2423,7 +2468,15 @@ void main() {
             );
 
             gl.drawArrays(gl.TRIANGLES, 0, 6);
-            requestAnimationFrame(render);
+
+            // 流体启用或仍在淡出时继续渲染，完全淡出后停止以节省 GPU。
+            // 页面在后台时不调度，避免无谓的 GPU/CPU 消耗。
+            if (
+                (orbFluidEnabled || fluidFade > 0) &&
+                !document.hidden
+            ) {
+                requestAnimationFrame(render);
+            }
         }
 
         canvas.addEventListener(
@@ -2439,9 +2492,27 @@ void main() {
             { once: true }
         );
 
-        layer.classList.add('orb-gl-active');
+        if (orbFluidEnabled) {
+            layer.classList.add('orb-gl-active');
+        }
         orbGLStarted = true;
         requestAnimationFrame(render);
+
+        // 运行时开关：禁用立即生效（显示 CSS 兜底 orbs）；重新启用需重建
+        // 流体模拟，直接刷新页面最稳妥。
+        window.MotionUX.setFluidEnabled = function (enabled) {
+            if (enabled) {
+                window.ORB_FLUID_CONFIG.enabled = true;
+                location.reload();
+                return;
+            }
+            orbFluidEnabled = false;
+            // 立即停止模拟；流体通过颜色在 2s 内淡出，orb 同时淡入。
+            fluidFadingOut = true;
+            fluidFadeStart = performance.now();
+            layer.classList.remove('orb-gl-active');
+        };
+
         return true;
     }
 
@@ -2541,7 +2612,10 @@ void main() {
                 }
             }
 
-            requestAnimationFrame(frame);
+            // 页面在后台时不调度，避免无谓的布局/绘制消耗。
+            if (!document.hidden) {
+                requestAnimationFrame(frame);
+            }
         }
 
         requestAnimationFrame(frame);
@@ -3023,6 +3097,7 @@ void main() {
         }
 
         let growAnim = null;
+        let opacityAnim = null;
         let liveInks = [];
         let isHovering = false;
         let elRect = null;
@@ -3057,7 +3132,7 @@ void main() {
 
             liveInks = [];
 
-            if (growAnim) {
+            if (!frozen.length && growAnim) {
                 try {
                     growAnim.cancel();
                 } catch (_) {}
@@ -3078,18 +3153,28 @@ void main() {
                 const cs = getComputedStyle(ink);
                 const transform = cs.transform;
                 const opacity = cs.opacity;
-                const radius = cs.borderRadius;
 
-                ink.getAnimations().forEach(animation => {
+                // 只取消 WAAPI 的 grow / 透明度动画; 保留 CSS
+                // ripple-morph, 让 border-radius 在退出期间持续波动,
+                // 不至于退化为方形。
+                if (growAnim) {
                     try {
-                        animation.cancel();
+                        growAnim.cancel();
                     } catch (_) {}
-                });
 
-                ink.style.animation = 'none';
+                    growAnim = null;
+                }
+
+                if (opacityAnim) {
+                    try {
+                        opacityAnim.cancel();
+                    } catch (_) {}
+
+                    opacityAnim = null;
+                }
+
                 ink.style.transform = transform;
                 ink.style.opacity = opacity;
-                ink.style.borderRadius = radius;
                 ink.style.left = `${exitX}px`;
                 ink.style.top = `${exitY}px`;
 
@@ -3229,18 +3314,26 @@ void main() {
                 const renderedOpacity =
                     renderedStyle.opacity;
 
-                ink.getAnimations().forEach(
-                    animation => {
-                        try {
-                            animation.cancel();
-                        } catch (_) {}
-                    }
-                );
+                if (growAnim) {
+                    try {
+                        growAnim.cancel();
+                    } catch (_) {}
+
+                    growAnim = null;
+                }
+
+                if (opacityAnim) {
+                    try {
+                        opacityAnim.cancel();
+                    } catch (_) {}
+
+                    opacityAnim = null;
+                }
+
                 clearTimeout(
                     ink._rippleRemovalTimer
                 );
                 ink._rippleRemovalTimer = null;
-                ink.style.animation = 'none';
                 ink.style.transition = 'none';
                 ink.style.transform =
                     renderedTransform;
@@ -3376,7 +3469,7 @@ void main() {
                 }
             );
 
-            ink.animate(
+            opacityAnim = ink.animate(
                 [
                     {
                         opacity: recoveredOpacity,
@@ -3435,12 +3528,8 @@ void main() {
                 );
             }
 
-            if (liveInks.length) {
-                moveInks(
-                    event.clientX - elRect.left,
-                    event.clientY - elRect.top
-                );
-            }
+            // ripple 生长动画固定在鼠标进入(pointerenter)的位置,
+            // 不再跟随指针移动, 因此此处不调用 moveInks()。
 
             /*
              * Element cursor glow disabled.
@@ -4112,8 +4201,6 @@ void main() {
         if (isMobile || lowMemory) {
             const canvas = document.getElementById('contour-gl');
             if (canvas) canvas.remove();
-            const bgOrbs = document.querySelector('.bg-orbs');
-            if (bgOrbs) bgOrbs.classList.remove('orb-gl-active');
             return;
         }
 
@@ -4131,9 +4218,6 @@ void main() {
 
         if (!gl) {
             canvas.remove();
-            // 降级：显示 CSS 3-orb 背景作为 fallback
-            const bgOrbs = document.querySelector('.bg-orbs');
-            if (bgOrbs) bgOrbs.classList.remove('orb-gl-active');
             return;
         }
 
@@ -4542,7 +4626,10 @@ void main() {
                 4
             );
 
-            requestAnimationFrame(render);
+            // 页面在后台时不调度，避免无谓的 GPU 消耗。
+            if (!document.hidden) {
+                requestAnimationFrame(render);
+            }
         }
 
         requestAnimationFrame(render);
@@ -5648,6 +5735,13 @@ void main() {
                 return;
             }
 
+            // 页面在后台时停止调度。恢复时重置时间基准，避免 delta 跳变。
+            if (document.hidden) {
+                lastTickTime = null;
+                requestAnimationFrame(tick);
+                return;
+            }
+
             const deltaSeconds =
                 deltaMs * 0.001;
 
@@ -5769,26 +5863,15 @@ void main() {
                     ? mouseVy / speed
                     : 0;
 
-            const predictionFactor =
-                speed < 1 ? 0 : 0.6;
-
-            const predictedX =
-                mouseX +
-                mouseVx * predictionFactor;
-
-            const predictedY =
-                mouseY +
-                mouseVy * predictionFactor;
-
             const headAlpha =
                 frameAlpha(0.95, deltaFrames);
 
             headX +=
-                (predictedX - headX) *
+                (mouseX - headX) *
                 headAlpha;
 
             headY +=
-                (predictedY - headY) *
+                (mouseY - headY) *
                 headAlpha;
 
             const isIdle = speed < 0.25;

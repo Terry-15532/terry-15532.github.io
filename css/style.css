@@ -27,7 +27,7 @@
     --bg-gradient-2-end: #e9f2ea;
     --card-bg: rgba(255, 255, 255, 0.55);
     --card-bg-solid: #ffffff;
-    --nav-bg: rgba(255, 255, 255, 0.82);
+    --nav-bg: rgba(255, 255, 255, 0.7);
     /* Curves: restrained radii, Norris-style flat look */
     --radius-sm: 6px;
     --radius-md: 10px;
@@ -47,7 +47,7 @@
     --orb-alpha-1: 0.24;
     --orb-alpha-2: 0.18;
     --orb-alpha-3: 0.12;
-    --orb-dither-opacity: 0.02;
+    --orb-dither-opacity: 0.06;
     /* Hover mask solid fill: same accent as the VIEW ALL button */
     --mask-solid: #008A22;
 }
@@ -77,13 +77,13 @@
     --bg-gradient-2-end: #0c100c;
     --card-bg: rgba(18, 22, 18, 0.55);
     --card-bg-solid: #111511;
-    --nav-bg: rgba(12, 15, 12, 0.82);
+    --nav-bg: rgba(12, 15, 12, 0.7);
     --shadow-base: none;
     --shadow-hover: none;
-    --orb-alpha-1: 0.1;
-    --orb-alpha-2: 0.085;
-    --orb-alpha-3: 0.065;
-    --orb-dither-opacity: 0.024;
+    --orb-alpha-1: 0.2;
+    --orb-alpha-2: 0.17;
+    --orb-alpha-3: 0.13;
+    --orb-dither-opacity: 0.07;
     /* Hover mask solid fill: bright theme green */
     --mask-solid: #00CC33;
 }
@@ -4090,7 +4090,7 @@ video,
  * This covers their full soft halo, including the area beyond each orb's
  * original box, while remaining underneath every foreground element.
  */
-.bg-orbs:not(.orb-gl-active)::after {
+.bg-orbs::after {
     content: '';
     position: absolute;
     inset: 0;
@@ -4109,16 +4109,23 @@ video,
     height: 100%;
     z-index: 1;
     pointer-events: none;
+    opacity: 0;
+    transition: opacity 2s ease;
+}
+
+.bg-orbs.orb-gl-active .orb-gl-canvas {
+    opacity: 1;
 }
 
 .bg-orbs.orb-gl-active .orb-wrap {
-    display: none;
+    opacity: 0;
 }
 
 .orb-wrap {
     position: absolute;
     z-index: 1;
-    will-change: transform;
+    will-change: transform, opacity;
+    transition: opacity 2s ease;
 }
 
 .orb-wrap-1 {
@@ -4186,22 +4193,22 @@ video,
     animation: orb-drift-3 36s ease-in-out infinite alternate;
 }
 
-/* Clearly perceptible drift paths spanning the whole viewport */
+/* 极小范围的缓慢呼吸式漂移，几乎不可察觉 */
 @keyframes orb-drift-1 {
     0% {
         transform: translate3d(0, 0, 0) scale(1);
     }
 
     33% {
-        transform: translate3d(46vw, 24vh, 0) scale(1.08);
+        transform: translate3d(2.2vw, 1.4vh, 0) scale(1.02);
     }
 
     66% {
-        transform: translate3d(72vw, 6vh, 0) scale(0.94);
+        transform: translate3d(1.4vw, 2.6vh, 0) scale(0.99);
     }
 
     100% {
-        transform: translate3d(30vw, 40vh, 0) scale(1.04);
+        transform: translate3d(2.8vw, 1.8vh, 0) scale(1.015);
     }
 }
 
@@ -4211,15 +4218,15 @@ video,
     }
 
     33% {
-        transform: translate3d(-38vw, 20vh, 0) scale(1.06);
+        transform: translate3d(-1.8vw, 1.2vh, 0) scale(1.018);
     }
 
     66% {
-        transform: translate3d(-64vw, -12vh, 0) scale(0.96);
+        transform: translate3d(-2.6vw, -0.8vh, 0) scale(0.992);
     }
 
     100% {
-        transform: translate3d(-22vw, 30vh, 0) scale(1.02);
+        transform: translate3d(-1.4vw, 2.0vh, 0) scale(1.012);
     }
 }
 
@@ -4229,15 +4236,15 @@ video,
     }
 
     33% {
-        transform: translate3d(28vw, -26vh, 0) scale(1.05);
+        transform: translate3d(1.6vw, -1.4vh, 0) scale(1.015);
     }
 
     66% {
-        transform: translate3d(58vw, -8vh, 0) scale(0.97);
+        transform: translate3d(2.4vw, -0.6vh, 0) scale(0.99);
     }
 
     100% {
-        transform: translate3d(12vw, -38vh, 0) scale(1.03);
+        transform: translate3d(1.0vw, -2.0vh, 0) scale(1.01);
     }
 }
 
@@ -4347,11 +4354,13 @@ video,
     width: 24px;
     height: 24px;
     background: var(--accent-cyan);
+    /* 兜底圆角: 即使 morph 动画被关闭也绝不会退化为方形 */
+    border-radius: 50%;
     transform: translate(-50%, -50%) scale(0);
     pointer-events: none;
     z-index: 3;
     opacity: 0;
-    animation: ripple-morph 0.9s ease-in-out infinite;
+    animation: ripple-morph 0.45s ease-in-out infinite;
 }
 
 /* cards / tinted host: push ink behind content so it never blocks */
@@ -4448,19 +4457,19 @@ video,
 
     0%,
     100% {
-        border-radius: 42% 58% 55% 45% / 52% 42% 58% 48%;
+        border-radius: 30% 70% 62% 38% / 58% 32% 68% 42%;
     }
 
     25% {
-        border-radius: 60% 40% 42% 58% / 40% 62% 38% 60%;
+        border-radius: 72% 28% 34% 66% / 30% 74% 26% 70%;
     }
 
     50% {
-        border-radius: 45% 55% 62% 38% / 58% 44% 56% 42%;
+        border-radius: 36% 64% 74% 26% / 70% 36% 64% 30%;
     }
 
     75% {
-        border-radius: 58% 42% 40% 60% / 42% 58% 46% 54%;
+        border-radius: 66% 34% 28% 72% / 34% 70% 30% 66%;
     }
 }
 
