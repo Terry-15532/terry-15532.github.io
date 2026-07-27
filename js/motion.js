@@ -69,7 +69,7 @@
             maximumDeltaMs: 40,
 
             // 速度扩散：越大越黏、更平滑，也越不容易形成细碎涡流。
-            velocityViscosity: 0.02,
+            velocityViscosity: 0.002,
 
             // 每帧速度保留率。越接近 1，惯性持续越久。
             velocityDamping: 0.99,
@@ -78,8 +78,8 @@
             gravityPerFrame: -0.01,
 
             // 压力投影迭代次数。越高越接近不可压缩流体，但更耗性能。
-            projectionIterationsBeforeAdvection: 3,
-            projectionIterationsAfterAdvection: 2,
+            projectionIterationsBeforeAdvection: 2,
+            projectionIterationsAfterAdvection: 1,
 
             // 散度与压力梯度系数；通常保持相同，越大投影越强。
             divergenceScale: 0.8,
@@ -92,13 +92,13 @@
             densityDecay: 0.99,
 
             // Orb 每帧向密度场补充的速度。
-            sourceFollow: 0.1,
+            sourceFollow: 0.05,
 
             // 流体源相对 CSS Orb 透明度的倍率。
             sourceDensityScale: 1,
 
             // 最终密度纹理的显示倍率，只改变可见度，不改变模拟。
-            renderOpacityScale: 1.5,
+            renderOpacityScale: 2,
 
             // 源的高斯衰减。越大边缘越集中，越小范围越宽。
             sourceProfileFalloff: 8.35,
@@ -116,7 +116,7 @@
             pointerFalloffScale: 0.45,
 
             // 鼠标向速度场注入的力度。
-            pointerForce: 0.5,
+            pointerForce: 0.8,
 
             // false 时鼠标不再影响速度场，但流体仍会自行运动。
             pointerEnabled: true,
@@ -125,7 +125,7 @@
             pointerAddsDensity: true,
 
             // 鼠标补充流体的强度；仅在 pointerAddsDensity 为 true 时生效。
-            pointerDensity: 0.001,
+            pointerDensity: 0.005,
 
             // 单次鼠标位移上限（CSS 像素），防止噪声产生巨大速度。
             pointerMaxDelta: 72,
@@ -4686,14 +4686,15 @@ void main() {
         style.textContent = `
             .liquid-cursor {
                 position: fixed !important;
-                top: 0 !important;
-                left: 0 !important;
-                width: 100vw !important;
-                height: 100vh !important;
+                top: -20px !important;
+                left: -20px !important;
+                width: calc(100vw + 40px) !important;
+                height: calc(100vh + 40px) !important;
+                overflow: visible !important;
                 pointer-events: none !important;
                 z-index: 99999 !important;
                 filter: url(#goo-filter) !important;
-                transform: translate3d(0, 0, 0) !important;
+                transform: translate3d(20px, 20px, 0) !important;
                 will-change: transform !important;
                 transition:
                     opacity 0.2s
