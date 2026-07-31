@@ -3588,6 +3588,14 @@ void main() {
             const x = mouseX - rect.left;
             const y = mouseY - rect.top;
 
+            if (isMagnetic) {
+                updateMagneticTarget(
+                    mouseX,
+                    mouseY,
+                    rect
+                );
+            }
+
             if (liveInks.length) {
                 moveInks(x, y);
             }
@@ -3809,6 +3817,15 @@ void main() {
             if (!finePointer || !isHovering) return;
             updateTarget(event);
         });
+
+        el._scrollTick = () => {
+            if (!isHovering) return;
+
+            updateTarget({
+                clientX: mouseX,
+                clientY: mouseY
+            });
+        };
 
         el.addEventListener('pointerleave', () => {
             if (!finePointer || !isHovering) return;
