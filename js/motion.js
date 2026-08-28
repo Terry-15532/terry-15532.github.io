@@ -159,6 +159,7 @@
     let ambientStarted = false;
     let orbGLStarted = false;
     let artCols = [];
+    let artLayoutVersion = 0;
 
     function initOrbGL() {
         const layer = document.querySelector('.bg-orbs');
@@ -409,6 +410,7 @@ void main() {
         let height = 0;
         let currentTheme = '';
         let orbAlphaValues = [0, 0, 0];
+        let orbRenderFrame = null;
 
         function resize() {
             const dpr = Math.min(
@@ -2491,7 +2493,19 @@ void main() {
             { passive: true }
         );
 
+        const scheduleOrbRender = () => {
+            if (
+                orbRenderFrame === null &&
+                !document.hidden &&
+                (orbFluidEnabled || fluidFade > 0)
+            ) {
+                orbRenderFrame = requestAnimationFrame(render);
+            }
+        };
+
         function render(now) {
+            orbRenderFrame = null;
+
             resize();
             updateTheme();
             updateOrbFluid(now);
@@ -2506,12 +2520,7 @@ void main() {
 
             // 流体启用或仍在淡出时继续渲染，完全淡出后停止以节省 GPU。
             // 页面在后台时不调度，避免无谓的 GPU/CPU 消耗。
-            if (
-                (orbFluidEnabled || fluidFade > 0) &&
-                !document.hidden
-            ) {
-                requestAnimationFrame(render);
-            }
+            scheduleOrbRender();
         }
 
         canvas.addEventListener(
@@ -2534,7 +2543,13 @@ void main() {
         }
         orbGLStarted = true;
         window.__motionOrbGLStarted = true;
-        requestAnimationFrame(render);
+        scheduleOrbRender();
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                scheduleOrbRender();
+            }
+        });
 
         // 运行时开关：禁用立即生效（显示 CSS 兜底 orbs）；重新启用需重建
         // 流体模拟，直接刷新页面最稳妥。
@@ -2557,6 +2572,9 @@ void main() {
     function startAmbientLoop() {
         if (ambientStarted) return;
         ambientStarted = true;
+
+        const orbLayer = document.querySelector('.bg-orbs');
+        let ambientFrame = null;
 
         const orbWraps = [
             {
@@ -2602,11 +2620,24 @@ void main() {
 
         const hw = window.innerWidth * 0.2;
         const hh = window.innerHeight * 0.2;
+        let lastArtScrollY = Number.NaN;
+        let lastArtViewportHeight = Number.NaN;
+        let lastArtLayoutVersion = -1;
 
-        function frame() {
-            const t = performance.now() * 0.001;
+        const scheduleAmbientFrame = () => {
+            if (ambientFrame === null && !document.hidden) {
+                ambientFrame = requestAnimationFrame(frame);
+            }
+        };
 
-            for (const o of orbWraps) {
+        function frame(now) {
+            ambientFrame = null;
+            const t = now * 0.001;
+
+            const animateCssOrbs =
+                !orbLayer?.classList.contains('orb-gl-active');
+
+            for (const o of animateCssOrbs ? orbWraps : []) {
                 const px =
                     Math.sin(t * o.fx + o.px * Math.PI) * o.ax +
                     Math.cos(t * o.fy + o.py * Math.PI) * o.bx +
@@ -2624,12 +2655,27 @@ void main() {
             }
 
             if (artCols.length > 1 && artGridEl) {
+                const currentScrollY = window.scrollY;
+                const vh = window.innerHeight;
+                const artLayoutChanged =
+                    currentScrollY !== lastArtScrollY ||
+                    vh !== lastArtViewportHeight ||
+                    artLayoutVersion !== lastArtLayoutVersion;
+
+                if (!artLayoutChanged) {
+                    scheduleAmbientFrame();
+                    return;
+                }
+
+                lastArtScrollY = currentScrollY;
+                lastArtViewportHeight = vh;
+                lastArtLayoutVersion = artLayoutVersion;
+
                 for (const col of artCols) {
                     col.el.style.transform = '';
                 }
 
                 const rect = artGridEl.getBoundingClientRect();
-                const vh = window.innerHeight;
                 const diff = rect.height - vh;
 
                 const p = diff > 0
@@ -2651,12 +2697,15 @@ void main() {
             }
 
             // 页面在后台时不调度，避免无谓的布局/绘制消耗。
-            if (!document.hidden) {
-                requestAnimationFrame(frame);
-            }
+            scheduleAmbientFrame();
         }
 
-        requestAnimationFrame(frame);
+        scheduleAmbientFrame();
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                scheduleAmbientFrame();
+            }
+        });
     }
 
     /* ---------- Art grid: independent columns ---------- */
@@ -2682,6 +2731,7 @@ void main() {
             artCols.forEach(c => {
                 c.h = c.el.offsetHeight;
             });
+            artLayoutVersion += 1;
         });
     }
 
@@ -4645,7 +4695,17 @@ void main() {
         window.addEventListener('resize', resize);
         resize();
 
+        let contourFrame = null;
+
+        const scheduleContourFrame = () => {
+            if (contourFrame === null && !document.hidden) {
+                contourFrame = requestAnimationFrame(render);
+            }
+        };
+
         function render(now) {
+            contourFrame = null;
+
             gl.clear(gl.COLOR_BUFFER_BIT);
 
             gl.uniform2f(
@@ -4681,12 +4741,15 @@ void main() {
             );
 
             // 页面在后台时不调度，避免无谓的 GPU 消耗。
-            if (!document.hidden) {
-                requestAnimationFrame(render);
-            }
+            scheduleContourFrame();
         }
 
-        requestAnimationFrame(render);
+        scheduleContourFrame();
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                scheduleContourFrame();
+            }
+        });
     }
 
     /* ---------- Liquid cursor ---------- */

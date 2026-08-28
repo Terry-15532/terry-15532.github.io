@@ -59,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 Object.values(window._dotControllers).forEach(ctrl => {
                     if (ctrl && ctrl.isPaused !== undefined) {
                         ctrl.isPaused = false;
+                        ctrl.resume?.();
                     }
                 });
             }
@@ -144,8 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
         navigateTo(initialPath, false);
     }
 
-    // Initialize YouTube lazy loading
-    initYoutubeLazyLoad();
 });
 
 function initDoubleClickSelectionGuard() {
@@ -185,7 +184,6 @@ function initDoubleClickSelectionGuard() {
 function initPage() {
     // Initialize all page features
     const initializers = [
-        initHoverEffects,
         initScrollAnimations,
         updateActiveNav,
         initDotController,
@@ -338,7 +336,27 @@ class DotController {
         this.setupEvents();
         this.setupPoints();
         this.resize();
-        this.draw();
+        this.resume();
+    }
+
+    requestFrame() {
+        if (
+            this.rafId !== null ||
+            this.isPaused ||
+            this.isVisible === false ||
+            document.hidden ||
+            !this.canvas.isConnected
+        ) {
+            return;
+        }
+
+        this.rafId = requestAnimationFrame(this.draw);
+    }
+
+    resume() {
+        this.isPaused = false;
+        this.state.lastFrameTime = performance.now();
+        this.requestFrame();
     }
 
     async setupPoints() {
@@ -442,6 +460,13 @@ class DotController {
                     entries.forEach(entry => {
                         this.isVisible = entry.isIntersecting;
                         this.state.targetFocusLevel = entry.isIntersecting ? 1 : 0;
+
+                        if (entry.isIntersecting) {
+                            this.resume();
+                        } else if (this.rafId !== null) {
+                            cancelAnimationFrame(this.rafId);
+                            this.rafId = null;
+                        }
                     });
                 }, { threshold: 0.05 });
                 this.io.observe(visTarget);
@@ -482,6 +507,7 @@ class DotController {
 
     onFocus() {
         this.state.targetFocusLevel = 1;
+        this.resume();
     }
 
     onBlur() {
@@ -516,7 +542,9 @@ class DotController {
         this.state.lastScrollTime = now;
     }
 
-    draw() {
+    draw(now = performance.now()) {
+        this.rafId = null;
+
         // Stop controllers whose canvas was removed by SPA navigation.
         if (!this.canvas.isConnected) {
             this.destroy();
@@ -527,10 +555,9 @@ class DotController {
         // visible behavior. Reset the clock so returning on screen is smooth.
         if (this.isPaused || this.isVisible === false) {
             this.state.lastFrameTime = performance.now();
-            this.rafId = requestAnimationFrame(this.draw);
             return;
         }
-        
+
         const { ctx, canvas, dpr, scale, points, state, config, CONSTANTS } = this;
         ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
 
@@ -538,8 +565,6 @@ class DotController {
         const dotColor = config.dotColor ? config.dotColor : (isDark ? (config.dotColorDark || '#ffffff') : (config.dotColorLight || '#000000'));
 
         const cx = canvas.clientWidth / 2;
-        const now = performance.now();
-        
         // Calculate deltaTime for frame-rate independent animation
         const rawDelta = (now - state.lastFrameTime);
         // Normalize to 60fps (16.67ms), but cap at 2x to prevent large jumps on lag spikes
@@ -736,7 +761,7 @@ class DotController {
             }
         }
 
-        this.rafId = requestAnimationFrame(this.draw);
+        this.requestFrame();
         // Update prevPointer for per-frame delta calculation
         if (state.pointerX !== null) {
             state.prevPointerX = state.pointerX;
@@ -751,7 +776,8 @@ class DotController {
     }
 
     destroy() {
-        if (this.rafId) cancelAnimationFrame(this.rafId);
+        if (this.rafId !== null) cancelAnimationFrame(this.rafId);
+        this.rafId = null;
         
         // Remove canvas events
         const canvasEvents = ['pointermove', 'pointerdown'];
@@ -820,10 +846,23 @@ function initBackgroundAnimation() {
     let mouseX = null;
     let mouseY = null;
     let scrollY = 0;
-    // Kept as a compatibility hook. This animation intentionally never pauses
-    // while the page is visible, including when an embedded game is running.
+    let rafId = null;
+    const targetCount = 50;
+
+    const scheduleFrame = () => {
+        if (rafId === null && !document.hidden) {
+            rafId = requestAnimationFrame(animate);
+        }
+    };
+
     window._bgAnimationControl = {
-        resume: () => {}
+        resume: scheduleFrame,
+        pause: () => {
+            if (rafId !== null) {
+                cancelAnimationFrame(rafId);
+                rafId = null;
+            }
+        }
     };
 
     function resize() {
@@ -922,12 +961,16 @@ function initBackgroundAnimation() {
 
     function initParticles() {
         particles = [];
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < targetCount; i++) {
             particles.push(new Particle());
         }
     }
 
-    function animate() {
+    function animate(now) {
+        rafId = null;
+
+        if (document.hidden) return;
+
         ctx.clearRect(0, 0, width, height);
         const isDark =
             document.documentElement.getAttribute('data-theme') === 'dark';
@@ -973,12 +1016,11 @@ function initBackgroundAnimation() {
         ctx.globalAlpha = 1;
 
         // Maintain particle count by spawning new ones from edges
-        const targetCount = 50;
         while (particles.length < targetCount) {
             particles.push(new Particle(true));
         }
 
-        requestAnimationFrame(animate);
+        scheduleFrame();
     }
 
     window.addEventListener('resize', () => {
@@ -988,18 +1030,12 @@ function initBackgroundAnimation() {
 
     resize();
     initParticles();
-    animate();
+    scheduleFrame();
 }
 
-function initHoverEffects() {
-    const buttons = document.querySelectorAll('.rhombus-btn, .nav-item');
-    buttons.forEach(btn => {
-        btn.addEventListener('mouseenter', () => {
-            // Optional: Add sound or visual effect
-        });
-    });
-}
 function initScrollAnimations() {
+    window.__scrollAnimationCleanup?.();
+
     // Skip fade-in animations on project detail pages
     // if (document.querySelector('.project-detail-container')) {
     //     return;
@@ -1101,8 +1137,19 @@ function initScrollAnimations() {
         });
     };
     window.__recheckReveals = recheckInView;
-    // reveal elements that scroll into view — IO alone is rate-limited during flings
-    window.addEventListener('scroll', () => { window.__recheckReveals && window.__recheckReveals(); }, { passive: true });
+    // Keep entrance and reset states synchronized throughout a scroll. This is
+    // intentionally retained alongside IntersectionObserver because the
+    // observer can be rate-limited during a fast fling.
+    let revealRafId = null;
+    const onRevealScroll = () => {
+        if (revealRafId !== null) return;
+
+        revealRafId = requestAnimationFrame(() => {
+            revealRafId = null;
+            window.__recheckReveals?.();
+        });
+    };
+    window.addEventListener('scroll', onRevealScroll, { passive: true });
     requestAnimationFrame(recheckInView);
     window.addEventListener('load', recheckInView, { once: true });
 
@@ -1143,27 +1190,51 @@ function initScrollAnimations() {
     };
 
     window.addEventListener('scroll', resetBelowViewport, { passive: true });
+
+    window.__scrollAnimationCleanup = () => {
+        observer.disconnect();
+        window.removeEventListener(
+            'scroll',
+            resetBelowViewport
+        );
+        window.removeEventListener(
+            'scroll',
+            onRevealScroll
+        );
+        window.removeEventListener('load', recheckInView);
+
+        if (resetRafId !== null) {
+            cancelAnimationFrame(resetRafId);
+            resetRafId = null;
+        }
+        if (revealRafId !== null) {
+            cancelAnimationFrame(revealRafId);
+            revealRafId = null;
+        }
+    };
 }
 
 function initLightbox() {
     const lightbox = document.getElementById('lightbox');
-    const lightboxImg = lightbox.querySelector('img');
-    const closeBtn = document.getElementById('lightbox-close');
-
     if (!lightbox) return;
+    const lightboxImg = lightbox.querySelector('img');
 
-    // Close on click
-    lightbox.addEventListener('click', (e) => {
-        if (e.target !== lightboxImg) {
+    if (lightbox.dataset.globalBound !== 'true') {
+        lightbox.dataset.globalBound = 'true';
+
+        // Close on click
+        lightbox.addEventListener('click', (e) => {
+            if (e.target !== lightboxImg) {
+                lightbox.classList.remove('active');
+            }
+        });
+
+        // Also close when clicking the enlarged image itself
+        lightboxImg.addEventListener('click', (e) => {
+            e.stopPropagation();
             lightbox.classList.remove('active');
-        }
-    });
-
-    // Also close when clicking the enlarged image itself
-    lightboxImg.addEventListener('click', (e) => {
-        e.stopPropagation();
-        lightbox.classList.remove('active');
-    });
+        });
+    }
 
     // Add click listeners to art cards and scroll art cards
     const artCards = document.querySelectorAll('.art-card, .art-scroll-card');
@@ -1274,22 +1345,19 @@ function initProgressiveImages() {
             const fullImage = new Image();
             fullImage.decoding = 'async';
             fullImage.onload = () => {
+                if (!image.isConnected) return;
                 image.src = fullImage.src;
                 image.classList.add('is-full-loaded');
             };
             fullImage.src = image.dataset.fullSrc;
         };
 
-        // Do not compete with the thumbnail request. Start the full-size
-        // request only after the lightweight image is available.
+        // Preserve the original visual timing: the full-size image begins
+        // loading as soon as its lightweight thumbnail becomes available.
         if (image.complete && image.naturalWidth > 0) {
             loadFullImage();
         } else {
-            image.addEventListener(
-                'load',
-                loadFullImage,
-                { once: true }
-            );
+            image.addEventListener('load', loadFullImage, { once: true });
         }
     });
 }
@@ -1712,7 +1780,12 @@ function initYoutubeLazyLoad() {
         initYoutubePointerGlow(container);
 
         // Skip if already loaded
-        if (container.querySelector('iframe')) return;
+        if (
+            container.querySelector('iframe') ||
+            container.dataset.youtubeClickBound === 'true'
+        ) return;
+
+        container.dataset.youtubeClickBound = 'true';
 
         container.addEventListener('click', function (e) {
             e.preventDefault();
@@ -1748,6 +1821,24 @@ function initYoutubePointerGlow(container) {
         }, { passive: true });
 
         window.__youtubeGlowDocumentBound = true;
+    }
+
+    if (!window.__youtubeGlowScrollBound) {
+        let glowScrollFrame = null;
+        window.addEventListener('scroll', () => {
+            if (glowScrollFrame !== null) return;
+
+            glowScrollFrame = requestAnimationFrame(() => {
+                glowScrollFrame = null;
+                document
+                    .querySelectorAll('.youtube-lazy')
+                    .forEach(video => {
+                        video._syncYoutubeGlowPosition?.();
+                    });
+            });
+        }, { passive: true });
+
+        window.__youtubeGlowScrollBound = true;
     }
 
     if (container.dataset.youtubeGlowBound === 'true') return;
@@ -1800,6 +1891,8 @@ function initYoutubePointerGlow(container) {
         }
     };
 
+    container._syncYoutubeGlowPosition = syncGlowPosition;
+
     container.addEventListener('pointerenter', (e) => {
         updateGlowPosition(e);
     });
@@ -1807,7 +1900,6 @@ function initYoutubePointerGlow(container) {
     container.addEventListener('pointerleave', () => {
         container.classList.remove('youtube-pointer-glow');
     });
-    window.addEventListener('scroll', syncGlowPosition, { passive: true });
 }
 
 function bindYoutubeIframeGlowDismiss(iframe, container) {
