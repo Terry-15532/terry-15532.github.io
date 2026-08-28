@@ -13,6 +13,40 @@
     const frameAlpha = (alphaAt60Hz, deltaFrames) =>
         1 - Math.pow(1 - alphaAt60Hz, deltaFrames);
 
+    const PERFORMANCE_HINTS = window.PRTS_PERFORMANCE_HINTS || (() => {
+        const memory = Number(navigator.deviceMemory) || 0;
+        const cores = Number(navigator.hardwareConcurrency) || 0;
+        const connection = navigator.connection || {};
+        const forcedMode = window.PRTS_PERFORMANCE_MODE ||
+            new URLSearchParams(window.location.search).get('performance');
+        const coarsePointer = Boolean(
+            window.matchMedia?.('(pointer: coarse)').matches
+        );
+        const constrained = forcedMode === 'constrained' || Boolean(
+            forcedMode !== 'full' && (
+                connection.saveData ||
+                (memory > 0 && memory <= 4) ||
+                (cores > 0 && cores <= 4) ||
+                (coarsePointer && window.innerWidth <= 1024)
+            )
+        );
+
+        return {
+            constrained,
+            dotDprCap: constrained ? 1.5 : Number.POSITIVE_INFINITY,
+            orbDprCap: constrained ? 1.5 : 2,
+            contourDprCap: constrained ? 1.25 : 1.5,
+            particleCount: constrained ? 42 : 50,
+            fluidGridHeight: constrained ? 28 : 32,
+            fluidGridMinWidth: constrained ? 56 : 64,
+            fluidGridMaxWidth: constrained ? 112 : 128
+        };
+    })();
+
+    window.PRTS_PERFORMANCE_HINTS = PERFORMANCE_HINTS;
+    document.documentElement.dataset.performanceTier =
+        PERFORMANCE_HINTS.constrained ? 'constrained' : 'full';
+
     const finePointer =
         window.matchMedia &&
         window.matchMedia('(pointer: fine)').matches;
@@ -50,9 +84,9 @@
             mobileMaxWidth: 1024,
 
             // GPU 模拟网格：越高越细腻，开销近似按纹理面积增加。
-            gridHeight: 32,
-            gridMinWidth: 64,
-            gridMaxWidth: 128,
+            gridHeight: PERFORMANCE_HINTS.fluidGridHeight,
+            gridMinWidth: PERFORMANCE_HINTS.fluidGridMinWidth,
+            gridMaxWidth: PERFORMANCE_HINTS.fluidGridMaxWidth,
 
             // 流体求解帧率上限；不影响页面和原始 Orb 的渲染 FPS。
             simulationFps: 60,
@@ -415,7 +449,7 @@ void main() {
         function resize() {
             const dpr = Math.min(
                 window.devicePixelRatio || 1,
-                2
+                PERFORMANCE_HINTS.orbDprCap
             );
             const rect =
                 layer.getBoundingClientRect();
@@ -4675,7 +4709,7 @@ void main() {
         function resize() {
             const dpr = Math.min(
                 window.devicePixelRatio || 1,
-                1.5
+                PERFORMANCE_HINTS.contourDprCap
             );
 
             canvas.width =

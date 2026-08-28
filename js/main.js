@@ -2,6 +2,44 @@
 window._dotControllers = {};
 let _dotControllerIdCounter = 0;
 
+// Conservative device hint shared with motion.js. Only parameters whose
+// reduction is effectively hidden by blur, motion, or high-density displays
+// are adjusted; timing, easing, interaction radii, and effect shapes stay the
+// same. Either async script may initialise this object first.
+const PERFORMANCE_HINTS = window.PRTS_PERFORMANCE_HINTS || (() => {
+    const memory = Number(navigator.deviceMemory) || 0;
+    const cores = Number(navigator.hardwareConcurrency) || 0;
+    const connection = navigator.connection || {};
+    const forcedMode = window.PRTS_PERFORMANCE_MODE ||
+        new URLSearchParams(window.location.search).get('performance');
+    const coarsePointer = Boolean(
+        window.matchMedia?.('(pointer: coarse)').matches
+    );
+    const constrained = forcedMode === 'constrained' || Boolean(
+        forcedMode !== 'full' && (
+            connection.saveData ||
+            (memory > 0 && memory <= 4) ||
+            (cores > 0 && cores <= 4) ||
+            (coarsePointer && window.innerWidth <= 1024)
+        )
+    );
+
+    return {
+        constrained,
+        dotDprCap: constrained ? 1.5 : Number.POSITIVE_INFINITY,
+        orbDprCap: constrained ? 1.5 : 2,
+        contourDprCap: constrained ? 1.25 : 1.5,
+        particleCount: constrained ? 42 : 50,
+        fluidGridHeight: constrained ? 28 : 32,
+        fluidGridMinWidth: constrained ? 56 : 64,
+        fluidGridMaxWidth: constrained ? 112 : 128
+    };
+})();
+
+window.PRTS_PERFORMANCE_HINTS = PERFORMANCE_HINTS;
+document.documentElement.dataset.performanceTier =
+    PERFORMANCE_HINTS.constrained ? 'constrained' : 'full';
+
 // Constants
 const LOADER_HTML = `<div id="loader"><div class="spinner"></div></div>`;
 const LIGHTBOX_HTML = `
@@ -288,7 +326,10 @@ class DotController {
         this.points = [];
         this.rafId = null;
         this.ro = null;
-        this.dpr = window.devicePixelRatio || 1;
+        this.dpr = Math.min(
+            window.devicePixelRatio || 1,
+            PERFORMANCE_HINTS.dotDprCap
+        );
         this.scale = 1;
         this.isPaused = false;
         
@@ -480,7 +521,10 @@ class DotController {
     }
 
     resize() {
-        this.dpr = window.devicePixelRatio || 1;
+        this.dpr = Math.min(
+            window.devicePixelRatio || 1,
+            PERFORMANCE_HINTS.dotDprCap
+        );
         const pw = Math.max(1, this.canvas.clientWidth);
         const ph = Math.max(1, this.canvas.clientHeight);
         this.canvas.width = Math.round(pw * this.dpr);
@@ -847,7 +891,7 @@ function initBackgroundAnimation() {
     let mouseY = null;
     let scrollY = 0;
     let rafId = null;
-    const targetCount = 50;
+    const targetCount = PERFORMANCE_HINTS.particleCount;
 
     const scheduleFrame = () => {
         if (rafId === null && !document.hidden) {
