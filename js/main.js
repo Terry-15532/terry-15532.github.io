@@ -48,11 +48,120 @@ const LIGHTBOX_HTML = `
         <img src="" alt="Full Size Art">
     </div>`;
 
+// Public-facing routes stay short and readable while page fragments continue
+// to live in their existing HTML files on GitHub Pages.
+const SPA_ROUTE_PATHS = Object.freeze({
+    about: 'index.html',
+    projects: 'projects.html',
+    artworks: 'art.html',
+    'projects/bumper-master': 'Projects/BumperMaster/BumperMaster.html',
+    'projects/flicker': 'Projects/Flicker/Flicker.html',
+    'projects/meta-clash': 'Projects/MetaClash/MetaClash.html',
+    'projects/volley-spikers': 'Projects/VolleySpikers/VolleySpikers.html',
+    'projects/island-city': 'Projects/IslandCity/IslandCity.html',
+    'projects/shadow-escape': 'Projects/ShadowEscape/ShadowEscape.html',
+    'projects/plan-oneirous': 'Projects/PlanOneirous/PlanOneirous.html',
+    'projects/hexagon-chase': 'Projects/HexagonChase/HexagonChase.html',
+    'projects/life-at-work': 'Projects/LifeAtWork/LifeAtWork.html'
+});
+
+const SPA_PATH_ROUTES = Object.freeze(Object.fromEntries(
+    Object.entries(SPA_ROUTE_PATHS).map(([route, path]) => [path.toLowerCase(), route])
+));
+
+const SPA_ROUTE_ALIASES = Object.freeze({
+    '': 'about',
+    index: 'about',
+    'index.html': 'about',
+    'projects.html': 'projects',
+    art: 'artworks',
+    'art.html': 'artworks'
+});
+
+const SPA_MAIN_SCRIPT_URL = document.currentScript?.src || new URL('js/main.js', document.baseURI).href;
+const SPA_ROOT_URL = new URL('../', SPA_MAIN_SCRIPT_URL);
+
+function cleanSpaTarget(target = '') {
+    return String(target)
+        .trim()
+        .replace(/^#+/, '')
+        .split('?')[0]
+        .replace(/\\/g, '/')
+        .replace(/^\/+/, '')
+        .replace(/^(?:(?:\.\.?\/)+)/, '');
+}
+
+function normalizeSpaPath(target = 'about') {
+    const cleanPath = cleanSpaTarget(target);
+    const lowerPath = cleanPath.toLowerCase();
+
+    if (Object.prototype.hasOwnProperty.call(SPA_ROUTE_PATHS, lowerPath)) {
+        return lowerPath;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(SPA_ROUTE_ALIASES, lowerPath)) {
+        return SPA_ROUTE_ALIASES[lowerPath];
+    }
+
+    return SPA_PATH_ROUTES[lowerPath] || cleanPath || 'about';
+}
+
+function resolveSpaDocumentPath(target) {
+    const route = normalizeSpaPath(target);
+    return SPA_ROUTE_PATHS[route] || cleanSpaTarget(target);
+}
+
+function isKnownSpaHash(href) {
+    if (!href || !href.startsWith('#') || href === '#') return false;
+    return Object.prototype.hasOwnProperty.call(
+        SPA_ROUTE_PATHS,
+        normalizeSpaPath(href)
+    );
+}
+
+function inferSpaRouteFromPathname() {
+    const pathname = decodeURIComponent(window.location.pathname)
+        .replace(/\\/g, '/')
+        .replace(/^\/+/, '');
+    return normalizeSpaPath(pathname || 'index.html');
+}
+
+function canonicalizeSpaUrl(route) {
+    if (!window.history?.replaceState) return false;
+
+    const canonicalUrl = new URL(SPA_ROOT_URL.href);
+    canonicalUrl.search = window.location.search;
+    canonicalUrl.hash = normalizeSpaPath(route);
+
+    const currentUrl = new URL(window.location.href);
+    const isLegacyDocumentUrl = currentUrl.protocol !== 'file:' &&
+        currentUrl.pathname !== canonicalUrl.pathname;
+
+    if (isLegacyDocumentUrl) {
+        window.location.replace(canonicalUrl.href);
+        return true;
+    }
+
+    if (canonicalUrl.href !== window.location.href) {
+        window.history.replaceState(null, '', canonicalUrl.href);
+    }
+
+    return false;
+}
+
+const SPA_INITIAL_DOCUMENT_ROUTE = inferSpaRouteFromPathname();
+const SPA_INITIAL_ROUTE = window.location.hash
+    ? normalizeSpaPath(window.location.hash)
+    : SPA_INITIAL_DOCUMENT_ROUTE;
+const SPA_INITIAL_REDIRECTING = canonicalizeSpaUrl(SPA_INITIAL_ROUTE);
+
 // Utility functions
 const $ = (selector, parent = document) => parent.querySelector(selector);
 const $$ = (selector, parent = document) => parent.querySelectorAll(selector);
 
 document.addEventListener('DOMContentLoaded', () => {
+    if (SPA_INITIAL_REDIRECTING) return;
+
     console.log('System Online. Welcome to PRTS Design.');
 
     initDoubleClickSelectionGuard();
@@ -78,8 +187,8 @@ document.addEventListener('DOMContentLoaded', () => {
             window.__suppressPopstate = false;
             return;
         }
-        const path = window.location.hash.slice(1) || 'index.html';
-        const prevHash = __lastNavSource || 'index.html';
+        const path = normalizeSpaPath(window.location.hash || 'about');
+        const prevHash = __lastNavSource || 'about';
         if (__navToken) {
             __navToken.cancelled = true;
             if (window.MotionUX && MotionUX.abortSweep) MotionUX.abortSweep();
@@ -122,6 +231,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (__loadingLocked) { e.preventDefault(); return; }
         const link = e.target.closest('a');
         if (link) {
+            // Preserve native open-in-new-tab/window behavior.
+            if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) {
+                return;
+            }
+
             // Prevent clicks on active nav items
             if (link.classList.contains('active') && link.classList.contains('nav-item')) {
                 e.preventDefault();
@@ -136,13 +250,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const href = link.getAttribute('href');
 
-            if (
-                href &&
-                /^#Projects\//i.test(href)
-            ) {
+            if (isKnownSpaHash(href)) {
                 e.preventDefault();
                 navigateTo(
-                    href.slice(1),
+                    href,
                     true,
                     { x: e.clientX, y: e.clientY }
                 );
@@ -158,14 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Disable middle-click (auxclick button 1) on all links
-    document.addEventListener('auxclick', (e) => {
-        if (e.button === 1) {
-            const link = e.target.closest('a');
-            if (link) e.preventDefault();
-        }
-    });
-
     // Handle hash changes for browser back/forward
     window.addEventListener('hashchange', () => {
         // Ignore the hashchange fired by our own programmatic hash update
@@ -173,14 +276,15 @@ document.addEventListener('DOMContentLoaded', () => {
             window.__suppressHashNav = false;
             return;
         }
-        const path = window.location.hash.slice(1) || 'index.html';
+        const path = normalizeSpaPath(window.location.hash || 'about');
         navigateTo(path, false);
     });
 
-    // Load initial page from hash if present
-    if (window.location.hash) {
-        const initialPath = window.location.hash.slice(1);
-        navigateTo(initialPath, false);
+    // Load the requested route only when it differs from the HTML document
+    // that bootstrapped the app. Direct legacy .html URLs are canonicalized
+    // without needlessly fetching the same content again.
+    if (SPA_INITIAL_ROUTE !== SPA_INITIAL_DOCUMENT_ROUTE) {
+        navigateTo(SPA_INITIAL_ROUTE, false);
     }
 
 });
@@ -1359,24 +1463,9 @@ let __currentSpaPath = '';
 let __lastNavSource = '';
 
 function inferCurrentSpaPath() {
-    const hashPath = window.location.hash
-        .slice(1)
-        .replace(/^#+/, '');
-    if (hashPath) return hashPath;
-
-    const pathname = decodeURIComponent(
-        window.location.pathname
-    ).replace(/\\/g, '/');
-    const projectIndex = pathname
-        .toLowerCase()
-        .indexOf('/projects/');
-
-    if (projectIndex >= 0) {
-        return pathname.slice(projectIndex + 1);
-    }
-
-    const fileName = pathname.split('/').pop();
-    return fileName || 'index.html';
+    return window.location.hash
+        ? normalizeSpaPath(window.location.hash)
+        : inferSpaRouteFromPathname();
 }
 
 // Show lightweight thumbnails immediately, then replace them with full-size images.
@@ -1406,26 +1495,11 @@ function initProgressiveImages() {
     });
 }
 
-function normalizeSpaPath(path) {
-    const cleanPath = String(path || 'index.html')
-        .replace(/^#+/, '')
-        .split('?')[0]
-        .replace(/\\/g, '/');
-
-    // Project pages use several forms of a return URL (projects.html,
-    // ../projects.html, ../../projects.html). They all address the root list.
-    if (/(^|\/)projects\.html$/i.test(cleanPath)) {
-        return 'projects.html';
-    }
-
-    return cleanPath.replace(/^\/+/, '');
-}
-
 function getCurrentSpaPath() {
     return __currentSpaPath || inferCurrentSpaPath();
 }
 
-__currentSpaPath = normalizeSpaPath(inferCurrentSpaPath());
+__currentSpaPath = inferSpaRouteFromPathname();
 __lastNavSource = __currentSpaPath;
 window.__currentSpaPath = __currentSpaPath;
 
@@ -1444,6 +1518,9 @@ function navigateTo(url, pushHistory = true, clickPos = null) {
 
 async function loadPage(url, pushHistory = true, clickPos = null, token = null, sourceHash = '') {
     __loadingLocked = true;
+    const route = normalizeSpaPath(url);
+    const documentPath = resolveSpaDocumentPath(route);
+    const requestUrl = new URL(documentPath, SPA_ROOT_URL).href;
     // Select the current content container
     const contentSelector = '.container, .project-detail-container, .about-container';
     const container = document.querySelector(contentSelector);
@@ -1451,24 +1528,22 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
 
     if (!container) {
         console.error('No content container found');
-        window.location.href = url;
+        window.location.href = `${SPA_ROOT_URL.href}#${route}`;
         return;
     }
 
     // Determine Direction
-    const pageOrder = ['index.html', 'projects.html', 'art.html'];
-
-    // Helper to get filename from URL
-    const getFileName = (path) => {
-        const name = path.split('/').pop() || 'index.html';
-        return name.split('#')[0].split('?')[0];
+    const pageOrder = ['about', 'projects', 'artworks'];
+    const getPageSection = path => {
+        const normalized = normalizeSpaPath(path);
+        return normalized.startsWith('projects/') ? 'projects' : normalized;
     };
 
     // Track the content actually displayed, not a potentially stale URL hash.
     const currentPath = getCurrentSpaPath();
 
-    const currentFile = getFileName(currentPath);
-    const nextFile = getFileName(url);
+    const currentFile = getPageSection(currentPath);
+    const nextFile = getPageSection(route);
 
     let currentIndex = pageOrder.indexOf(currentFile);
     let nextIndex = pageOrder.indexOf(nextFile);
@@ -1496,7 +1571,7 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
 
     try {
         // 2. Fetch new content (parallel with the wipe)
-        const response = await fetch(url);
+        const response = await fetch(requestUrl);
         if (token && token.cancelled) return;
         if (!response.ok) throw new Error('Page not found');
         const text = await response.text();
@@ -1528,13 +1603,13 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
             if (pushHistory) {
                 window.__suppressHashNav = true;
                 window.__suppressPopstate = true;
-                window.location.hash = url;
+                window.location.hash = route;
             }
 
             // Content has now been swapped successfully. Keep an explicit
             // canonical source for the next navigation, including rapid
             // project-to-project transitions where hash events can lag.
-            __currentSpaPath = normalizeSpaPath(url);
+            __currentSpaPath = route;
             __lastNavSource = __currentSpaPath;
             window.__currentSpaPath = __currentSpaPath;
 
@@ -1547,13 +1622,9 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
             // If we are leaving a project detail page and returning DIRECTLY to projects.html, remember it.
             // Otherwise, clear any stored record so other navigations don't trigger scroll back.
             try {
-                const fromPage = sourceHash || currentPath;
-                const curFile = getFileName(fromPage);
-                const nxtFile = getFileName(url);
-                
-                const lowerCur = fromPage.toLowerCase();
-                const isCurProject = (lowerCur.startsWith('projects/') || lowerCur.includes('/projects/')) && curFile !== 'projects.html';
-                const isNextProjects = nxtFile.toLowerCase() === 'projects.html';
+                const fromPage = normalizeSpaPath(sourceHash || currentPath);
+                const isCurProject = fromPage.startsWith('projects/');
+                const isNextProjects = route === 'projects';
                 
                 if (isCurProject && isNextProjects) {
                     sessionStorage.setItem('lastVisitedProject', fromPage);
@@ -1613,8 +1684,7 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
 
             // If this is the projects page, scroll to the last visited project if present
             try {
-                const loadedFileName = getFileName(url);
-                if (loadedFileName === 'projects.html') {
+                if (route === 'projects') {
                     const lastProj = sessionStorage.getItem('lastVisitedProject');
                     if (lastProj) {
                         // Retry with increasing delay: 0ms, 50ms, 100ms, 200ms, 400ms
@@ -1628,7 +1698,7 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
                                 const grid = document.querySelector('.grid-container');
                                 const cards = grid ? grid.querySelectorAll('a.card') : [];
                                 if (grid && cards.length > 0) {
-                                    const clean = (s) => (s || '').replace(/^#+/, '').toLowerCase();
+                                    const clean = s => normalizeSpaPath(s).toLowerCase();
                                     const needle = clean(lastProj);
                                     let target = null;
                                     for (let card of cards) {
@@ -1680,7 +1750,8 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
 
     } catch (error) {
         console.error('Error loading page:', error);
-        window.location.href = url;
+        container.classList.remove('page-exit', 'page-exit-left', 'page-exit-right', 'page-exit-down');
+        if (window.MotionUX?.abortSweep) MotionUX.abortSweep();
     } finally {
         loader.classList.remove('active');
         __loadingLocked = false;
@@ -1688,26 +1759,16 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
 }
 
 function updateActiveNav() {
-    const hashPath = window.location.hash.slice(1);
-    const pathname = window.location.pathname.replace(/\\/g, '/');
-    const currentFile = pathname.split('/').pop() || 'index.html';
-    const currentPath = hashPath || (
-        /\/projects\//i.test(pathname)
-            ? `projects/${currentFile}`
-            : currentFile
-    );
+    const currentPath = getCurrentSpaPath();
+    const currentSection = currentPath.startsWith('projects/')
+        ? 'projects'
+        : currentPath;
 
     document.querySelectorAll('.nav-item').forEach(link => {
         link.classList.remove('active');
-        const linkHref = link.getAttribute('href');
-        const linkFile = (linkHref || '').split('/').pop();
+        const linkRoute = normalizeSpaPath(link.getAttribute('href'));
 
-        // Check if current page matches this nav item
-        if (linkFile === currentPath ||
-            (currentPath === 'index.html' && linkFile === 'index.html') ||
-            (currentPath.toLowerCase().includes('projects/') && linkFile === 'projects.html') ||
-            (currentPath === 'projects.html' && linkFile === 'projects.html') ||
-            (currentPath === 'art.html' && linkFile === 'art.html')) {
+        if (linkRoute === currentSection) {
             link.classList.add('active');
         }
     });

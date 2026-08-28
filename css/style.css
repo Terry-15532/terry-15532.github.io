@@ -3857,7 +3857,7 @@ video,
 /* --- Skills Section Design --- */
 .skills-container {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 35px;
     padding: 40px 0;
     width: 90%;
@@ -4043,17 +4043,11 @@ video,
     }
 }
 
-@media (max-width: 900px) {
-    .skills-container {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 25px;
-        padding: 20px 0;
-    }
-}
-
 @media (max-width: 560px) {
     .skills-container {
         grid-template-columns: 1fr;
+        gap: 25px;
+        padding: 20px 0;
     }
 }
 
