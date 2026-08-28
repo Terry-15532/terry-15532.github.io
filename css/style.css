@@ -4354,8 +4354,8 @@ video,
     width: 24px;
     height: 24px;
     background: var(--accent-cyan);
-    /* 固定的略微不规则圆角, 生成后保持不变, 中途不变形 */
-    border-radius: 46% 54% 52% 48% / 49% 51% 47% 53%;
+    /* Masks keep one fixed circular shape throughout their animation. */
+    border-radius: 50%;
     transform: translate(-50%, -50%) scale(0);
     pointer-events: none;
     z-index: 3;
@@ -4451,51 +4451,10 @@ video,
     z-index: -1;
 }
 
-/* fast-moving wavy outline with large amplitude while the mask is alive */
-@keyframes ripple-morph {
-
-    0%,
-    100% {
-        border-radius: 30% 70% 62% 38% / 58% 32% 68% 42%;
-    }
-
-    25% {
-        border-radius: 72% 28% 34% 66% / 30% 74% 26% 70%;
-    }
-
-    50% {
-        border-radius: 36% 64% 74% 26% / 70% 36% 64% 30%;
-    }
-
-    75% {
-        border-radius: 66% 34% 28% 72% / 34% 70% 30% 66%;
-    }
-}
-
 /* bottom layer: same size as the top, different colour & contour so it
-   peeks out only through the wavy edge; opacity falls with progress */
+   peeks out only through the fixed edge; opacity falls with progress */
 .ripple-ink.sub {
     display: none;
-}
-
-@keyframes ripple-morph-b {
-
-    0%,
-    100% {
-        border-radius: 60% 40% 42% 58% / 40% 62% 38% 60%;
-    }
-
-    25% {
-        border-radius: 45% 55% 62% 38% / 58% 44% 56% 42%;
-    }
-
-    50% {
-        border-radius: 58% 42% 40% 60% / 42% 58% 46% 54%;
-    }
-
-    75% {
-        border-radius: 42% 58% 55% 45% / 52% 42% 58% 48%;
-    }
 }
 
 /* once the circle covers the host it hands over to an opaque background state */
@@ -4687,7 +4646,7 @@ video,
 /* ===================================
    FULL-SCREEN TRANSITIONS (Norris-style)
    =================================== */
-/* Wavy circular sweep used for page / theme / language switching */
+/* Fixed circular sweep used for page / theme / language switching */
 .fx-circle,
 .page-sweep {
     position: fixed;
@@ -4698,7 +4657,6 @@ video,
     pointer-events: none;
     /* below the nav (1000) so transitions never cover it */
     z-index: 900;
-    animation: ripple-morph 0.8s ease-in-out infinite;
     backdrop-filter: blur(26px) saturate(1.2);
     -webkit-backdrop-filter: blur(26px) saturate(1.2);
 }
