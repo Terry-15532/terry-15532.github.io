@@ -252,10 +252,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (isKnownSpaHash(href)) {
                 e.preventDefault();
+                // Navigation items represent a page switch, not an in-page
+                // anchor. Do not restore the project card position when the
+                // user explicitly switches pages from the navbar.
+                const navigationOptions = link.classList.contains('nav-item')
+                    ? { restoreScroll: false }
+                    : undefined;
                 navigateTo(
                     href,
                     true,
-                    { x: e.clientX, y: e.clientY }
+                    { x: e.clientX, y: e.clientY },
+                    navigationOptions
                 );
                 return;
             }
@@ -1503,7 +1510,7 @@ __currentSpaPath = inferSpaRouteFromPathname();
 __lastNavSource = __currentSpaPath;
 window.__currentSpaPath = __currentSpaPath;
 
-function navigateTo(url, pushHistory = true, clickPos = null) {
+function navigateTo(url, pushHistory = true, clickPos = null, navigationOptions = undefined) {
     if (__loadingLocked) return;
     if (__navToken) {
         __navToken.cancelled = true;
@@ -1513,10 +1520,10 @@ function navigateTo(url, pushHistory = true, clickPos = null) {
     __navToken = token;
     const sourceHash = getCurrentSpaPath();
     __lastNavSource = sourceHash;
-    loadPage(url, pushHistory, clickPos, token, sourceHash);
+    loadPage(url, pushHistory, clickPos, token, sourceHash, navigationOptions);
 }
 
-async function loadPage(url, pushHistory = true, clickPos = null, token = null, sourceHash = '') {
+async function loadPage(url, pushHistory = true, clickPos = null, token = null, sourceHash = '', navigationOptions = undefined) {
     __loadingLocked = true;
     const route = normalizeSpaPath(url);
     const documentPath = resolveSpaDocumentPath(route);
@@ -1597,13 +1604,18 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
             if (currentControls) currentControls.remove();
             if (newControls) document.body.appendChild(newControls);
 
+            // Reset the viewport before exposing the new document. Updating
+            // location.hash here would trigger the browser's native anchor
+            // scrolling back to #projects/#artworks, so history.pushState is
+            // used below to update the SPA URL without changing scroll.
             window.scrollTo(0, 0);
 
-            // Update hash (suppress the self-triggered hashchange AND popstate)
+            // Update the route without emitting hashchange/popstate or
+            // triggering native anchor scrolling.
             if (pushHistory) {
-                window.__suppressHashNav = true;
-                window.__suppressPopstate = true;
-                window.location.hash = route;
+                const nextUrl = new URL(window.location.href);
+                nextUrl.hash = route;
+                window.history.pushState(null, '', nextUrl.href);
             }
 
             // Content has now been swapped successfully. Keep an explicit
@@ -1626,7 +1638,7 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
                 const isCurProject = fromPage.startsWith('projects/');
                 const isNextProjects = route === 'projects';
                 
-                if (isCurProject && isNextProjects) {
+                if (isCurProject && isNextProjects && navigationOptions?.restoreScroll !== false) {
                     sessionStorage.setItem('lastVisitedProject', fromPage);
                 }
             } catch (e) { console.error('[ScrollBack] Error:', e); }
@@ -1684,7 +1696,10 @@ async function loadPage(url, pushHistory = true, clickPos = null, token = null, 
 
             // If this is the projects page, scroll to the last visited project if present
             try {
-                if (route === 'projects') {
+                if (navigationOptions?.restoreScroll === false) {
+                    sessionStorage.removeItem('lastVisitedProject');
+                }
+                if (route === 'projects' && navigationOptions?.restoreScroll !== false) {
                     const lastProj = sessionStorage.getItem('lastVisitedProject');
                     if (lastProj) {
                         // Retry with increasing delay: 0ms, 50ms, 100ms, 200ms, 400ms
