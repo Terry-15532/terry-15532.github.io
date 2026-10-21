@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>VERTICAL / Elevator Dispatch</title>
+<style>
+:root{--bg:#101416;--panel:#191e21;--line:#343c40;--text:#edf1ed;--muted:#8b989e;--acid:#5eead4;--cyan:#7dd3e5;--red:#e7f1f3;--floor:62px;--shaft:100px;--label:52px}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.5 "Segoe UI","Microsoft YaHei",sans-serif;background-image:linear-gradient(#ffffff03 1px,transparent 1px),linear-gradient(90deg,#ffffff03 1px,transparent 1px);background-size:32px 32px}button{font:inherit;color:inherit;cursor:pointer;border:1px solid var(--line);background:#20272b;transition:background .15s,border-color .15s,transform .15s}button:hover:not(:disabled){border-color:var(--acid);background:#303a38}button:active:not(:disabled){transform:translateY(1px)}button:disabled{cursor:not-allowed;opacity:.35}button:focus-visible{outline:2px solid var(--cyan);outline-offset:3px}small,.eyebrow{font:10px/1.5 Consolas,monospace;letter-spacing:2px;color:var(--muted)}.mono{font-family:Consolas,"Courier New",monospace}.app{max-width:1120px;margin:auto;padding:30px 30px 18px}.top{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:23px}.brand{display:flex;align-items:center;gap:14px}.mark{width:42px;height:46px;background:var(--acid);color:var(--bg);display:grid;place-items:center;font:900 30px Consolas;clip-path:polygon(0 0,100% 0,100% 76%,74% 100%,0 100%)}h1{margin:0;font-size:25px;line-height:1.2;font-weight:850;letter-spacing:3px}.subtitle{color:var(--muted);font-size:11px;margin-top:5px;letter-spacing:2px}.top-actions{display:flex;gap:8px}.top-actions button{padding:9px 14px;font-size:12px}.primary{background:var(--acid)!important;color:#0d191a!important;border-color:var(--acid)!important;font-weight:750}.dashboard{display:grid;grid-template-columns:1.8fr 1fr 1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line);margin-bottom:18px}.metric{padding:13px 20px;background:var(--panel);position:relative;overflow:hidden}.metric label{display:block;color:var(--muted);font-size:11px;letter-spacing:1px}.metric strong{font:700 30px/1.4 Consolas,monospace}.metric .unit{font-size:12px;color:var(--muted);margin-left:5px}.metric.time strong{color:var(--acid);font-size:37px}.metric.time.urgent strong{color:var(--red)}.time-track{height:2px;position:absolute;bottom:0;left:0;background:var(--acid);width:100%;transition:width .15s}.urgent .time-track{background:var(--red)}.delta{position:absolute;right:18px;bottom:18px;font:700 18px Consolas;opacity:0;pointer-events:none}.delta.show{animation:delta 1.5s ease-out}.delta.good{color:var(--acid)}.delta.bad{color:var(--red)}@keyframes delta{0%{opacity:1;transform:translateY(8px)}80%{opacity:1}100%{opacity:0;transform:translateY(-12px)}}.layout{display:grid;grid-template-columns:minmax(0,1fr) 278px;gap:18px}.tower-panel{border:1px solid var(--line);min-width:0;background:#151a1d}.panel-head{height:46px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-bottom:1px solid var(--line)}.panel-head b{font-size:12px;letter-spacing:2px}.live{font:10px Consolas;letter-spacing:1px;color:var(--cyan)}.live:before{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:currentColor;margin-right:7px}.columns{height:31px;display:grid;grid-template-columns:var(--label) var(--shaft) 1fr;align-items:center;font-size:9px;letter-spacing:1px;color:var(--muted);border-bottom:1px solid var(--line);text-align:center}.columns span:last-child{text-align:left;padding-left:17px}.tower{height:calc(var(--floor)*8);position:relative;isolation:isolate;overflow:hidden}.floor{height:var(--floor);display:grid;grid-template-columns:var(--label) var(--shaft) minmax(0,1fr);border-bottom:1px solid #343c4080;position:relative}.floor:last-child{border-bottom:0}.floor.current{background:#5eead408}.floor.target:after{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--acid);pointer-events:none}.floor-no{border:0;border-right:1px solid #343c4080;background:transparent;font:700 23px Consolas;color:#748187;position:relative}.floor.current .floor-no{color:var(--acid)}.floor-no small{position:absolute;bottom:1px;left:0;right:0;font-size:7px;letter-spacing:1px;color:#758287}.shaft-cell{background:repeating-linear-gradient(90deg,transparent 0,transparent 10px,#ffffff06 11px,transparent 12px);border-left:7px solid #101416;border-right:7px solid #101416;box-shadow:inset 1px 0 #384247,inset -1px 0 #384247}.waiters{display:flex;align-items:center;gap:7px;padding:6px 12px;overflow:hidden}.floor-empty{color:#3f4c50;font:9px Consolas;letter-spacing:2px;white-space:nowrap}.passenger{flex:0 0 49px;height:44px;padding:3px 4px 6px;position:relative;border:1px solid #435257;background:#242e32;display:flex;align-items:center;gap:2px;justify-content:center;overflow:hidden}.passenger svg{width:11px;height:23px;fill:var(--cyan);flex-shrink:0}.passenger.down svg{fill:#babfc2}.passenger .dest{font:700 17px Consolas;white-space:nowrap}.passenger .arrow{font:10px Consolas;color:var(--cyan);display:block;line-height:10px}.passenger.down .arrow{color:#babfc2}.passenger .patience{position:absolute;left:0;bottom:0;height:3px;width:100%;background:var(--cyan);transform-origin:left}.passenger .seconds{position:absolute;top:1px;right:3px;color:var(--red);font:8px Consolas;display:none}.passenger.hurry{border-color:#e7f1f380;background:#293337}.passenger.hurry .seconds{display:block}.passenger.hurry .patience{background:var(--red)}.passenger.boardable{border-color:var(--acid);background:#5eead412}.passenger.boardable:hover{background:#5eead433}.cab{position:absolute;left:calc(var(--label) + 8px);width:calc(var(--shaft) - 16px);height:calc(var(--floor) - 8px);top:4px;z-index:3;background:#1e302e;border:1px solid var(--acid);box-shadow:0 0 20px #5eead40b;overflow:hidden;pointer-events:none}.cab:before,.cab:after{content:"";position:absolute;width:6px;height:6px;z-index:4;top:1px;border-top:2px solid var(--acid)}.cab:before{left:1px;border-left:2px solid var(--acid)}.cab:after{right:1px;border-right:2px solid var(--acid)}.cab-inside{height:100%;display:grid;grid-template-columns:repeat(2,1fr);gap:2px;padding:4px}.cab-person{font:700 11px Consolas;display:flex;align-items:center;justify-content:center;color:var(--acid);background:#5eead414;gap:3px}.cab-person svg{width:8px;height:16px;fill:var(--acid)}.cab-vacant{color:#61716c;font:11px Consolas;display:grid;place-items:center;grid-column:1/-1}.door{position:absolute;top:0;bottom:0;width:50%;background:linear-gradient(90deg,#2a3237,#353f43);z-index:3;will-change:transform}.door.left{left:0;border-right:1px solid #101416}.door.right{right:0;border-left:1px solid #718080}.door:after{content:"";position:absolute;left:30%;top:8px;width:1px;height:calc(100% - 16px);background:#ffffff0d}.tower-foot{padding:11px 14px;border-top:1px solid var(--line);font-size:10px;color:var(--muted);display:flex;align-items:center;justify-content:space-between;gap:8px}.legend-dot{display:inline-block;width:5px;height:5px;background:var(--acid);margin-right:5px}.legend-dot.red{background:var(--red);margin-left:12px}.side{display:flex;flex-direction:column;gap:14px}.control{border:1px solid var(--line);background:var(--panel)}.readout{padding:14px 18px 12px;position:relative;background:#20282b}.readout-top{display:flex;justify-content:space-between;align-items:center}.state-label{font-size:11px;color:var(--cyan)}.floor-display{display:flex;align-items:baseline;gap:9px}.floor-display strong{font:700 59px/1.3 Consolas;letter-spacing:-4px}.floor-display span{color:var(--muted);font:12px Consolas}.direction{position:absolute;right:18px;top:43px;font:30px Consolas;color:var(--acid)}.route-note{font-size:11px;color:var(--muted);min-height:18px}.phase-track{height:2px;background:#101416}.phase-track i{height:100%;display:block;background:var(--cyan);width:0}.keypad{padding:14px;display:grid;grid-template-columns:repeat(4,1fr);gap:7px}.floor-key{height:43px;font:700 20px Consolas;position:relative}.floor-key em{position:absolute;right:4px;top:3px;width:4px;height:4px;background:var(--cyan);display:none}.floor-key.has-dest em{display:block}.floor-key.selected{background:var(--acid)!important;color:#0d191a;border-color:var(--acid)}.floor-key.here{border-color:var(--cyan)}.door-actions{padding:0 14px 14px;display:grid;grid-template-columns:1fr 1fr;gap:7px}.door-actions button{padding:9px 3px;font-size:11px}.lock-info{border-top:1px solid var(--line);padding:11px 14px;min-height:57px;font-size:11px;color:var(--muted)}.lock-info strong{color:var(--acid);font-weight:500}.manifest{padding:13px 14px;border:1px solid var(--line);background:var(--panel)}.section-label{font-size:11px;display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}.section-label span{color:var(--muted);font:11px Consolas}.seats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.seat{height:42px;border:1px dashed #3b474b;display:grid;place-items:center;font:18px Consolas;color:#516065}.seat.filled{border:1px solid #4d9d96;background:#5eead412;color:var(--acid);font-size:15px}.hint{font-size:10px;line-height:1.7;color:var(--muted);margin:10px 0 0}.event-log{margin-top:0;border-top:1px solid var(--line);padding-top:11px;flex:1}.event-log div{font-size:10px;color:var(--muted);padding:3px 0;display:flex;gap:8px}.event-log time{font:10px Consolas;color:#5d6e75}.event-log .ok{color:var(--acid)}.event-log .bad{color:var(--red)}.bottom{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:16px;color:var(--muted);font-size:10px}.bottom kbd{color:#b5c0bf;font:10px Consolas;background:#252d31;border:1px solid #404a4f;padding:2px 5px;margin-right:4px}.bottom a{color:var(--muted);text-decoration:none;border-bottom:1px dotted #536165}.toast{position:fixed;bottom:30px;left:50%;transform:translate(-50%,12px);padding:11px 21px;background:#5eead4;color:#0d191a;font-size:12px;font-weight:600;z-index:20;opacity:0;transition:opacity .18s,transform .18s;pointer-events:none;max-width:90%;text-align:center}.toast.visible{opacity:1;transform:translate(-50%,0)}.overlay{position:fixed;inset:0;background:#080d10cc;backdrop-filter:blur(7px);z-index:10;display:flex;align-items:center;justify-content:center;padding:20px}.overlay[hidden]{display:none}.modal{width:460px;max-width:100%;background:#1a2125;border:1px solid #526164;padding:30px;box-shadow:15px 15px 0 #0003;position:relative}.modal:before{content:"";position:absolute;left:-1px;top:-1px;width:64px;height:3px;background:var(--acid)}.modal h2{font-size:28px;margin:10px 0 15px;letter-spacing:2px}.modal p{font-size:12px;color:#adb8bb;line-height:1.9}.modal ul{list-style:none;padding:0;margin:18px 0}.modal li{font-size:12px;color:#bbc4c5;margin:12px 0;padding-left:12px;border-left:2px solid #475451}.modal li b{color:var(--text)}.modal .wide{width:100%;padding:12px;margin-top:10px}.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);margin:20px 0}.result-grid div{background:#20282b;padding:15px 5px;text-align:center;font-size:10px;color:var(--muted)}.result-grid strong{display:block;color:var(--acid);font:28px Consolas}.start-note{background:#5eead412;border:1px solid #5eead450;color:var(--acid);font-size:11px;padding:9px 14px;margin-bottom:14px;display:flex;justify-content:space-between;gap:10px}.start-note[hidden]{display:none}
+/* A single viewport, with no clipped floors or horizontally scrolling queues. */
+html,body{width:100%;height:100%;overflow:hidden}
+body{overscroll-behavior:none;display:flex;justify-content:center;align-items:flex-start}
+.app{width:100%;max-width:1280px;height:100vh;height:100dvh;margin:0;padding:18px 26px 12px;display:flex;flex-direction:column;gap:12px;min-height:0;flex-shrink:0;transform-origin:top center}
+.top{margin:0;flex:0 0 auto;min-height:48px}
+.brand{gap:12px}.mark{width:37px;height:42px}h1{font-size:23px}.subtitle{font-size:10px}
+.dashboard{margin:0;flex:0 0 auto}.metric{padding:8px 18px}.metric strong{font-size:27px}.metric.time strong{font-size:32px}.metric label{font-size:10px}
+.start-note{margin:0;flex:0 0 auto;padding:7px 12px}
+.layout{flex:1;min-height:0;grid-template-columns:minmax(0,1fr) 264px;gap:14px}
+.tower-panel{display:flex;flex-direction:column;min-height:0}
+.panel-head{height:36px;min-height:36px;padding:0 13px;flex-shrink:0}
+.columns{height:26px;flex-shrink:0;grid-template-columns:var(--label) var(--shaft) minmax(0,1fr)}
+.tower{height:auto;min-height:0;flex:1}#floors{height:100%}.floor{height:12.5%;min-height:0}
+.cab{height:calc(12.5% - 8px)}
+:root{--label:66px;--shaft:94px}
+.floor-no{font-size:22px;padding:0 13px 7px 0}
+.floor-no:disabled{opacity:1;color:#647277}
+.floor-no small{bottom:3px;font-size:8px;letter-spacing:.8px}
+.floor-destination{position:absolute;top:5px;right:4px;display:none;place-items:center;width:16px;height:16px;background:var(--acid);color:#0e2020;font:700 10px Consolas;border-radius:2px}
+.floor.has-dest .floor-no{color:var(--acid);background:#5eead414;border-right:2px solid var(--acid)}
+.floor.has-dest .floor-no small{color:var(--acid);font-weight:600}
+.floor.has-dest .floor-destination{display:grid}
+.floor.current .floor-no{color:var(--text)}
+.waiters{display:grid;grid-template-columns:repeat(6,minmax(0,54px));gap:7px;padding:4px 12px;overflow:hidden;min-width:0;min-height:0}
+.floor-empty{grid-column:1/-1;overflow:hidden;text-overflow:ellipsis}
+.passenger{width:100%;min-width:0;height:min(44px,100%);min-height:0;padding:2px 3px 5px;gap:3px;flex:none}
+.passenger .dest{font-size:17px}.passenger .arrow{font-size:9px;line-height:10px}.passenger svg{height:21px;width:10px}
+.passenger.hurry{border-color:#e7f1f3;background:#293337}
+.passenger.hurry .patience{background:repeating-linear-gradient(110deg,#e7f1f3 0 4px,#586b70 4px 7px)}
+.tower-foot{padding:7px 12px;flex:0 0 auto;min-height:30px;font-size:9px}
+.legend-dot.red{margin-left:10px}
+.legend-dest{display:inline-grid;place-items:center;width:12px;height:12px;border-radius:2px;background:var(--acid);color:#0e2020;font:700 8px Consolas}
+.side{min-height:0;gap:10px}.control{flex:0 0 auto}
+.readout{padding:9px 14px}.floor-display strong{font-size:46px}.direction{top:34px;font-size:26px;right:14px}
+.keypad{padding:10px;gap:6px}.floor-key{height:36px;font-size:19px}
+.door-actions{padding:0 10px 10px;gap:6px}.door-actions button{padding:7px 2px}
+.lock-info{padding:9px 11px;min-height:50px;font-size:10px}
+.manifest{padding:10px 11px;flex:0 0 auto}.section-label{margin-bottom:8px}.seat{height:33px}.seat.filled{font-size:14px}.hint{margin-top:7px;font-size:10px}
+.event-log{flex:1;min-height:0;padding-top:7px;overflow:hidden}.event-log div{padding:2px 0}
+.bottom{flex:0 0 auto;margin:0;min-height:18px;font-size:9px}.bottom kbd{font-size:9px}
+.overlay{overflow:hidden;padding:12px}.modal{max-height:none;width:480px;padding:24px;transform-origin:center}
+.modal h2{font-size:25px;margin:8px 0 12px}.modal li{margin:9px 0}.modal p{margin:10px 0}.modal ul{margin:12px 0}
+@media(max-height:780px) and (min-width:621px){
+ .app{padding-top:12px;gap:10px}.hint{display:none}.event-log div{padding:1px 0}.top{min-height:45px}
+}
+@media(max-height:640px) and (min-width:621px){
+ .app{padding:9px 16px;gap:7px}.top{min-height:38px}.mark{height:34px;width:31px}.subtitle{display:none}.eyebrow{font-size:8px}h1{font-size:21px}
+ .metric{padding:5px 12px}.metric label{font-size:9px}.metric.time strong{font-size:26px}.metric strong{font-size:23px}
+ .start-note{padding:4px 10px;font-size:10px}.panel-head{height:28px;min-height:28px}.panel-head b{font-size:10px}
+ .readout{padding:6px 11px}.floor-display strong{font-size:34px}.direction{top:25px;font-size:22px}.route-note{font-size:10px}
+ .keypad{padding:7px;gap:5px}.floor-key{height:29px;font-size:16px}.door-actions{padding:0 7px 7px}.door-actions button{padding:5px 0;font-size:10px}
+ .lock-info{padding:6px 9px;min-height:42px;font-size:9px}.side{gap:7px}.manifest{padding:7px 9px}.section-label{font-size:10px;margin-bottom:5px}.seat{height:27px}
+ .columns{height:22px}.tower-foot{min-height:25px;padding:5px 8px}.floor-no{font-size:19px}.floor-no small{font-size:7px;bottom:1px}.floor-destination{top:3px}
+ .passenger .dest{font-size:15px}.passenger svg{height:17px}.passenger .arrow{font-size:8px;line-height:8px}
+}
+@media(max-width:850px) and (min-width:621px){
+ :root{--label:58px;--shaft:80px}.app{padding-left:15px;padding-right:15px}.layout{grid-template-columns:minmax(0,1fr) 225px;gap:10px}
+ .waiters{padding:4px 7px;gap:4px}.passenger{gap:1px;padding-left:1px;padding-right:1px}.passenger svg{width:7px}.passenger .dest{font-size:15px}
+ .top-actions button{padding:8px 11px}.tower-foot{gap:3px;font-size:8px}.tower-foot>span:last-child{font-size:8px;letter-spacing:-.3px}.legend-dot.red{margin-left:5px}
+}
+@media(max-width:620px){
+ :root{--label:54px;--shaft:66px}.app{padding:10px;gap:8px}.top{min-height:39px;gap:5px}.brand{gap:7px}.mark{width:29px;height:34px;font-size:23px}h1{font-size:18px;letter-spacing:1px}.eyebrow{font-size:7px;letter-spacing:1px}.subtitle{font-size:8px;letter-spacing:0;margin-top:2px}.top-actions{gap:4px}.top-actions button{padding:7px 6px;font-size:9px}#reset{display:none}
+ .dashboard{grid-template-columns:1.3fr 1fr 1fr}.metric{padding:6px 9px}.metric label{font-size:8px;letter-spacing:0}.metric strong{font-size:22px}.metric.time strong{font-size:27px}.metric:last-child{display:none}.metric .unit{font-size:9px}.delta{font-size:14px;right:7px;bottom:13px}
+ .start-note{font-size:9px;padding:5px 8px;gap:0}.start-note>span:last-child{display:none}
+ .layout{display:grid;grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto;gap:8px}
+ .panel-head{height:29px;min-height:29px;padding:0 9px}.panel-head b{font-size:10px}.live{font-size:8px}.columns{height:22px;font-size:8px}.columns span:last-child{padding-left:7px;letter-spacing:0}
+ .tower-foot{min-height:24px;padding:4px 7px;font-size:8px}.tower-foot>span:last-child{font-size:8px}.legend-dot.red{margin-left:5px}
+ .floor-no{font-size:19px;padding-right:12px}.floor-no small{font-size:7px;bottom:1px}.floor-destination{width:13px;height:13px;right:3px;top:3px;font-size:9px}
+ .waiters{grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;padding:3px 6px}.passenger{height:min(37px,100%);padding:1px 1px 4px;gap:1px}.passenger .dest{font-size:15px}.passenger .arrow{font-size:8px;line-height:8px}.passenger svg{width:7px;height:16px}.passenger .seconds{font-size:7px;right:1px}.floor-empty{font-size:8px;letter-spacing:1px}
+ .cab-inside{padding:2px;gap:1px}.cab-person{font-size:9px;gap:1px}.cab-person svg{width:6px;height:12px}.cab-vacant{font-size:9px}
+ .side{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto;gap:7px;min-height:0}
+ .control{grid-column:1/-1;display:grid;grid-template-columns:114px minmax(0,1fr);grid-template-rows:auto auto auto}
+ .control>.panel-head{display:none}.readout{grid-column:1;grid-row:1/3;padding:8px 9px;display:flex;flex-direction:column;justify-content:center}
+ .readout-top{display:block}.readout-top small{font-size:7px;letter-spacing:.7px}.state-label{font-size:9px;display:block}.floor-display strong{font-size:33px;letter-spacing:-2px}.floor-display span{font-size:8px}.floor-display{gap:6px}
+ .direction{top:39px;right:9px;font-size:20px}.route-note{font-size:8px;line-height:1.5;min-height:24px}.phase-track{display:none}
+ .keypad{grid-column:2;grid-row:1;padding:7px 7px 5px;gap:5px}.floor-key{height:27px;font-size:16px}
+ .door-actions{grid-column:2;grid-row:2;padding:0 7px 7px;gap:5px}.door-actions button{font-size:9px;padding:5px 1px}
+ .lock-info{grid-column:1/-1;padding:5px 9px;min-height:0;font-size:9px;line-height:1.5}.lock-info br{display:none}.lock-info strong{margin-right:8px}
+ .manifest{grid-column:1;padding:7px 9px}.section-label{font-size:9px;margin-bottom:5px}.section-label span{font-size:9px}.seats{grid-template-columns:repeat(4,1fr);gap:4px}.seat{height:24px;font-size:13px}.seat.filled{font-size:12px}.hint{display:none}
+ .event-log{grid-column:2;grid-row:2;margin:0;padding-top:4px;align-self:stretch;max-height:none}.event-log div{font-size:8px;padding:1px 0;gap:4px}.event-log time{font-size:8px}
+ .bottom{font-size:8px;line-height:1.5;gap:3px;flex-wrap:wrap;min-height:0}.bottom kbd{font-size:8px;padding:1px 3px}.bottom>span:last-child{font-size:8px}.bottom a{display:none}
+ .modal{padding:20px;width:440px}.modal h2{font-size:22px}.modal li{font-size:11px;margin:8px 0}.modal p{font-size:10px;line-height:1.7}.modal ul{margin:10px 0}.modal .wide{padding:10px;font-size:12px}
+ .toast{bottom:16px;font-size:11px;padding:9px 13px}
+}
+@media(max-width:380px){.passenger svg{display:none}.passenger .dest{font-size:14px}.tower-foot>span:last-child{font-size:7px;letter-spacing:-.5px}.top-actions button{font-size:8px;padding:7px 5px}.brand{gap:5px}.subtitle{font-size:7px}.control{grid-template-columns:103px minmax(0,1fr)}}
+@media(prefers-reduced-motion:reduce){button,.toast{transition:none}.delta.show{animation:none;opacity:1}}
+
+/* English labels remain compact at narrow widths. */
+.metric label{letter-spacing:.7px}.columns span{letter-spacing:.5px}.floor-display strong.in-transit{font-size:38px}
+@media(max-width:850px){.tower-foot>span:last-child{display:none}}
+@media(max-width:620px){.start-note{font-size:8px}.readout-top small{letter-spacing:.2px}.floor-display strong.in-transit{font-size:28px}.lock-info{font-size:8px}.section-label{font-size:8px}.top-actions button{font-size:8px}.subtitle{font-size:8px}.modal li{font-size:10px;line-height:1.55}.modal p{font-size:9px}.bottom{font-size:8px}}
+@media(max-height:640px) and (min-width:621px){.floor-display strong.in-transit{font-size:29px}}
+</style>
+</head>
+<body>
+<main class="app">
+<header class="top"><div class="brand"><div class="mark">↟</div><div><div class="eyebrow">REALTIME DISPATCH / 08</div><h1>VERTICAL<span style="color:var(--acid)">.</span></h1><div class="subtitle">Every floor. A decision.</div></div></div><div class="top-actions"><button id="help" aria-label="Game rules">Rules ?</button><button id="reset" aria-label="Restart shift">Reset ↺</button><button id="play" class="primary">Start shift ▶</button></div></header>
+<section class="dashboard" aria-label="Game stats"><div class="metric time" id="timeMetric"><label>TIME REMAINING</label><strong id="time">90.0</strong><span class="unit">SEC</span><div id="delta" class="delta"></div><div id="timeTrack" class="time-track"></div></div><div class="metric"><label>DELIVERED</label><strong id="served">00</strong><span class="unit">PAX</span></div><div class="metric"><label>MISSED</label><strong id="missed">00</strong><span class="unit">PAX</span></div><div class="metric"><label>UPTIME</label><strong id="uptime">00:00</strong></div></section>
+<div class="start-note" id="startNote"><span>Ready for duty. Select Start shift to begin your 90-second run.</span><span class="mono">STANDBY</span></div>
+<div class="layout"><section class="tower-panel" aria-label="Eight-floor building"><div class="panel-head"><b>01 / BUILDING</b><span class="live" id="live">SYSTEM READY</span></div><div class="columns"><span>FLOOR</span><span>LIFT</span><span>WAITING / CLICK TO BOARD</span></div><div class="tower" id="tower"><div id="floors"></div><div class="cab" id="cab"><div class="cab-inside" id="cabInside"></div><div class="door left" id="doorL"></div><div class="door right" id="doorR"></div></div></div><div class="tower-foot"><span><i class="legend-dot"></i>Boarding　<span class="legend-dest">2</span> to drop off<i class="legend-dot red"></i>Under 8s</span><span class="mono">CAPACITY 04 / FLOORS 08</span></div></section>
+<aside class="side"><section class="control"><div class="panel-head"><b>02 / DISPATCH</b><small>CTRL</small></div><div class="readout"><div class="readout-top"><small>CURRENT FLOOR</small><span class="state-label" id="state">Standby</span></div><div class="floor-display"><strong id="position">01</strong><span>FLOOR</span></div><span class="direction" id="direction">↕</span><div class="route-note" id="routeNote">Select a floor to depart</div></div><div class="phase-track"><i id="phase"></i></div><div class="keypad" id="keypad"></div><div class="door-actions"><button id="openDoor">◀ │ ▶ Open</button><button id="closeDoor">▶ │ ◀ Close</button></div><div class="lock-info" id="lockInfo"></div></section><section class="manifest"><div class="section-label">03 / ONBOARD<span id="load">0 / 4</span></div><div class="seats" id="seats"></div><p class="hint">Select a floor to depart.<br>Click waiting passengers after doors open.<br>Drop-offs are automatic.</p></section><div class="event-log" id="log" aria-live="polite"></div></aside></div>
+<footer class="bottom"><span><kbd>1–8</kbd>Floor　<kbd>Space</kbd>Pause　<kbd>R</kbd>Restart</span><span>Delivered <b style="color:var(--acid)">+5s</b>　Missed <b style="color:var(--red)">−5s</b>　<span class="mono">V.1.2</span> · <a href="https://ak.hypergryph.com/" target="_blank" rel="noopener noreferrer">UI inspiration: Arknights ↗</a></span></footer>
+</main>
+<div class="toast" id="toast" role="status"></div>
+<div class="overlay" id="overlay" hidden><section class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle"><div id="modalContent"></div><button id="modalAction" class="primary wide"></button></section></div>
+<script>
+(()=>{
+'use strict';
+const $=id=>document.getElementById(id), FLOORS=8,CAPACITY=4;
+const DURATION={closing:.60,docking:.50,opening:.50},SPEED=1.18;
+const personIcon='<svg viewBox="0 0 16 30" aria-hidden="true"><circle cx="8" cy="5" r="3.4"/><path d="M4 10h8l3 11h-4v8H5v-8H1z"/></svg>';
+let s,serial=0,modal=null,toastUntil=0,deltaUntil=0,uiClock=0,last=performance.now();
+const floorEls={},keyEls={},cards=new Map();
+const pad=n=>String(n).padStart(2,'0'), rand=(a,b)=>a+Math.random()*(b-a);
+const clock=t=>pad(Math.floor(t/60))+':'+pad(Math.floor(t%60));
+for(let f=FLOORS;f>=1;f--){
+ const row=document.createElement('div');row.className='floor';row.innerHTML='<button class="floor-no" aria-label="Go to floor '+f+'">'+pad(f)+'<small>FLOOR</small><span class="floor-destination" aria-hidden="true"></span></button><div class="shaft-cell"></div><div class="waiters"></div>';
+ row.querySelector('button').onclick=()=>command(f);$('floors').append(row);floorEls[f]=row;
+ const key=document.createElement('button');key.className='floor-key';key.innerHTML=f+'<em></em>';key.setAttribute('aria-label','Go to floor '+f);key.onclick=()=>command(f);$('keypad').append(key);keyEls[f]=key;
+}
+function notice(message){$('toast').textContent=message;toastUntil=performance.now()+2200;$('toast').classList.add('visible');}
+function log(message,type=''){s.events.unshift({time:clock(s.elapsed),message,type});s.events=s.events.slice(0,3);$('log').innerHTML=s.events.map(e=>'<div><time>'+e.time+'</time><span class="'+e.type+'">'+e.message+'</span></div>').join('');}
+function changeTime(n){s.time=Math.max(0,s.time+n);const el=$('delta');el.textContent=(n>0?'+':'')+n+'s';el.className='delta '+(n>0?'good':'bad');void el.offsetWidth;el.classList.add('show');deltaUntil=performance.now()+1500;}
+function traffic(elapsed=s.elapsed){
+ const t=Math.max(0,Math.min(1,(elapsed-75)/225)),ramp=t*t*(3-2*t);
+ return {level:1+Math.floor(ramp*4),spawnMin:3.4-1.5*ramp,spawnMax:4.6-1.9*ramp,patienceMin:44-12*ramp,patienceMax:58-14*ramp};
+}
+function nextArrival(){const t=traffic();return rand(t.spawnMin,t.spawnMax);}
+function spawn(f,initial=false){
+ const available=Array.from({length:8},(_,i)=>i+1).filter(n=>s.waiting[n].length<6);
+ if(!available.length)return;
+ f=f||available[Math.floor(Math.random()*available.length)];
+ if(s.waiting[f].length>=6)return;
+ let to;do{to=1+Math.floor(Math.random()*8)}while(to===f);
+ const tuning=traffic(),patience=rand(tuning.patienceMin,tuning.patienceMax),p={id:++serial,from:f,to,life:patience,max:patience};s.waiting[f].push(p);
+ return p;
+}
+function setup(start=false){
+ s={started:start,over:false,paused:false,time:90,elapsed:0,served:0,missed:0,pos:1,dir:0,target:null,phase:'open',phaseTime:0,door:1,aboard:[],waiting:Array.from({length:9},()=>[]),spawnIn:0,events:[]};
+ cards.clear();Object.values(floorEls).forEach(row=>row.querySelector('.waiters').replaceChildren());
+ s.spawnIn=nextArrival();
+ for(const f of [1,1,4,7])spawn(f,true);
+ hideModal();log(start?'Shift started. Click passengers at 1F to board.':'System ready / 90 seconds available');render();
+}
+function start(){if(s.over){setup(true);return}if(!s.started){s.started=true;log('Shift started. Click waiting passengers to board.');}else s.paused=!s.paused;render();}
+function freeDirection(){return !s.aboard.length||s.dir===0||!s.aboard.some(p=>(p.to-s.pos)*s.dir>1e-6);}
+function allowed(f){const d=Math.sign(f-s.pos);return !d||freeDirection()||d===s.dir;}
+function active(){if(!s.started){notice('Select Start shift to begin');return false}if(s.over||s.paused||modal){if(s.paused)notice('Paused. Select Resume to continue');return false}return true;}
+function setPhase(phase){s.phase=phase;s.phaseTime=0;}
+function command(f){
+ if(!active())return;
+ if(['closing','docking','opening'].includes(s.phase)){notice('Please wait: '+({closing:'doors closing',docking:'docking',opening:'doors opening'}[s.phase]));return;}
+ if(Math.abs(f-s.pos)<1e-6){if(s.phase==='closed')setPhase('opening');else notice('Already at '+f+'F. Click waiting passengers to board.');render();return;}
+ if(!allowed(f)){notice('Direction locked. Continue '+(s.dir===1?'up':'down')+' until no onboard destinations remain ahead.');return;}
+ s.target=f;s.dir=Math.sign(f-s.pos);
+ if(s.phase==='open')setPhase('closing');else if(s.phase==='closed')setPhase('moving');
+ log('Target '+f+'F / '+(s.dir>0?'upbound':'downbound'));render();
+}
+function board(id,f){
+ if(!active())return;
+ if(s.phase!=='open'||Math.abs(s.pos-f)>1e-6){notice('Stop at '+f+'F and wait for doors to open first.');return;}
+ if(s.aboard.length>=CAPACITY){notice('Lift full (4 / 4)');return;}
+ const i=s.waiting[f].findIndex(p=>p.id===id);if(i<0)return;
+ const [p]=s.waiting[f].splice(i,1);if(!s.aboard.length)s.dir=0;s.aboard.push(p);log('Boarded / '+f+'F → '+p.to+'F');render();
+}
+function unload(){
+ const arrived=s.aboard.filter(p=>p.to===Math.round(s.pos));if(!arrived.length)return;
+ s.aboard=s.aboard.filter(p=>p.to!==Math.round(s.pos));s.served+=arrived.length;changeTime(arrived.length*5);
+ log(arrived.length+' delivered at '+Math.round(s.pos)+'F / +'+arrived.length*5+'s','ok');
+ if(!s.aboard.length)s.dir=0;
+}
+function operateDoor(open){
+ if(!active())return;
+ if(open&&s.phase==='closed')setPhase('opening');
+ else if(open&&s.phase==='closing'){s.target=null;setPhase('opening');log('Departure cancelled / reopening doors');}
+ else if(!open&&s.phase==='open'){s.target=null;setPhase('closing');}
+ render();
+}
+function step(dt){
+ if(!s.started||s.over||s.paused||modal)return;
+ s.elapsed+=dt;s.time=Math.max(0,s.time-dt);
+ if(s.time<=0){finish();return;}
+ let lost=0;
+ for(let f=1;f<=8;f++)s.waiting[f]=s.waiting[f].filter(p=>{p.life-=dt;if(p.life<=0){lost++;return false}return true});
+ if(lost){s.missed+=lost;changeTime(-lost*5);log(lost+' passengers left / −'+lost*5+'s','bad');if(s.time<=0){finish();return;}}
+ s.spawnIn-=dt;if(s.spawnIn<=0){spawn();s.spawnIn=nextArrival();}
+ if(s.phase==='moving'){
+  const d=s.target-s.pos,travel=SPEED*dt;
+  if(Math.abs(d)<=travel){s.pos=s.target;s.target=null;setPhase('docking');}
+  else s.pos+=Math.sign(d)*travel;
+ }else if(s.phase==='closing'){
+  s.phaseTime+=dt;s.door=Math.max(0,s.door-dt/DURATION.closing);
+  if(s.door<=0){if(s.target!==null)setPhase('moving');else setPhase('closed');}
+ }else if(s.phase==='docking'){
+  s.phaseTime+=dt;if(s.phaseTime>=DURATION.docking)setPhase('opening');
+ }else if(s.phase==='opening'){
+  s.phaseTime+=dt;s.door=Math.min(1,s.door+dt/DURATION.opening);
+  if(s.door>=1){setPhase('open');unload();}
+ }
+}
+function finish(){s.over=true;s.paused=false;log('Time expired / shift complete','bad');showResults();}
+function showModal(content,label,action,kind){modal=kind;$('modalContent').innerHTML=content;$('modalAction').textContent=label;$('modalAction').onclick=action;$('overlay').hidden=false;fitModal();$('modalAction').focus();}
+function hideModal(){modal=null;$('overlay').hidden=true;}
+function showResults(){showModal('<div class="eyebrow">SHIFT COMPLETE</div><h2 id="modalTitle">End of shift.</h2><p>You delivered '+s.served+' passengers in '+clock(s.elapsed)+'.</p><div class="result-grid"><div><strong>'+s.served+'</strong>Delivered</div><div><strong>'+s.missed+'</strong>Missed</div><div><strong>'+Math.round(s.served/(s.served+s.missed||1)*100)+'%</strong>Delivery rate</div></div><p>Tip: group passengers by direction and serve destinations along your route to save time.</p>','New shift ↗',()=>setup(true),'result');}
+function help(){
+ if(modal==='help'){hideModal();render();return}
+ showModal('<div class="eyebrow">OPERATOR MANUAL</div><h2 id="modalTitle">Every floor. A decision.</h2><ul><li><b>Beat the clock.</b> Start with 90s. Each delivery adds 5s; each waiting passenger who leaves costs 5s. The shift ends at zero.</li><li><b>Choose who boards.</b> Capacity: 4. Stop and fully open the doors, then click individual passengers. Drop-offs are automatic.</li><li><b>Direction lock.</b> An empty lift can travel either way. With passengers aboard, choose a direction. Reverse only when empty or when no onboard destinations remain ahead.</li><li><b>Choose any stop ahead.</b> Direction lock still allows intermediate stops. While moving, select another reachable floor to change your next stop.</li><li><b>Faster operation.</b> Travel: about 0.85s per floor. Dock: 0.50s. Open: 0.50s. Close: 0.60s. Selecting a floor closes the doors and departs.</li><li><b>A gentle start.</b> For the first 75s, passengers arrive every 3.4–4.6s with 44–58s of patience. Traffic then increases gradually until 5:00, reaching 1.9–2.7s between arrivals and 32–44s of patience. Existing passengers keep their original patience.</li></ul><p>White warnings: less than 8s of patience. Onboard passengers never time out.<br>Floor badges show how many passengers need to get off there.<br>1–8: select floor · Space: pause/resume · R: restart.<br>Opening this manual or switching tabs pauses the game.</p>','Back to dispatch',()=>{hideModal();render()},'help');render();
+}
+
+function render(){
+ const frozen=s.paused||!!modal;
+ $('time').textContent=s.time.toFixed(1);$('timeMetric').classList.toggle('urgent',s.time<20);$('timeTrack').style.width=Math.min(100,s.time/90*100)+'%';
+ $('served').textContent=pad(s.served);$('missed').textContent=pad(s.missed);$('uptime').textContent=clock(s.elapsed);$('startNote').hidden=s.started;
+ $('play').textContent=s.over?'New shift ↗':!s.started?'Start shift ▶':frozen?'Resume ▶':'Pause Ⅱ';$('live').textContent=s.over?'SHIFT COMPLETE':!s.started?'SYSTEM READY':frozen?'SYSTEM PAUSED':(s.elapsed<75?'WARM-UP / LV 1':'TRAFFIC / LV '+traffic().level);
+ const floor=Math.round(s.pos),isOpen=s.phase==='open';
+ $('position').textContent=s.phase==='moving'?s.pos.toFixed(1):pad(floor);
+ $('position').classList.toggle('in-transit',s.phase==='moving');
+ $('state').textContent=s.over?'Shift complete':!s.started?'Standby':frozen?'Paused':({open:'Open / board now',closed:'Doors closed',closing:'Closing doors',moving:'In transit',docking:'Docking',opening:'Opening doors'}[s.phase]);
+ $('direction').textContent=s.dir===1?'↑':s.dir===-1?'↓':'↕';
+ $('routeNote').textContent=s.target!==null?'To '+pad(s.target)+'F / '+(s.phase==='moving'?'select a stop ahead':'departing shortly'):s.phase==='open'?'Click to board / select a floor':s.phase==='closed'?'Select floor / open doors':s.phase==='docking'||s.phase==='opening'?'Stopping at '+pad(floor)+'F':'Awaiting dispatch';
+ $('phase').style.width=(s.phase==='moving'?Math.min(100,Math.abs(s.pos-Math.round(s.pos))*200):DURATION[s.phase]?Math.min(100,s.phaseTime/DURATION[s.phase]*100):s.phase==='open'?100:0)+'%';
+ const free=freeDirection();
+ $('lockInfo').innerHTML=free?'<strong>↕ FREE DIRECTION</strong><br>'+(!s.aboard.length?'Empty lift. Travel to any floor.':s.dir===0?'First departure: choose either direction.':'No destinations ahead. You may reverse.'):'<strong>'+(s.dir>0?'↑ UPBOUND LOCK':'↓ DOWNBOUND LOCK')+'</strong><br>Any stop '+(s.dir>0?'above':'below')+' is allowed. Clear destinations ahead to reverse.';
+ $('load').textContent=s.aboard.length+' / 4';$('seats').innerHTML=Array.from({length:4},(_,i)=>s.aboard[i]?'<div class="seat filled">'+s.aboard[i].to+'F</div>':'<div class="seat">—</div>').join('');
+ $('cabInside').innerHTML=s.aboard.length?s.aboard.map(p=>'<div class="cab-person">'+personIcon+p.to+'F</div>').join(''):'<div class="cab-vacant">EMPTY</div>';
+ $('cab').style.top='calc('+(8-s.pos)*12.5+'% + 4px)';$('doorL').style.transform='translateX('+(-100*s.door)+'%)';$('doorR').style.transform='translateX('+(100*s.door)+'%)';
+ const busy=['closing','docking','opening'].includes(s.phase),inert=!s.started||s.over||frozen;
+ const alive=new Set();
+ for(let f=1;f<=8;f++){
+  const row=floorEls[f],here=Math.abs(s.pos-f)<1e-6;
+  row.classList.toggle('current',here);row.classList.toggle('target',s.target===f);
+  const destinationCount=s.aboard.filter(p=>p.to===f).length;
+  row.classList.toggle('has-dest',destinationCount>0);
+  row.querySelector('.floor-destination').textContent=destinationCount||'';
+  row.querySelector('.floor-no small').textContent=destinationCount?'DROP ×'+destinationCount:'FLOOR';
+  row.querySelector('.floor-no').title=destinationCount?f+'F / '+destinationCount+' onboard passengers to drop off':'Go to '+f+'F';
+  const key=keyEls[f],blocked=!allowed(f);
+  key.disabled=inert||busy||blocked;key.classList.toggle('here',here);key.classList.toggle('selected',s.target===f);key.classList.toggle('has-dest',s.aboard.some(p=>p.to===f));
+  key.title=blocked?'Direction locked; cannot reverse yet':'Go to '+f+'F';row.querySelector('.floor-no').disabled=key.disabled;
+  const container=row.querySelector('.waiters');
+  let empty=container.querySelector('.floor-empty');
+  if(s.waiting[f].length){if(empty)empty.remove();}else if(!empty){empty=document.createElement('span');empty.className='floor-empty';empty.textContent='— NO SIGNAL —';container.append(empty);}
+  for(const p of s.waiting[f]){
+   alive.add(p.id);let card=cards.get(p.id);
+   if(!card){card=document.createElement('button');card.innerHTML=personIcon+'<span><span class="arrow">'+(p.to>f?'↑':'↓')+'</span><span class="dest">'+p.to+'</span></span><i class="patience"></i><span class="seconds"></span>';card.onclick=()=>board(p.id,f);container.append(card);cards.set(p.id,card);}
+   card.className='passenger'+(p.to<f?' down':'')+(p.life<8?' hurry':'')+(here&&isOpen&&s.aboard.length<4&&!inert?' boardable':'');
+   card.querySelector('.patience').style.transform='scaleX('+Math.max(0,p.life/p.max)+')';card.querySelector('.seconds').textContent=Math.ceil(p.life);card.title=f+'F → '+p.to+'F / patience '+Math.ceil(p.life)+'s';card.setAttribute('aria-label',card.title+'; click to board');
+  }
+ }
+ for(const [id,el] of cards)if(!alive.has(id)){el.remove();cards.delete(id);}
+ $('openDoor').disabled=inert||!['closed','closing'].includes(s.phase);$('closeDoor').disabled=inert||!isOpen;
+}
+$('play').onclick=()=>{if(modal==='help')hideModal();start()};$('reset').onclick=()=>setup(true);$('help').onclick=help;$('openDoor').onclick=()=>operateDoor(true);$('closeDoor').onclick=()=>operateDoor(false);
+document.addEventListener('keydown',e=>{
+ if(e.ctrlKey||e.metaKey||e.altKey||e.repeat)return;
+ if(e.code==='Escape'&&modal==='help'){hideModal();render();return;}
+ if(modal)return;
+ if(e.code==='Space'){e.preventDefault();start();}else if(e.key.toLowerCase()==='r'){e.preventDefault();setup(true);}else if(/^[1-8]$/.test(e.key)){e.preventDefault();command(Number(e.key));}
+});
+document.addEventListener('visibilitychange',()=>{last=performance.now();if(document.hidden&&s.started&&!s.over){s.paused=true;render();}});
+function fitModal(){
+ if(typeof window==='undefined')return;
+ const box=document.querySelector('.modal');box.style.transform='none';
+ const rect=box.getBoundingClientRect(),h=window.visualViewport?.height||window.innerHeight,w=window.visualViewport?.width||window.innerWidth;
+ box.style.transform='scale('+Math.min(1,(h-24)/rect.height,(w-24)/rect.width)+')';
+}
+function fitViewport(){
+ if(typeof window==='undefined')return;
+ const app=document.querySelector('.app'),w=window.visualViewport?.width||window.innerWidth,h=window.visualViewport?.height||window.innerHeight;
+ const minimumHeight=w<=620?740:580,scale=Math.min(1,h/minimumHeight);
+ app.style.width=(w/scale)+'px';app.style.height=(h/scale)+'px';app.style.transform='scale('+scale+')';
+ if(modal)fitModal();
+}
+if(typeof window!=='undefined'){window.addEventListener('resize',fitViewport);window.visualViewport?.addEventListener('resize',fitViewport);fitViewport();}
+function frame(now){
+ const dt=Math.min(.2,(now-last)/1000);last=now;
+ // Short simulation slices keep deadlines and arrival events in chronological order.
+ for(let left=dt;left>1e-7;){const slice=Math.min(.025,left);step(slice);left-=slice;}
+ uiClock+=dt;if(uiClock>=.05){render();uiClock=0;}
+ if(now>toastUntil)$('toast').classList.remove('visible');if(now>deltaUntil)$('delta').classList.remove('show');
+ requestAnimationFrame(frame);
+}
+setup();requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
