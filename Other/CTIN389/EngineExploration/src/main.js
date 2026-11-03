@@ -1,3 +1,4 @@
+import { buildLevel, sizeFactor } from './levels.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Reflector } from 'three/addons/objects/Reflector.js';
@@ -33,9 +34,11 @@ pmremGenerator.dispose();
 const ballGeometry = new THREE.SphereGeometry(1, 32, 16);
 
 const ballMaterial = new THREE.MeshStandardMaterial({
-  color: '#bfcdcd',
-  roughness: 0.8,
-  metalness: 0.02,
+  color: '#e1e5e8',
+  roughness: 0.38,
+  metalness: 1,
+  envMap: environmentTarget.texture,
+  envMapIntensity: 0.72,
 });
 
 const wallMaterial = new THREE.MeshStandardMaterial({
@@ -44,11 +47,9 @@ const wallMaterial = new THREE.MeshStandardMaterial({
   metalness: 0.0,
 });
 
-const arenaHalfSize = 5;
-const wallHeight = 2;
-const wallThickness = 0.2;
-const exitHalfWidth = 0.55;
-const wallGeometries = [];
+let levelNumber = 1;
+const levelCount = 4;
+let level = buildLevel(levelNumber, scene, wallMaterial);
 
 const floorGeometry = new THREE.PlaneGeometry(1000, 1000);
 const floorMaterial = new THREE.MeshStandardMaterial({
@@ -140,26 +141,6 @@ floorMirror.rotation.x = -Math.PI / 2;
 floorMirror.position.y = -0.995;
 scene.add(floorMirror);
 
-function addWall(width, depth, x, z) {
-  const geometry = new THREE.BoxGeometry(width, wallHeight, depth);
-  const mesh = new THREE.Mesh(geometry, wallMaterial);
-  mesh.position.set(x, 0, z);
-  mesh.castShadow = true;
-  mesh.receiveShadow = true;
-  scene.add(mesh);
-  wallGeometries.push(geometry);
-}
-
-// 四面围墙，+Z 侧中央留出唯一出口。
-addWall(2 * arenaHalfSize + wallThickness, wallThickness, 0, -arenaHalfSize);
-addWall(wallThickness, 2 * arenaHalfSize + wallThickness, -arenaHalfSize, 0);
-addWall(wallThickness, 2 * arenaHalfSize + wallThickness, arenaHalfSize, 0);
-const wallOuterEdge = arenaHalfSize + wallThickness / 2;
-const exitWallSegmentWidth = wallOuterEdge - exitHalfWidth;
-const exitWallSegmentX = (wallOuterEdge + exitHalfWidth) / 2;
-addWall(exitWallSegmentWidth, wallThickness, -exitWallSegmentX, arenaHalfSize);
-addWall(exitWallSegmentWidth, wallThickness, exitWallSegmentX, arenaHalfSize);
-
 const ball = new THREE.Mesh(ballGeometry, ballMaterial);
 ball.castShadow = true;
 scene.add(ball);
@@ -191,6 +172,7 @@ controls.maxPolarAngle = Math.PI / 2;
 controls.update();
 
 const pressedKeys = new Set();
+const heldSkipKeys = new Set();
 const movement = new THREE.Vector2();
 const velocity = new THREE.Vector2();
 const cameraForward = new THREE.Vector3();
@@ -200,7 +182,8 @@ const resetButton = document.querySelector('#reset-button');
 const nextLevelButton = document.querySelector('#next-level-button');
 const movementAcceleration = 18;
 const maximumSpeed = 5;
-const wallBounce = 0.35;
+
+const hud = document.querySelector('#level-status');
 const impactCooldownDuration = 0.25;
 const transitionDuration = 0.65;
 let impactCooldown = 0;
@@ -211,6 +194,8 @@ let transitionElapsed = 0;
 
 // 游戏重置：恢复球体、摄像机和移动状态。
 function resetGame() {
+  level.dispose();
+  level = buildLevel(levelNumber, scene, wallMaterial);
   gameState = 'playing';
   impactCount = 0;
   impactCooldown = 0;
@@ -218,9 +203,10 @@ function resetGame() {
   pressedKeys.clear();
   ball.visible = true;
   ball.scale.setScalar(1);
-  ball.position.set(0, 0, 0);
+  ball.position.set(-level.spawn[0], 0, -level.spawn[1]);
+  controls.maxDistance = Math.max(50,initialCameraPosition.length()*cameraScale()*1.2);
   controls.target.set(0, 0, 0);
-  camera.position.copy(initialCameraPosition);
+  camera.position.copy(initialCameraPosition).multiplyScalar(cameraScale());
   camera.lookAt(0, 0, 0);
   controls.update();
 }
@@ -228,6 +214,14 @@ function resetGame() {
 // 输入控制：WASD / 方向键控制球体。
 function onKeyDown(event) {
   const key = event.key.toLowerCase();
+  if (key === '6' || key === '7') {
+    heldSkipKeys.add(key);
+    if (heldSkipKeys.has('6') && heldSkipKeys.has('7')) {
+      event.preventDefault();
+      if (!event.repeat) skipLevel();
+    }
+  }
+  if (key === 'r' && !event.repeat && gameState === 'playing' && !transitionPhase) resetGame();
   if (gameState === 'playing'
     && ['w', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
     event.preventDefault();
@@ -236,14 +230,22 @@ function onKeyDown(event) {
 }
 
 function onKeyUp(event) {
-  pressedKeys.delete(event.key.toLowerCase());
+  const key = event.key.toLowerCase();
+  pressedKeys.delete(key);
+  heldSkipKeys.delete(key);
 }
 
 function clearPressedKeys() {
   pressedKeys.clear();
+  heldSkipKeys.clear();
 }
 
-// 胜利菜单：重置按钮重新开始，下一关暂时保留为空操作。
+function skipLevel() {
+  if (gameState !== 'playing' || transitionPhase !== null) return;
+  beginTransition('won');
+}
+
+// 胜利菜单：进入下一关；全部通关后从第一关重来。
 function resetFromVictory() {
   resetGame();
   victoryMenu.hidden = true;
@@ -256,9 +258,17 @@ function resetFromVictory() {
 
 function onNextLevelClick(event) {
   event.preventDefault();
+  levelNumber++;
+  resetFromVictory();
 }
 
-resetButton.addEventListener('click', resetFromVictory);
+function onResetClick(event) {
+  event.preventDefault();
+  levelNumber = 1;
+  resetFromVictory();
+}
+
+resetButton.addEventListener('click', onResetClick);
 nextLevelButton.addEventListener('click', onNextLevelClick);
 
 window.addEventListener('keydown', onKeyDown);
@@ -266,12 +276,23 @@ window.addEventListener('keyup', onKeyUp);
 window.addEventListener('blur', clearPressedKeys);
 
 // 碰撞与失败判定：受击缩小，达到次数上限后开始黑屏重置转场。
+// Brian MacIntosh, Metal Impact Sounds (CC0): https://opengameart.org/content/metal-impact-sounds
+const impactSound = new Audio(new URL('../assets/audio/bing1.wav', import.meta.url));
+impactSound.preload = 'auto';
+impactSound.volume = 0.18;
+
+// 胜利音效：来自 https://www.bilibili.com/video/BV1ECaN6cEuo 的前 1 秒。
+const victorySound = new Audio(new URL('../assets/audio/victory.mp3', import.meta.url));
+victorySound.preload = 'auto';
+
 function shrinkAfterImpact() {
   if (impactCooldown > 0 || gameState !== 'playing') return;
 
   impactCooldown = impactCooldownDuration;
   impactCount += 1;
-  ball.scale.multiplyScalar(0.82);
+  impactSound.currentTime = 0;
+  impactSound.play().catch(() => {});
+  ball.scale.multiplyScalar(sizeFactor);
   ball.position.y = -1 + ballGeometry.parameters.radius * ball.scale.y;
 
   if (impactCount >= 5) {
@@ -305,55 +326,29 @@ function updatePlayer(delta) {
   velocity.multiplyScalar(Math.exp(-2.2 * delta));
   if (velocity.length() > maximumSpeed) velocity.setLength(maximumSpeed);
 
-  const radius = ballGeometry.parameters.radius * ball.scale.x;
-  const nextX = ball.position.x + velocity.x * delta;
-  const nextZ = ball.position.z + velocity.y * delta;
-  const wallInnerEdge = arenaHalfSize - wallThickness / 2;
-  const centerLimit = wallInnerEdge - radius;
-  let hitWall = false;
-
-  if (nextX < -centerLimit) {
-    ball.position.x = -centerLimit;
-    velocity.x = Math.abs(velocity.x) * wallBounce;
-    hitWall = true;
-  } else if (nextX > centerLimit) {
-    ball.position.x = centerLimit;
-    velocity.x = -Math.abs(velocity.x) * wallBounce;
-    hitWall = true;
-  } else {
-    ball.position.x = nextX;
+  const steps = Math.max(1, Math.ceil(delta * 120));
+  const dt = delta / steps;
+  for (let i = 0; i < steps && gameState === 'playing'; i++) {
+    level.advance(dt);
+    ball.position.x += velocity.x * dt;
+    ball.position.z += velocity.y * dt;
+    if (level.collide(ball,velocity)) shrinkAfterImpact();
+    const message = level.press(ball,impactCount);
+    const status = message || ('Level ' + levelNumber + ' / ' + levelCount);
+    if (hud.textContent !== status) hud.textContent = status;
+    if (gameState === 'playing' && level.escaped(ball)) beginTransition('won');
   }
-
-  const fitsExit = radius * 2 < exitHalfWidth * 2
-    && Math.abs(ball.position.x) + radius < exitHalfWidth;
-  if (nextZ > centerLimit && fitsExit) {
-    ball.position.z = nextZ;
-    if (ball.position.z - radius > wallOuterEdge) {
-      gameState = 'won';
-      velocity.set(0, 0);
-      pressedKeys.clear();
-      beginTransition('won');
-    }
-  } else if (nextZ < -centerLimit) {
-    ball.position.z = -centerLimit;
-    velocity.y = Math.abs(velocity.y) * wallBounce;
-    hitWall = true;
-  } else if (nextZ > centerLimit) {
-    ball.position.z = centerLimit;
-    velocity.y = -Math.abs(velocity.y) * wallBounce;
-    hitWall = true;
-  } else {
-    ball.position.z = nextZ;
-  }
-
-  if (hitWall) shrinkAfterImpact();
 }
 
-// 胜负转场：成功在白屏下重置，失败在黑屏下重置。
+// 胜负转场：成功停留在白屏菜单，失败在黑屏下重置。
 function beginTransition(result) {
   gameState = result;
   transitionPhase = result === 'won' ? 'white-in' : 'black-in';
   transitionElapsed = 0;
+  if (result === 'won') {
+    victorySound.currentTime = 0;
+    victorySound.play().catch(() => {});
+  }
 }
 
 function resetUnderBlack() {
@@ -368,6 +363,9 @@ function resetUnderWhite() {
   transitionOverlay.style.backgroundColor = '#fff';
   transitionOverlay.style.opacity = '1';
   transitionOverlay.setAttribute('aria-hidden', 'false');
+  const isLastLevel = levelNumber === levelCount;
+  resetButton.style.display = isLastLevel ? '' : 'none';
+  nextLevelButton.style.display = isLastLevel ? 'none' : '';
   victoryMenu.hidden = false;
   transitionPhase = null;
 }
@@ -407,11 +405,16 @@ function updateTransition(delta) {
 }
 
 // 画布适配：窗口尺寸变化时更新相机比例和渲染尺寸。
+function cameraScale() {
+  return Math.max(1,level.extent[1]/7,level.extent[0]/(8*camera.aspect));
+}
 function resize() {
   const width = canvas.clientWidth;
   const height = canvas.clientHeight;
   camera.aspect = width / height;
   camera.updateProjectionMatrix();
+  controls.maxDistance = Math.max(50,initialCameraPosition.length()*cameraScale()*1.2);
+  camera.position.copy(initialCameraPosition).multiplyScalar(cameraScale());
   renderer.setSize(width, height, false);
 }
 window.addEventListener('resize', resize);
