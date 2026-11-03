@@ -1,0 +1,87 @@
+:root {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #285c60;
+  background: #eaf8fa;
+  font-synthesis: none;
+}
+
+* { box-sizing: border-box; }
+
+body { margin: 0; overflow: hidden; }
+
+#scene {
+  display: block;
+  width: 100vw;
+  height: 100dvh;
+  touch-action: none;
+}
+
+#transition-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  background: #000;
+  opacity: 0;
+  pointer-events: none;
+}
+
+#victory-menu {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  display: flex;
+  gap: 1.5rem;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+}
+
+#victory-menu button {
+  display: grid;
+  width: 5rem;
+  height: 5rem;
+  padding: 0;
+  place-items: center;
+  border: 1px solid #6eaaa5;
+  border-radius: 50%;
+  background: transparent;
+  color: #477d79;
+  cursor: pointer;
+  transition: color 160ms ease, background-color 160ms ease;
+}
+
+#victory-menu button svg {
+  width: 2.2rem;
+  height: 2.2rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.5;
+}
+
+#reset-button svg {
+  width: 2.45rem;
+  height: 2.45rem;
+  fill: currentColor;
+  stroke: none;
+}
+
+#victory-menu button:hover,
+#victory-menu button:focus-visible {
+  background: #e7f4f1;
+  color: #285c60;
+  outline: none;
+}
+
+#victory-menu button:focus-visible {
+  outline: 1px solid #6eaaa5;
+  outline-offset: 4px;
+}
+
+#victory-menu[hidden] {
+  display: none;
+}
+
+@media (max-width: 420px) {
+  #victory-menu { gap: 1rem; }
+}
