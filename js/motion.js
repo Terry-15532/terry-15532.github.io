@@ -4350,7 +4350,7 @@ void main() {
         const gl = canvas.getContext('webgl', {
             alpha: true,
             antialias: true,
-            premultipliedAlpha: false,
+            premultipliedAlpha: true,
             powerPreference: 'low-power'
         });
 
@@ -4585,7 +4585,7 @@ void main() {
     float alpha = line * uAlpha;
 
     gl_FragColor =
-        vec4(uAccent, alpha);
+        vec4(uAccent * alpha, alpha);
 }
 `;
 
@@ -4693,12 +4693,9 @@ void main() {
             window.__useSystemCursor = false;
         }
 
-        // This fullscreen pass writes straight-alpha pixels to a canvas
-        // created with premultipliedAlpha: false. Blending onto transparent
-        // black here multiplies RGB by alpha and alpha by itself; the browser
-        // then composites that mismatched result again, causing pale/neon
-        // contours (and different results across browser compositors).
-        // Write the shader output directly and let the browser composite once.
+        // Match the browser compositor's native premultiplied-alpha format.
+        // Transparent pixels must carry zero RGB, not the full green accent.
+        // This single fullscreen pass needs no additional framebuffer blend.
         gl.disable(gl.BLEND);
 
         gl.clearColor(0, 0, 0, 0);
@@ -4764,7 +4761,7 @@ void main() {
                 dark ? 0.22 : 0.28
             );
 
-            // Straight-alpha theme accent, composited once by the browser.
+            // Theme accent is premultiplied in the shader before compositing.
             gl.uniform3f(
                 accentLocation,
                 0,
