@@ -4760,7 +4760,7 @@ void main() {
                 // theme accent remains green, but its background opacity is
                 // intentionally restrained so the lines do not read as a
                 // foreground wireframe.
-                dark ? 0.22 : 0.16
+                dark ? 0.22 : 0.28
             );
 
             // Keep the contour field aligned with the site's theme accent.
