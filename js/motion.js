@@ -4379,6 +4379,7 @@ uniform vec2 uRes;
 uniform float uTime;
 uniform float uAlpha;
 uniform float uScroll;
+uniform vec3 uAccent;
 
 vec3 mod289(vec3 x) {
     return x - floor(x * (1.0 / 289.0)) * 289.0;
@@ -4581,18 +4582,10 @@ void main() {
         );
 #endif
 
-    /*
-     * Both theme accents share the same hue once normalized to maximum
-     * luminance. Keep the source colour fully bright and control visual
-     * strength only through alpha so overlaps with the green orbs brighten
-     * naturally through normal compositing.
-     */
-    vec3 accent = vec3(0.0, 1.0, 0.25);
-
     float alpha = line * uAlpha;
 
     gl_FragColor =
-        vec4(accent, alpha);
+        vec4(uAccent, alpha);
 }
 `;
 
@@ -4680,6 +4673,9 @@ void main() {
         const scrollLocation =
             gl.getUniformLocation(program, 'uScroll');
 
+        const accentLocation =
+            gl.getUniformLocation(program, 'uAccent');
+
         let scrollY = 0;
 
         window.addEventListener(
@@ -4761,6 +4757,17 @@ void main() {
             gl.uniform1f(
                 alphaLocation,
                 dark ? 0.52 : 0.33
+            );
+
+            // Keep the contour field aligned with the site's theme accent.
+            // The previous shader used one hard-coded neon green for both
+            // themes, which made the light theme read as gray/muted after
+            // compositing against its pale background.
+            gl.uniform3f(
+                accentLocation,
+                0,
+                dark ? 204 / 255 : 138 / 255,
+                dark ? 51 / 255 : 34 / 255
             );
 
             gl.uniform1f(

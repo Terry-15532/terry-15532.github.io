@@ -5,7 +5,7 @@
     --text-secondary: #4c564d;
     /* Accent: deep green (light mode) */
     --accent-cyan: #008A22;
-    --accent-cyan-rgb: 150, 150, 150;
+    --accent-cyan-rgb: 0, 138, 34;
     --cursor-color: #008A22;
     --accent: var(--accent-cyan);
     --accent-rgb: 0, 138, 34;
