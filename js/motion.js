@@ -4693,12 +4693,13 @@ void main() {
             window.__useSystemCursor = false;
         }
 
-        gl.enable(gl.BLEND);
-
-        gl.blendFunc(
-            gl.SRC_ALPHA,
-            gl.ONE_MINUS_SRC_ALPHA
-        );
+        // This fullscreen pass writes straight-alpha pixels to a canvas
+        // created with premultipliedAlpha: false. Blending onto transparent
+        // black here multiplies RGB by alpha and alpha by itself; the browser
+        // then composites that mismatched result again, causing pale/neon
+        // contours (and different results across browser compositors).
+        // Write the shader output directly and let the browser composite once.
+        gl.disable(gl.BLEND);
 
         gl.clearColor(0, 0, 0, 0);
 
@@ -4763,10 +4764,7 @@ void main() {
                 dark ? 0.22 : 0.28
             );
 
-            // Keep the contour field aligned with the site's theme accent.
-            // The previous shader used one hard-coded neon green for both
-            // themes, which made the light theme read as gray/muted after
-            // compositing against its pale background.
+            // Straight-alpha theme accent, composited once by the browser.
             gl.uniform3f(
                 accentLocation,
                 0,
