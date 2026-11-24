@@ -4756,7 +4756,11 @@ void main() {
 
             gl.uniform1f(
                 alphaLocation,
-                dark ? 0.52 : 0.33
+                // Keep the contour field subordinate to the content. The
+                // theme accent remains green, but its background opacity is
+                // intentionally restrained so the lines do not read as a
+                // foreground wireframe.
+                dark ? 0.22 : 0.16
             );
 
             // Keep the contour field aligned with the site's theme accent.
